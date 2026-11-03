@@ -98,10 +98,17 @@ table{font-size:10.5px}
 .credit{margin-top:12px;border:2px solid var(--ac);border-radius:10px;padding:12px;text-align:center}.credit p{margin:2px 0}.credit .ct{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--mu);font-weight:700}.credit .nm{font:700 20px Georgia,serif}
 #toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:#1b231e;color:#fff;padding:10px 16px;border-radius:8px;font-size:14px;max-width:90vw;z-index:50}
 #toast[hidden]{display:none}
-.lg{display:flex;align-items:center;gap:12px}.lg svg{width:62px;height:62px;flex:none}.lg p{margin:2px 0 0}.lgbig{text-align:center}.lgbig svg{width:84px;height:84px}
+.lg{display:flex;align-items:center;gap:12px}#logo{cursor:pointer;border-radius:10px;width:fit-content}#logo:focus-visible{outline:2px solid var(--ac);outline-offset:3px}
+.home h2{font-size:20px;line-height:1.35}.home h2 span{display:block;font:600 15px system-ui,sans-serif;margin-top:6px;color:var(--mu)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;margin-top:18px}
+.tile{display:flex;align-items:center;gap:10px;padding:14px 16px;font-size:15px;text-align:left;border-radius:8px}
+.tile b{display:inline-flex;width:26px;height:26px;border-radius:50%;background:var(--sf);color:var(--ac);align-items:center;justify-content:center;font-size:13px;flex:none}
+td input[type=number]{-moz-appearance:textfield;appearance:textfield}
+td input[type=number]::-webkit-outer-spin-button,td input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.idp label{font-weight:600;color:var(--tx)}.idp input,.idp select{font-weight:600}.lg svg{width:62px;height:62px;flex:none}.lg p{margin:2px 0 0}.lgbig{text-align:center}.lgbig svg{width:84px;height:84px}
 </style></head>
 <body>
-<header><div class="lg"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Logo LoCoREB"><rect width="64" height="64" rx="14" fill="#1d5c3e"/><rect x="14" y="26" width="9" height="11" rx="2" fill="#fff"/><rect x="27.5" y="19" width="9" height="18" rx="2" fill="#fff"/><rect x="41" y="11" width="9" height="26" rx="2" fill="#fff"/><rect x="11" y="40" width="42" height="3" rx="1.5" fill="#c1121f"/><text x="32" y="56" text-anchor="middle" textLength="52" lengthAdjust="spacingAndGlyphs" font-family="Arial,Helvetica,sans-serif" font-size="12.5" font-weight="700" fill="#fff">LoCoREB</text></svg><div><h1>LoCoREB</h1><p>Logiciel de Compilation des Résultats des Examens Blancs</p></div></div>
+<header><div class="lg" id="logo" role="button" tabindex="0" title="Retour à l’accueil" aria-label="Retour à l’accueil" onclick="go('ac')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();go('ac')}"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Logo LoCoREB"><rect width="64" height="64" rx="14" fill="#1d5c3e"/><rect x="14" y="26" width="9" height="11" rx="2" fill="#fff"/><rect x="27.5" y="19" width="9" height="18" rx="2" fill="#fff"/><rect x="41" y="11" width="9" height="26" rx="2" fill="#fff"/><rect x="11" y="40" width="42" height="3" rx="1.5" fill="#c1121f"/><text x="32" y="56" text-anchor="middle" textLength="52" lengthAdjust="spacingAndGlyphs" font-family="Arial,Helvetica,sans-serif" font-size="12.5" font-weight="700" fill="#fff">LoCoREB</text></svg><div><h1>LoCoREB</h1><p>Logiciel de Compilation des Résultats des Examens Blancs</p></div></div>
 <nav>
 <button data-t="id" onclick="go('id')">Identification</button>
 <button data-t="ec" onclick="go('ec')">Saisie des écoles</button>
@@ -126,7 +133,7 @@ try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){S=null}
 S=S||{};
 S.id=S.id||{};S.schools=S.schools||[];S.ex=S.ex||{};S.meta=S.meta||{};
 S.disc=S.disc||["Dictée","Questions de dictée","Rédaction","Mathématiques","Lecture"];
-S.ui=S.ui||{tab:"id",n:1,school:"",a:1,b:2,scope:""};
+S.ui=S.ui||{tab:"ac",n:1,school:"",a:1,b:2,scope:""};
 const $=i=>document.getElementById(i);
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
 const esc=s=>String(s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -216,11 +223,16 @@ const pdf=`<button class="bt np" onclick="exportPdf()">Exporter en PDF</button>`
 function pgId(){
  const f=(k,l)=>`<label>${l}<input value="${esc(S.id[k])}" oninput="S.id[k='${k}']=this.value;save()"></label>`;
  const sx=(k,l)=>`<label>${l}<select onchange="S.id.${k}=this.value;save()"><option value=""></option>${["F","M"].map(v=>`<option${S.id[k]==v?" selected":""}>${v}</option>`).join("")}</select></label>`;
- return `<div class="card"><h2>IDENTIFICATION</h2><p style="text-align:center;margin:0 0 14px"><b>MEBAPLN</b></p>
+ return `<div class="card idp"><h2>IDENTIFICATION</h2><p style="text-align:center;margin:0 0 14px"><b>MEBAPLN</b></p>
 <div class="grid">${f("dreppnf","DREPPNF")}${f("dpeppnf","DPEPPNF")}${f("ceb","CEB")}${f("cceb","Nom et prénom du CCEB")}${sx("ccebs","Sexe du CCEB")}${f("ccebt","Emploi ou titre honorifique du CCEB")}${f("rb","Nom et prénom du R/BEPrim")}${sx("rbs","Sexe du/de la R/BEPrim")}${f("rbt","Emploi ou titre honorifique du/de la R/BEPrim")}${f("lieu","Fait à")}<label>Le<input type="date" value="${esc(S.id.date||today())}" oninput="S.id.date=this.value;save()"></label></div></div>
 <div class="card"><button class="bt" onclick="go('ec')">Passer à la saisie des écoles</button></div>
 <div class="card"><h3>Sauvegarde des données</h3><p class="mu">Enregistrez un fichier de sauvegarde après chaque séance de saisie, et restaurez-le sur un autre appareil ou après un effacement du navigateur.</p>
-<div class="ctl"><button class="bt" onclick="sauver()">Sauvegarder (fichier)</button><label class="bt" style="margin:0">Restaurer un fichier<input type="file" accept=".json" hidden onchange="restaurer(this)"></label></div></div>${licHtml()}<div class="card">${credit()}</div>`}
+<div class="ctl"><button class="bt" onclick="sauver()">Sauvegarder (fichier)</button><label class="bt" style="margin:0">Restaurer un fichier<input type="file" accept=".json" hidden onchange="restaurer(this)"></label></div></div>`}
+function pgAc(){
+ const B=[["id","Identification"],["ec","Saisie des écoles"],["di","Saisie des disciplines"],["sa","Saisie des résultats"],["re","Résultats"],["me","Ordre de mérite"],["cp","Comparatif"]];
+ const logo=document.querySelector("header .lg svg").outerHTML;
+ return `<div class="card home"><div class="lgbig">${logo}</div><h2>BIENVENUE SUR LoCoREB,<span>le Logiciel de Compilation des Résultats des Examens Blancs.</span></h2>
+<div class="tiles">${B.map((x,i)=>`<button class="bt tile" onclick="go('${x[0]}')"><b>${i+1}</b>${x[1]}</button>`).join("")}</div></div>${licHtml()}<div class="card">${credit()}</div>`}
 function pgEc(){
  return `<div class="card"><h2>SAISIE DES ÉCOLES DE LA CEB</h2>
 <label>Une école par ligne<textarea style="min-height:220px" onchange="S.schools.sort((a,b)=>a.localeCompare(b,'fr'));this.value=S.schools.join(String.fromCharCode(10));save()" oninput="S.schools=this.value.split(/\\n/).map(s=>s.trim()).filter(Boolean);save()">${esc(S.schools.join("\n"))}</textarea></label>
@@ -350,7 +362,7 @@ function copyId(id){
  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(id).then(ok,fb);else fb()}
 function licBanner(){
  const L=licInfo();if(!L||L.bloque||L.jours>30)return "";
- return `<div class="banner np"><p>L’application expire le ${fmtDate(L.until)}${L.jours>0?" (dans "+L.jours+" jour"+(L.jours>1?"s":"")+")":" (aujourd’hui)"}.</p><button class="bt" onclick="go('id')">Prolonger</button></div>`}
+ return `<div class="banner np"><p>L’application expire le ${fmtDate(L.until)}${L.jours>0?" (dans "+L.jours+" jour"+(L.jours>1?"s":"")+")":" (aujourd’hui)"}.</p><button class="bt" onclick="go('ac')">Prolonger</button></div>`}
 function licHtml(){
  const L=licInfo();if(!L||L.bloque)return "";
  const n=L.jours;
@@ -567,11 +579,12 @@ function go(t){S.ui.tab=t;save();R()}
 function R(){
  const u=S.ui,nav=document.querySelector("nav"),L=licInfo();
  if(L.bloque){nav.style.display="none";$("app").innerHTML=lockHtml(L);window.scrollTo(0,0);return}
- nav.style.display="";
+ nav.style.display=u.tab=="ac"?"none":"";
  S.schools.sort((a,b)=>a.localeCompare(b,"fr"));
  if(!S.schools.includes(u.school))u.school=S.schools[0]||"";
- $("app").innerHTML=licBanner()+{id:pgId,ec:pgEc,di:pgDi,sa:pgSa,re:pgRe,me:pgMe,cp:pgCp}[u.tab]();
+ $("app").innerHTML=licBanner()+{ac:pgAc,id:pgId,ec:pgEc,di:pgDi,sa:pgSa,re:pgRe,me:pgMe,cp:pgCp}[u.tab]();
  document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.t==u.tab));
  if(u.tab=="sa")refresh(true);window.scrollTo(0,0)}
+S.ui.tab="ac";
 R();
 </script></body></html>
