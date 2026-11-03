@@ -78,6 +78,7 @@ td input{width:62px;text-align:center;padding:4px}
 td.c{font-variant-numeric:tabular-nums}
 tr.tot td,tr.tot th{font-weight:700;background:var(--hd)}
 .hd{font-size:13px;line-height:1.5;margin-bottom:6px}
+.hdt{width:100%;border-collapse:collapse;font-size:inherit}.hdt td{border:0;padding:0;text-align:left;vertical-align:top}.hdt td.hr{text-align:center;white-space:nowrap;width:1%;padding-left:16px}
 .sig{margin-top:28px;break-inside:avoid}
 .sg{display:flex;justify-content:space-between;margin-top:8px;gap:20px}
 .sg div{min-width:200px;text-align:center;padding-top:6px}
@@ -215,7 +216,7 @@ function validate(x){
 
 const exSel=k=>`<select class="np" aria-label="Examen blanc" onchange="S.ui.${k}=+this.value;save();R()">${[1,2,3,4,5,6].map(i=>`<option value="${i}"${S.ui[k]==i?" selected":""}>Examen blanc n°${i}</option>`).join("")}</select>`;
 const title=n=>`<h2>RÉSULTATS DE L’EXAMEN BLANC N°${n} – NIVEAU ${esc(E(n).niveau)}</h2>`;
-const hd=()=>{const I=S.id;return `<div class="hd"><b>MEBAPLN</b><br>DREPPNF : ${esc(I.dreppnf)}<br>DPEPPNF : ${esc(I.dpeppnf)}<br>CEB : ${esc(I.ceb)}</div>`};
+const hd=()=>{const I=S.id;return `<div class="hd"><table class="hdt"><tr><td class="hl"><b>MEBAPLN</b><br>DREPPNF : ${esc(I.dreppnf)}<br>DPEPPNF : ${esc(I.dpeppnf)}<br>CEB : ${esc(I.ceb)}</td><td class="hr"><b>Burkina Faso</b><br>La Partie ou la Mort, nous Vaincrons.<br>Année scolaire : ${esc(I.annee)}</td></tr></table></div>`};
 const sig=()=>{const I=S.id,d=(I.date||today()).split("-").reverse().join("/");
  return `<div class="sig">Fait à ${esc(I.lieu)||"……"}, le ${d}<div class="sg"><div>${I.rbs=="F"?"La":I.rbs=="M"?"Le":"Le/la"} R/BEPrim<i></i>${esc(I.rb)}${I.rbt?"<br>"+esc(I.rbt):""}</div><div>${I.ccebs=="F"?"La":I.ccebs=="M"?"Le":"Le/la"} CCEB<i></i>${esc(I.cceb)}${I.ccebt?"<br>"+esc(I.ccebt):""}</div></div></div>`};
 const pdf=`<button class="bt np" onclick="exportPdf()">Exporter en PDF</button>`;
@@ -224,7 +225,7 @@ function pgId(){
  const f=(k,l)=>`<label>${l}<input value="${esc(S.id[k])}" oninput="S.id[k='${k}']=this.value;save()"></label>`;
  const sx=(k,l)=>`<label>${l}<select onchange="S.id.${k}=this.value;save()"><option value=""></option>${["F","M"].map(v=>`<option${S.id[k]==v?" selected":""}>${v}</option>`).join("")}</select></label>`;
  return `<div class="card idp"><h2>IDENTIFICATION</h2><p style="text-align:center;margin:0 0 14px"><b>MEBAPLN</b></p>
-<div class="grid">${f("dreppnf","DREPPNF")}${f("dpeppnf","DPEPPNF")}${f("ceb","CEB")}${f("cceb","Nom et prénom du CCEB")}${sx("ccebs","Sexe du CCEB")}${f("ccebt","Emploi ou titre honorifique du CCEB")}${f("rb","Nom et prénom du R/BEPrim")}${sx("rbs","Sexe du/de la R/BEPrim")}${f("rbt","Emploi ou titre honorifique du/de la R/BEPrim")}${f("lieu","Fait à")}<label>Le<input type="date" value="${esc(S.id.date||today())}" oninput="S.id.date=this.value;save()"></label></div></div>
+<div class="grid">${f("annee","Année scolaire")}${f("dreppnf","DREPPNF")}${f("dpeppnf","DPEPPNF")}${f("ceb","CEB")}${f("cceb","Nom et prénom du CCEB")}${sx("ccebs","Sexe du CCEB")}${f("ccebt","Emploi ou titre honorifique du CCEB")}${f("rb","Nom et prénom du R/BEPrim")}${sx("rbs","Sexe du/de la R/BEPrim")}${f("rbt","Emploi ou titre honorifique du/de la R/BEPrim")}${f("lieu","Fait à")}<label>Le<input type="date" value="${esc(S.id.date||today())}" oninput="S.id.date=this.value;save()"></label></div></div>
 <div class="card"><button class="bt" onclick="go('ec')">Passer à la saisie des écoles</button></div>
 <div class="card"><h3>Sauvegarde des données</h3><p class="mu">Enregistrez un fichier de sauvegarde après chaque séance de saisie, et restaurez-le sur un autre appareil ou après un effacement du navigateur.</p>
 <div class="ctl"><button class="bt" onclick="sauver()">Sauvegarder (fichier)</button><label class="bt" style="margin:0">Restaurer un fichier<input type="file" accept=".json" hidden onchange="restaurer(this)"></label></div></div>`}
@@ -435,7 +436,8 @@ const RED=[193,18,31],INK=[20,20,20],GRID=[110,110,110],HEADFILL=[226,235,228];
 function buildPdf(cards){
  const doc=new MiniPDF({orientation:"landscape"}),W=297,H=210,M=10,BOT=H-M-4,AV=W-2*M;
  let y=M,pg=1;
- const foot=()=>{doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(110,110,110);doc.text("LoCoREB – page "+pg,W-M,H-6,{align:"right"});doc.setTextColor(...INK)};
+ const dn=new Date(),STAMP=p2(dn.getDate())+"/"+p2(dn.getMonth()+1)+"/"+dn.getFullYear()+" à "+p2(dn.getHours())+":"+p2(dn.getMinutes())+":"+p2(dn.getSeconds());
+ const foot=()=>{doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(110,110,110);doc.text("Généré par LoCoREB",M,H-6);doc.text("Page "+pg,W/2,H-6,{align:"center"});doc.text(STAMP,W-M,H-6,{align:"right"});doc.setTextColor(...INK)};
  const np=()=>{foot();doc.addPage();pg++;y=M};
  const need=h=>{if(y+h>BOT)np()};
  doc.setTextColor(...INK);
@@ -518,7 +520,12 @@ function buildPdf(cards){
   if(el.classList.contains("np")||el.id==="vmsg")return;
   const tag=el.tagName,ctr=el.style.textAlign==="center";
   if(el.classList.contains("hd")){
-   el.innerHTML.split(/<br\s*\/?>/i).forEach((h,i)=>{const t=document.createElement("div");t.innerHTML=h;para(t.textContent,10,i===0,"left",INK,0.3)});y+=3}
+   const y0=y,lh0=10*0.3528*1.35,spl=n=>n.innerHTML.split(/<br\s*\/?>/i).map(h=>{const t=document.createElement("div");t.innerHTML=h;return pdfT(t.textContent)});
+   spl(el.querySelector(".hl")).forEach((t,i)=>para(t,10,i===0,"left",INK,0.3));
+   const R=spl(el.querySelector(".hr"));let wm=0;
+   R.forEach((t,i)=>{doc.setFont("helvetica",i===0?"bold":"normal");doc.setFontSize(10);wm=Math.max(wm,doc.getTextWidth(t))});
+   R.forEach((t,i)=>{doc.setFont("helvetica",i===0?"bold":"normal");doc.setFontSize(10);doc.setTextColor(...INK);doc.text(t,W-M-wm/2,y0+lh0*(i+1)-lh0*0.25+0.3*i,{align:"center"})});
+   y+=3}
   else if(tag==="H2"){y+=1;para(el.textContent,13,true,"center",INK,2.5)}
   else if(tag==="H3"){need(26);y+=1;para(el.textContent,11,true,ctr?"center":"left",INK,1.5)}
   else if(tag==="P"){el.classList.contains("mu")?para(el.textContent,8.5,false,"left",[70,70,70],1):para(el.textContent,10,false,ctr?"center":"left",INK,1)}
@@ -536,27 +543,29 @@ function buildPdf(cards){
  return doc}
 
 function pdfFileName(){
- const u=S.ui,t=u.tab,n=u.n,ex=i=>"Examen blanc n"+i;
- if(t==="sa")return safeName("LoCoREB_"+u.school+"_"+ex(n))+".pdf";
- if(t==="re")return safeName("LoCoREB_Résultats CEB_"+ex(n))+".pdf";
- if(t==="me"){const c=u.crit===""||u.crit===undefined||!S.disc[+u.crit]?"global":S.disc[+u.crit];return safeName("LoCoREB_Ordre de mérite_"+ex(n)+"_"+c)+".pdf"}
- if(t==="cp")return safeName("LoCoREB_Comparatif_EB"+u.a+"_EB"+u.b+(u.scope?"_"+u.scope:""))+".pdf";
- return "LoCoREB.pdf"}
+ const u=S.ui,t=u.tab,n=u.n,ex=i=>"Examen blanc n"+i+"_Niveau "+E(i).niveau,cb=String(S.id.ceb||"").trim(),P=safeName(!cb?"CEB":/^ceb\b/i.test(cb)?cb:"CEB "+cb);
+ if(t==="sa")return safeName(P+"_"+u.school+"_"+ex(n))+".pdf";
+ if(t==="re")return safeName(P+"_Résultats CEB_"+ex(n))+".pdf";
+ if(t==="me"){const c=u.crit===""||u.crit===undefined||!S.disc[+u.crit]?"global":S.disc[+u.crit];return safeName(P+"_Ordre de mérite_"+ex(n)+"_"+c)+".pdf"}
+ if(t==="cp")return safeName(P+"_Comparatif_EB"+u.a+"_EB"+u.b+"_Niveau "+(E(u.a).niveau==E(u.b).niveau?E(u.a).niveau:E(u.a).niveau+"-"+E(u.b).niveau)+(u.scope?"_"+u.scope:""))+".pdf";
+ return P+".pdf"}
 function exportPdf(){
  const cards=[...new Set([...document.querySelectorAll("#app .hd")].map(h=>h.closest(".card")))];
  if(!cards.length){toast("Aucun document à exporter sur cette page.");return}
- try{saveBlob(buildPdf(cards).output(),pdfFileName())}catch(e){toast("Le PDF n’a pas pu être créé : "+(e&&e.message||e))}}
+ try{saveBlob(buildPdf(cards).output(),pdfFileName(),true)}catch(e){toast("Le PDF n’a pas pu être créé : "+(e&&e.message||e))}}
 
 /* Enregistrement d'un fichier : application Windows (boîte « Enregistrer sous »), APK (partage Android) ou navigateur (téléchargement) */
-async function saveBlob(blob,name){
+async function saveBlob(blob,name,ouvrir){
  try{
   if(window.Pont&&window.Pont.enregistrer){
    const b64=await new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>{const s=String(fr.result);res(s.slice(s.indexOf(",")+1))};fr.onerror=rej;fr.readAsDataURL(blob)});
    const r=await window.Pont.enregistrer(name,blob.type||"application/octet-stream",b64);
    if(r&&r.annule)return;
+   if(ouvrir&&r&&r.chemin&&window.Pont.ouvrir){try{await window.Pont.ouvrir(r.chemin)}catch(e){}}
    toast(r&&r.chemin?"Fichier enregistré : "+r.chemin:"Fichier prêt : "+name);return}
   const u=URL.createObjectURL(blob),a=document.createElement("a");a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();
-  setTimeout(()=>URL.revokeObjectURL(u),5000);toast("Fichier téléchargé : "+name)
+  if(ouvrir)try{window.open(u,"_blank")}catch(e){}
+  setTimeout(()=>URL.revokeObjectURL(u),60000);toast("Fichier téléchargé : "+name)
  }catch(e){toast("Le fichier n’a pas pu être enregistré.")}}
 
 /* ===== Recherche d'une école en tapant ses premières lettres ===== */
