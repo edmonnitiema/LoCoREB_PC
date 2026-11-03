@@ -1,0 +1,37 @@
+{
+  "name": "locoreb",
+  "version": "1.0.0",
+  "description": "LoCoREB - Logiciel de Compilation des Résultats des Examens Blancs",
+  "author": "Edmon NITIEMA",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win --publish never"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "bf.locoreb.app",
+    "productName": "LoCoREB",
+    "directories": { "output": "dist", "buildResources": "build" },
+    "files": ["main.js", "preload.js", "app/**/*", "package.json"],
+    "win": {
+      "icon": "build/icon.png",
+      "target": [
+        { "target": "nsis", "arch": ["x64"] },
+        { "target": "portable", "arch": ["x64"] }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "LoCoREB",
+      "artifactName": "LoCoREB-Installateur-${version}.exe"
+    },
+    "portable": { "artifactName": "LoCoREB-Portable-${version}.exe" }
+  }
+}
