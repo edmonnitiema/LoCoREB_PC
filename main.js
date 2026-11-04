@@ -15,7 +15,7 @@ function createWindow() {
     minWidth: 900,
     minHeight: 600,
     title: "LoCoREB",
-    icon: path.join(__dirname, "build", "icon.png"),
+    icon: path.join(__dirname, "build", "icon.ico"),
     backgroundColor: "#f5f6f2",
     autoHideMenuBar: true,
     webPreferences: {
