@@ -43,9 +43,9 @@
 })();
 </script>
 <style>
-:root{--tb:#d4d8d5;--tt:#2c352f;--tat:#fff;--rd:#c1121f;--bg:#f5f6f2;--sf:#fff;--tx:#1b231e;--mu:#59655d;--ac:#1d5c3e;--ln:#c9d1ca;--hd:#e2ebe4;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--tb:#2f3832;--tt:#d6ddd8;--tat:#0f1a14;--bg:#141916;--sf:#1d2420;--tx:#e8ede9;--mu:#9aa79e;--ac:#6fc596;--ln:#35403a;--hd:#27312b;--rd:#ff7b7b}}
-:root[data-theme="dark"]{--tb:#2f3832;--tt:#d6ddd8;--tat:#0f1a14;--bg:#141916;--sf:#1d2420;--tx:#e8ede9;--mu:#9aa79e;--ac:#6fc596;--ln:#35403a;--hd:#27312b;--rd:#ff7b7b}
+:root{--gn:#15803d;--tb:#d4d8d5;--tt:#2c352f;--tat:#fff;--rd:#c1121f;--bg:#f5f6f2;--sf:#fff;--tx:#1b231e;--mu:#59655d;--ac:#1d5c3e;--ln:#c9d1ca;--hd:#e2ebe4;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--gn:#6fd08c;--tb:#2f3832;--tt:#d6ddd8;--tat:#0f1a14;--bg:#141916;--sf:#1d2420;--tx:#e8ede9;--mu:#9aa79e;--ac:#6fc596;--ln:#35403a;--hd:#27312b;--rd:#ff7b7b}}
+:root[data-theme="dark"]{--gn:#6fd08c;--tb:#2f3832;--tt:#d6ddd8;--tat:#0f1a14;--bg:#141916;--sf:#1d2420;--tx:#e8ede9;--mu:#9aa79e;--ac:#6fc596;--ln:#35403a;--hd:#27312b;--rd:#ff7b7b}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
@@ -62,6 +62,11 @@ main{max-width:1100px;margin:auto;padding:16px}
 h2{font:700 18px Georgia,serif;text-align:center;margin:8px 0 12px}
 h3{font:600 15px system-ui,sans-serif;margin:16px 0 8px}
 .ctl{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+.cb{position:relative;display:inline-block}.cb input{padding-right:30px}.cbb{position:absolute;right:2px;top:0;bottom:0;border:0;background:none;color:var(--mu);font-size:14px;cursor:pointer;padding:0 8px}
+.cbl{position:absolute;left:0;min-width:100%;top:100%;margin-top:2px;z-index:60;max-height:260px;overflow:auto;background:var(--sf);border:1px solid var(--ln);border-radius:6px;box-shadow:0 6px 18px rgba(0,0,0,.18);text-align:left}
+.cbi,.cbe{padding:8px 12px;white-space:nowrap;font-size:14px;color:var(--tx);cursor:pointer}.cbe{color:var(--mu);cursor:default}.cbi:hover,.cbi.hl{background:var(--hd)}.cbi.on{font-weight:700;color:var(--ac)}
+@media print{.cbb,.cbl{display:none!important}}
+.schl{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.schl .lt{max-width:360px;line-height:1.3;color:var(--tx)}.schl .lt b{font-size:14px}.schl input,.schl select{display:inline-block;width:auto;margin-top:0}
 select,input,textarea{font:inherit;color:var(--tx);background:var(--sf);border:1px solid var(--ln);border-radius:5px;padding:6px 8px}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
 label{display:block;font-size:13px;color:var(--mu)}
@@ -69,6 +74,7 @@ label input,label select,label textarea{display:block;width:100%;margin-top:3px;
 textarea{min-height:130px}
 .bt{background:var(--ac);color:var(--sf);border:0;border-radius:5px;padding:8px 14px;font:inherit;font-weight:600;cursor:pointer}
 .fr,.fr input{color:var(--rd)}
+td.ep,td.fr.ep{color:var(--gn)}td.en{color:var(--rd)}.cer{display:inline-block;border:2px solid var(--rd);border-radius:50%;padding:2px 9px;line-height:1.2}
 .w{overflow-x:auto}
 table{border-collapse:collapse;width:100%;font-size:14px}
 th,td{border:1px solid var(--ln);padding:5px 7px;text-align:center}
@@ -76,16 +82,20 @@ thead th{background:var(--hd)}
 tbody th{text-align:left;font-weight:600;background:var(--hd)}
 td input{width:62px;text-align:center;padding:4px}
 td.c{font-variant-numeric:tabular-nums}
+td.b{font-weight:700}
 tr.tot td,tr.tot th{font-weight:700;background:var(--hd)}
 .hd{font-size:13px;line-height:1.5;margin-bottom:6px}
 .hdt{width:100%;border-collapse:collapse;font-size:inherit}.hdt td{border:0;padding:0;text-align:left;vertical-align:top}.hdt td.hr{text-align:center;white-space:nowrap;width:1%;padding-left:16px}
 .sig{margin-top:28px;break-inside:avoid}
-.sg{display:flex;justify-content:space-between;margin-top:8px;gap:20px}
-.sg div{min-width:200px;text-align:center;padding-top:6px}
-.sg i{display:block;height:54px}
+.sgt{width:100%;border-collapse:collapse;border:0;margin-top:8px;table-layout:fixed}
+.sgt td{border:0;padding:0 8px;text-align:center;vertical-align:top;width:50%}
+.sgt td.sgd{padding-bottom:10px}
+.sgt i{display:block;height:54px}
+.sgt b{display:block;font-weight:700}.sgt b u{text-decoration:underline}
+.sgt em{display:block;font-style:italic!important;font-size:.85em;font-weight:400}
 .mu{color:var(--mu);font-size:13px}
 @media print{
-:root{--bg:#fff;--sf:#fff;--tx:#000;--ln:#000;--hd:#eee;--mu:#000;--rd:#c00}
+:root{--bg:#fff;--sf:#fff;--tx:#000;--ln:#000;--hd:#eee;--mu:#000;--rd:#c00;--gn:#067a2e}
 .np,header,nav{display:none!important}
 body{background:#fff}main{padding:0;max-width:none}
 .card{border:0;padding:0}
@@ -100,6 +110,14 @@ table{font-size:10.5px}
 #toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:#1b231e;color:#fff;padding:10px 16px;border-radius:8px;font-size:14px;max-width:90vw;z-index:50}
 #toast[hidden]{display:none}
 .lg{display:flex;align-items:center;gap:12px}#logo{cursor:pointer;border-radius:10px;width:fit-content}#logo:focus-visible{outline:2px solid var(--ac);outline-offset:3px}
+.home h2 i{font-style:normal}.home h2 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.home h2 .wl{display:inline-block;white-space:nowrap}
+.home h2 .ch{display:inline-block;opacity:0;transform:translateY(16px) scale(.7);animation:chIn .55s cubic-bezier(.2,.9,.25,1.2) forwards;animation-delay:calc(var(--i)*55ms)}
+.home h2 .sub{opacity:0;animation:subIn .9s ease forwards;animation-delay:calc(var(--n)*55ms + 250ms)}
+@keyframes chIn{to{opacity:1;transform:none}}
+@keyframes subIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.home h2 .ch,.home h2 .sub{animation:none;opacity:1;transform:none}}
+@media print{.home h2 .ch,.home h2 .sub{animation:none;opacity:1;transform:none}}
 .home h2{font-size:20px;line-height:1.35}.home h2 span{display:block;font:600 15px system-ui,sans-serif;margin-top:6px;color:var(--mu)}
 .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;margin-top:18px}
 .tile{display:flex;align-items:center;gap:10px;padding:14px 16px;font-size:15px;text-align:left;border-radius:8px}
@@ -113,6 +131,7 @@ td input[type=number]::-webkit-outer-spin-button,td input[type=number]::-webkit-
 <nav>
 <button data-t="id" onclick="go('id')">Identification</button>
 <button data-t="ec" onclick="go('ec')">Saisie des écoles</button>
+<button data-t="zp" onclick="go('zp')">Saisie des ZEP</button>
 <button data-t="di" onclick="go('di')">Saisie des disciplines</button>
 <button data-t="sa" onclick="go('sa')">Saisie des résultats</button>
 <button data-t="re" onclick="go('re')">Résultats</button>
@@ -133,6 +152,8 @@ let S;
 try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){S=null}
 S=S||{};
 S.id=S.id||{};S.schools=S.schools||[];S.ex=S.ex||{};S.meta=S.meta||{};
+S.zeps=S.zeps||[];
+if(!S.zeps.length){const vu=new Set();Object.values(S.meta).forEach(m=>{const z=String(m&&m.zep||"").trim(),k=z.toLowerCase();if(z&&!vu.has(k)){vu.add(k);S.zeps.push(z)}});S.zeps.sort((a,b)=>a.localeCompare(b,"fr"))}
 S.disc=S.disc||["Dictée","Questions de dictée","Rédaction","Mathématiques","Lecture"];
 S.ui=S.ui||{tab:"ac",n:1,school:"",a:1,b:2,scope:""};
 const $=i=>document.getElementById(i);
@@ -216,9 +237,12 @@ function validate(x){
 
 const exSel=k=>`<select class="np" aria-label="Examen blanc" onchange="S.ui.${k}=+this.value;save();R()">${[1,2,3,4,5,6].map(i=>`<option value="${i}"${S.ui[k]==i?" selected":""}>Examen blanc n°${i}</option>`).join("")}</select>`;
 const title=n=>`<h2>RÉSULTATS DE L’EXAMEN BLANC N°${n} – NIVEAU ${esc(E(n).niveau)}</h2>`;
-const hd=()=>{const I=S.id;return `<div class="hd"><table class="hdt"><tr><td class="hl"><b>MEBAPLN</b><br>DREPPNF : ${esc(I.dreppnf)}<br>DPEPPNF : ${esc(I.dpeppnf)}<br>CEB : ${esc(I.ceb)}</td><td class="hr"><b>Burkina Faso</b><br>La Partie ou la Mort, nous Vaincrons.<br>Année scolaire : ${esc(I.annee)}</td></tr></table></div>`};
-const sig=()=>{const I=S.id,d=(I.date||today()).split("-").reverse().join("/");
- return `<div class="sig">Fait à ${esc(I.lieu)||"……"}, le ${d}<div class="sg"><div>${I.rbs=="F"?"La":I.rbs=="M"?"Le":"Le/la"} R/BEPrim<i></i>${esc(I.rb)}${I.rbt?"<br>"+esc(I.rbt):""}</div><div>${I.ccebs=="F"?"La":I.ccebs=="M"?"Le":"Le/la"} CCEB<i></i>${esc(I.cceb)}${I.ccebt?"<br>"+esc(I.ccebt):""}</div></div></div>`};
+const hd=()=>{const I=S.id;return `<div class="hd"><table class="hdt"><tr><td class="hl"><b>MEBAPLN</b><br>DREPPNF : ${esc(I.dreppnf)}<br>DPEPPNF : ${esc(I.dpeppnf)}<br>CEB : ${esc(I.ceb)}</td><td class="hr"><b>Burkina Faso</b><br>La Patrie ou la Mort, nous Vaincrons<br>Année scolaire : ${esc(I.annee)}</td></tr></table></div>`};
+const MOIS=["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
+const dateLong=v=>{const p=String(v).split("-").map(Number);if(p.length<3||!p[0]||!p[1]||!p[2]||p[1]>12)return String(v).split("-").reverse().join("/");return (p[2]===1?"1er":p[2])+" "+MOIS[p[1]-1]+" "+p[0]};
+const sig=()=>{const I=S.id,d=dateLong(I.date||today());
+ const blk=(sx,tt,nm,jb)=>`${sx=="F"?"La":sx=="M"?"Le":"Le/la"} ${tt}<i></i>${nm?`<b><u>${esc(nm)}</u></b>`:""}${jb?`<em style="font-style:italic">${esc(jb)}</em>`:""}`;
+ return `<div class="sig"><table class="sgt"><tr><td></td><td class="sgd">Fait à ${esc(I.lieu)||"……"}, le ${d}</td></tr><tr><td>${blk(I.rbs,"R/BEPrim",I.rb,I.rbt)}</td><td>${blk(I.ccebs,"CCEB",I.cceb,I.ccebt)}</td></tr></table></div>`};
 const pdf=`<button class="bt np" onclick="exportPdf()">Exporter en PDF</button>`;
 
 function pgId(){
@@ -230,30 +254,36 @@ function pgId(){
 <div class="card"><h3>Sauvegarde des données</h3><p class="mu">Enregistrez un fichier de sauvegarde après chaque séance de saisie, et restaurez-le sur un autre appareil ou après un effacement du navigateur.</p>
 <div class="ctl"><button class="bt" onclick="sauver()">Sauvegarder (fichier)</button><label class="bt" style="margin:0">Restaurer un fichier<input type="file" accept=".json" hidden onchange="restaurer(this)"></label></div></div>`}
 function pgAc(){
- const B=[["id","Identification"],["ec","Saisie des écoles"],["di","Saisie des disciplines"],["sa","Saisie des résultats"],["re","Résultats"],["me","Ordre de mérite"],["cp","Comparatif"]];
+ const B=[["id","Identification"],["ec","Saisie des écoles"],["zp","Saisie des ZEP"],["di","Saisie des disciplines"],["sa","Saisie des résultats"],["re","Résultats"],["me","Ordre de mérite"],["cp","Comparatif"]];
  const logo=document.querySelector("header .lg svg").outerHTML;
- return `<div class="card home"><div class="lgbig">${logo}</div><h2>BIENVENUE SUR LoCoREB,<span>le Logiciel de Compilation des Résultats des Examens Blancs.</span></h2>
+ let k=0;const ttl="BIENVENUE DANS LoCoREB,".split(" ").map(w=>`<i class="wl">${[...w].map(c=>`<i class="ch" style="--i:${k++}" aria-hidden="true">${c}</i>`).join("")}</i>`).join(" ");
+ return `<div class="card home"><div class="lgbig">${logo}</div><h2><i class="sr">BIENVENUE DANS LoCoREB,</i>${ttl}<span class="sub" style="--n:${k}">le Logiciel de Compilation des Résultats des Examens Blancs.</span></h2>
 <div class="tiles">${B.map((x,i)=>`<button class="bt tile" onclick="go('${x[0]}')"><b>${i+1}</b>${x[1]}</button>`).join("")}</div></div>${licHtml()}<div class="card">${credit()}</div>`}
 function pgEc(){
  return `<div class="card"><h2>SAISIE DES ÉCOLES DE LA CEB</h2>
-<label>Une école par ligne<textarea style="min-height:220px" onchange="S.schools.sort((a,b)=>a.localeCompare(b,'fr'));this.value=S.schools.join(String.fromCharCode(10));save()" oninput="S.schools=this.value.split(/\\n/).map(s=>s.trim()).filter(Boolean);save()">${esc(S.schools.join("\n"))}</textarea></label>
+<label>Une école par ligne<textarea style="min-height:220px" onchange="sansDoublon(this,'schools');S.schools.sort((a,b)=>a.localeCompare(b,'fr'));this.value=S.schools.join(String.fromCharCode(10));save()" onkeyup="if(event.key==='Enter')sansDoublon(this,'schools')" onpaste="const t=this;setTimeout(()=>sansDoublon(t,'schools'),0)" oninput="S.schools=this.value.split(/\\n/).map(s=>s.trim()).filter(Boolean);save()">${esc(S.schools.join("\n"))}</textarea></label>
 <p class="mu">Les écoles sont classées par ordre alphabétique. Saisissez-les avant les résultats : renommer une école après saisie en détache les chiffres. Les données restent sur cet appareil.</p>
-<div class="ctl"><button class="bt" onclick="go('id')">Précédent</button><button class="bt" onclick="go('di')">Passer à la saisie des disciplines</button></div></div>`}
+<div class="ctl"><button class="bt" onclick="go('id')">Précédent</button><button class="bt" onclick="go('zp')">Passer à la saisie des ZEP</button></div></div>`}
+function pgZp(){
+ return `<div class="card"><h2>SAISIE DES ZEP DE LA CEB</h2>
+<label>Une ZEP par ligne<textarea style="min-height:220px" onchange="sansDoublon(this,'zeps');S.zeps.sort((a,b)=>a.localeCompare(b,'fr'));this.value=S.zeps.join(String.fromCharCode(10));save()" onkeyup="if(event.key==='Enter')sansDoublon(this,'zeps')" onpaste="const t=this;setTimeout(()=>sansDoublon(t,'zeps'),0)" oninput="S.zeps=this.value.split(/\\n/).map(s=>s.trim()).filter(Boolean);save()">${esc(S.zeps.join("\n"))}</textarea></label>
+<p class="mu">Les ZEP sont classées par ordre alphabétique. Elles alimentent la liste déroulante de la case ZEP dans Saisie des résultats. Renommer une ZEP après l’avoir attribuée à une école ne modifie pas l’école : choisissez de nouveau la ZEP. Les données restent sur cet appareil.</p>
+<div class="ctl"><button class="bt" onclick="go('ec')">Précédent</button><button class="bt" onclick="go('di')">Passer à la saisie des disciplines</button></div></div>`}
 function pgDi(){
  return `<div class="card"><h2>SAISIE DES DISCIPLINES</h2>
-<label>Une discipline par ligne<textarea style="min-height:220px" oninput="S.disc=this.value.split(/\\n/).map(s=>s.trim()).filter(Boolean);save()">${esc(S.disc.join("\n"))}</textarea></label>
+<label>Une discipline par ligne<textarea style="min-height:220px" onchange="sansDoublon(this,'disc')" onkeyup="if(event.key==='Enter')sansDoublon(this,'disc')" onpaste="const t=this;setTimeout(()=>sansDoublon(t,'disc'),0)" oninput="S.disc=this.value.split(/\\n/).map(s=>s.trim()).filter(Boolean);save()">${esc(S.disc.join("\n"))}</textarea></label>
 <p class="mu">Renommer une discipline après saisie en détache les chiffres. Les données restent sur cet appareil.</p>
-<div class="ctl"><button class="bt" onclick="go('ec')">Précédent</button><button class="bt" onclick="go('sa')">Passer à la saisie des résultats</button></div></div>`}
+<div class="ctl"><button class="bt" onclick="go('zp')">Précédent</button><button class="bt" onclick="go('sa')">Passer à la saisie des résultats</button></div></div>`}
 
 function sauver(){saveBlob(new Blob([JSON.stringify(S)],{type:"application/json"}),"LoCoREB_sauvegarde_"+new Date().toISOString().slice(0,10)+".json")}
-function restaurer(el){const f=el.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!d.ex||!d.schools)throw 0;S=d;save();R()}catch(e){alert("Fichier de sauvegarde invalide.")}};r.readAsText(f)}
+function restaurer(el){const f=el.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!d.ex||!d.schools)throw 0;S=d;S.zeps=S.zeps||[];save();R()}catch(e){alert("Fichier de sauvegarde invalide.")}};r.readAsText(f)}
 
 function pgSa(){
  const n=S.ui.n;
  if(!S.schools.length)return `<div class="card">Ajoutez d’abord les écoles dans l’onglet Saisie des écoles.</div>`;
- return `<div class="ctl np">${exSel("n")}<select aria-label="Niveau" onchange="E(S.ui.n).niveau=this.value;save();R()">${NV.map(v=>`<option${v==E(n).niveau?" selected":""}>${v}</option>`).join("")}</select>
-${schoolBox("school",S.ui.school,"École : tapez les premières lettres","lst-ec")}${pdf}</div>
-<div class="card">${hd()}${title(n)}<h3 style="text-align:center">École : ${esc(S.ui.school)}</h3><div class="ctl" style="justify-content:center"><label>Statut<select onchange="Mt(S.ui.school).st=this.value;save()"><option value=""></option>${["Public","Privé"].map(v=>`<option${Mt(S.ui.school).st==v?" selected":""}>${v}</option>`).join("")}</select></label><label>ZEP<input value="${esc(Mt(S.ui.school).zep)}" oninput="Mt(S.ui.school).zep=this.value;save()"></label></div><div id="vmsg" class="np" role="alert"></div>${tabs(agg(n,[S.ui.school]),true)}${sig()}</div>`}
+ return `<div class="ctl np">${exSel("n")}<label class="schl np"><b style="font-size:14px;color:var(--tx)">NIVEAU :</b><select aria-label="Niveau" onchange="E(S.ui.n).niveau=this.value;save();R()">${NV.map(v=>`<option${v==E(n).niveau?" selected":""}>${v}</option>`).join("")}</select></label>
+<label class="schl np"><span class="lt"><b>École</b> (Sélectionnez votre école ici. Pour la retrouver facilement, tapez ses premières lettres.)</span>${schoolBox("school",S.ui.school,"École : tapez les premières lettres","lst-ec")}</label>${pdf}</div>
+<div class="card">${hd()}${title(n)}<h3 style="text-align:center">École : ${esc(S.ui.school)}</h3><div class="ctl" style="justify-content:center"><label>Statut<select onchange="Mt(S.ui.school).st=this.value;save()"><option value=""></option>${["Public","Privé"].map(v=>`<option${Mt(S.ui.school).st==v?" selected":""}>${v}</option>`).join("")}</select></label><label>ZEP${cbBox("zeps",Mt(S.ui.school).zep,S.zeps.length?"ZEP : tapez les premières lettres":"Saisissez d’abord les ZEP","pickZep(this)",220,0)}</label></div><div id="vmsg" class="np" role="alert"></div>${tabs(agg(n,[S.ui.school]),true)}${sig()}</div>`}
 
 const grpBy=(f,em,or=[])=>{const m=new Map();
  S.schools.forEach(s=>{const raw=(f(s)||"").trim(),k=raw.toLowerCase();if(!m.has(k))m.set(k,{name:raw||em,list:[],k});m.get(k).list.push(s)});
@@ -263,12 +293,12 @@ const gZ=()=>grpBy(s=>Mt(s).zep,"ZEP non renseignée");
 const gS=()=>grpBy(s=>Mt(s).st,"Statut non renseigné",["public","privé"]);
 function tGrp(n,t,G){
  const fgt='<th class="fr">F</th><th>G</th><th>T</th>';
- const row=(nm,c,r,cl)=>`<tr class="${cl||""}"><th>${esc(nm)}</th><td>${c}</td>`+K.map(k=>`<td class="fr">${r.g[k].f}</td><td>${r.g[k].g}</td><td>${r.g[k].f+r.g[k].g}</td>`).join("")+["f","g","t"].map(j=>`<td${j=="f"?' class="fr"':""}>${val(r,"g.tx."+j)}</td>`).join("")+"</tr>";
+ const row=(nm,c,r,cl)=>`<tr class="${cl||""}"><th>${esc(nm)}</th><td>${c}</td>`+K.map(k=>`<td class="fr">${r.g[k].f}</td><td>${r.g[k].g}</td><td${k=="ef"?' class="b"':""}>${r.g[k].f+r.g[k].g}</td>`).join("")+["f","g","t"].map(j=>`<td${j=="f"?' class="fr"':""}>${val(r,"g.tx."+j)}</td>`).join("")+"</tr>";
  return `<h3 style="text-align:center">RÉSULTATS PAR ${t.toUpperCase()}</h3><div class="w"><table><thead><tr><th rowspan="2">${t}</th><th rowspan="2">Écoles</th><th colspan="3">Effectif</th><th colspan="3">Ont composé</th><th colspan="3">Ont eu la moyenne</th><th colspan="3">Taux de réussite</th></tr><tr>${fgt}${fgt}${fgt}${fgt}</tr></thead><tbody>${G.map(g=>row(g.name,g.list.length,agg(n,g.list))).join("")}${row("TOTAL CEB",S.schools.length,agg(n,S.schools),"tot")}</tbody></table></div>`}
 
 function pgRe(){
  const n=S.ui.n,L=S.schools,T=agg(n,L);
- const row=(nm,r,c,i)=>`<tr class="${c||""}"><td>${i||""}</td><th>${esc(nm)}</th><td>${i?esc(Mt(nm).st):""}</td><td>${i?esc(Mt(nm).zep):""}</td>`+K.map(k=>`<td class="fr">${r.g[k].f}</td><td>${r.g[k].g}</td><td>${r.g[k].f+r.g[k].g}</td>`).join("")+["f","g","t"].map(j=>`<td${j=="f"?' class="fr"':""}>${val(r,"g.tx."+j)}</td>`).join("")+"</tr>";
+ const row=(nm,r,c,i)=>`<tr class="${c||""}"><td>${i||""}</td><th>${esc(nm)}</th><td>${i?esc(Mt(nm).st):""}</td><td>${i?esc(Mt(nm).zep):""}</td>`+K.map(k=>`<td class="fr">${r.g[k].f}</td><td>${r.g[k].g}</td><td${k=="ef"?' class="b"':""}>${r.g[k].f+r.g[k].g}</td>`).join("")+["f","g","t"].map(j=>`<td${j=="f"?' class="fr"':""}>${val(r,"g.tx."+j)}</td>`).join("")+"</tr>";
  const fgt='<th class="fr">F</th><th>G</th><th>T</th>';
  return `<div class="ctl np">${exSel("n")}${pdf}</div>
 <div class="card">${hd()}${title(n)}<h3 style="text-align:center">TOTAL CEB</h3>${tabs(T,false)}${sig()}</div>
@@ -293,14 +323,16 @@ function pgMe(){
 function pgCp(){
  const u=S.ui,L=u.scope&&S.schools.includes(u.scope)?[u.scope]:S.schools,A=agg(u.a,L),B=agg(u.b,L);
  const fgt='<th class="fr">F</th><th>G</th><th>T</th>';
- const g=K.map((k,i)=>`<tr><th>${LB[i]}</th>`+[A,B].map(r=>`<td class="fr">${r.g[k].f}</td><td>${r.g[k].g}</td><td>${r.g[k].f+r.g[k].g}</td>`).join("")+`<td>${sg(B.g[k].f+B.g[k].g-A.g[k].f-A.g[k].g)}</td></tr>`).join("")
-  +`<tr class="tot"><th>Taux de réussite</th>`+[A,B].map(r=>["f","g","t"].map(j=>`<td${j=="f"?' class="fr"':""}>${val(r,"g.tx."+j)}</td>`).join("")).join("")+`<td>${ec(tn(A.g,"t"),tn(B.g,"t"))}</td></tr>`;
- const p=S.disc.map((d,i)=>`<tr><th>${esc(d)}</th>`+[A,B].map(r=>["f","g","t"].map(j=>`<td${j=="f"?' class="fr"':""}>${val(r,`p.${i}.tx.${j}`)}</td>`).join("")).join("")+`<td>${ec(tn(A.p[d],"t"),tn(B.p[d],"t"))}</td></tr>`).join("");
- const cr=(nm,list,c)=>{const a=agg(u.a,list),b=agg(u.b,list);return `<tr class="${c||""}"><th>${esc(nm)}</th>`+[a,b].map(r=>["f","g","t"].map(j=>`<td${j=="f"?' class="fr"':""}>${val(r,"g.tx."+j)}</td>`).join("")).join("")+`<td>${ec(tn(a.g,"t"),tn(b.g,"t"))}</td></tr>`};
+ const cEc=(v,txt,j)=>{const r=v==null?0:Math.round(v*100)/100,c=[j=="f"?"fr":"",r>0?"ep":r<0?"en":""].filter(Boolean).join(" ");return `<td${c?` class="${c}"`:""}>${r<0&&j=="f"?`<span class="cer">${txt}</span>`:txt}</td>`};
+ const ecs=(a,b)=>["f","g","t"].map(j=>{const x=tn(a,j),y=tn(b,j);return cEc(x==null||y==null?null:y-x,ec(x,y),j)}).join("");
+ const g=K.map((k,i)=>`<tr><th>${LB[i]}</th>`+[A,B].map(r=>`<td class="fr">${r.g[k].f}</td><td>${r.g[k].g}</td><td>${r.g[k].f+r.g[k].g}</td>`).join("")+[["f",B.g[k].f-A.g[k].f],["g",B.g[k].g-A.g[k].g],["t",B.g[k].f+B.g[k].g-A.g[k].f-A.g[k].g]].map(x=>cEc(x[1],sg(x[1]),x[0])).join("")+"</tr>").join("")
+  +`<tr class="tot"><th>Taux de réussite</th>`+[A,B].map(r=>["f","g","t"].map(j=>`<td${j=="f"?' class="fr"':""}>${val(r,"g.tx."+j)}</td>`).join("")).join("")+ecs(A.g,B.g)+"</tr>";
+ const p=S.disc.map((d,i)=>`<tr><th>${esc(d)}</th>`+[A,B].map(r=>["f","g","t"].map(j=>`<td${j=="f"?' class="fr"':""}>${val(r,`p.${i}.tx.${j}`)}</td>`).join("")).join("")+ecs(A.p[d],B.p[d])+"</tr>").join("");
+ const cr=(nm,list,c)=>{const a=agg(u.a,list),b=agg(u.b,list);return `<tr class="${c||""}"><th>${esc(nm)}</th>`+[a,b].map(r=>["f","g","t"].map(j=>`<td${j=="f"?' class="fr"':""}>${val(r,"g.tx."+j)}</td>`).join("")).join("")+ecs(a.g,b.g)+"</tr>"};
  const ct=(t,items)=>`<h3>Taux de réussite par ${t.toLowerCase()}</h3><div class="w"><table>${head(t)}<tbody>${items.map(i=>cr(i.name,i.list)).join("")}${cr("TOTAL CEB",S.schools,"tot")}</tbody></table></div>`;
  const extra=()=>u.scope&&S.schools.includes(u.scope)?"":ct("École",S.schools.map(s=>({name:s,list:[s]})))+ct("ZEP",gZ())+ct("Statut",gS());
- const head=(a,b)=>`<thead><tr><th rowspan="2">${a}</th><th colspan="3">Examen blanc n°${u.a}</th><th colspan="3">Examen blanc n°${u.b}</th><th rowspan="2">Écart (T)</th></tr><tr>${fgt}${fgt}</tr></thead>`;
- return `<div class="ctl np">${exSel("a")}${exSel("b")}${schoolBox("scope",u.scope||"","Total CEB (ou tapez une école)","lst-cp")}${pdf}</div>
+ const head=(a,b)=>`<thead><tr><th rowspan="2">${a}</th><th colspan="3">Examen blanc n°${u.a}</th><th colspan="3">Examen blanc n°${u.b}</th><th colspan="3">Écart</th></tr><tr>${fgt}${fgt}${fgt}</tr></thead>`;
+ return `<div class="ctl np">${exSel("a")}${exSel("b")}<label class="schl np"><span class="lt"><b>École</b> (Sélectionnez votre école ici. Pour la retrouver facilement, tapez ses premières lettres.)</span>${schoolBox("scope",u.scope||"","Total CEB (ou tapez une école)","lst-cp")}</label>${pdf}</div>
 <div class="card">${hd()}<h2>COMPARAISON ENTRE LES EXAMENS BLANCS N°${u.a} ET N°${u.b}</h2><p style="text-align:center;margin:0">${esc(L.length==1?L[0]:"TOTAL CEB")}</p>
 <h3>Résultats globaux</h3><div class="w"><table>${head("")}<tbody>${g}</tbody></table></div>
 <h3>Taux de réussite par discipline</h3><div class="w"><table>${head("Disciplines")}<tbody>${p}</tbody></table></div>${extra()}${sig()}</div>`}
@@ -390,7 +422,7 @@ function mpC(r,g,b){if(g===undefined){g=r;b=r}return [r/255,g/255,b/255]}
 function mpCol(c){return c.map(function(v){return v.toFixed(3)}).join(' ')}
 function MiniPDF(o){o=o||{};var land=o.orientation==='landscape';this.k=72/25.4;this.pw=(land?297:210)*this.k;this.ph=(land?210:297)*this.k;this.pages=[[]];this.font=1;this.fs=12;this.tc=[0,0,0];this.dc=[0,0,0];this.fc=[1,1,1];this.lw=0.2*this.k}
 MiniPDF.prototype={
-  setFont:function(n,s){this.font=s==='bold'?2:1;return this},
+  setFont:function(n,s){this.font=s==='bold'?2:(s==='italic'?3:1);return this},
   setFontSize:function(s){this.fs=s;return this},
   setTextColor:function(r,g,b){this.tc=mpC(r,g,b);return this},
   setDrawColor:function(r,g,b){this.dc=mpC(r,g,b);return this},
@@ -401,6 +433,12 @@ MiniPDF.prototype={
   text:function(t,x,y,o){t=String(t);var w=this.getTextWidth(t);if(o&&o.align==='center')x-=w/2;else if(o&&o.align==='right')x-=w;
     this.pages[this.pages.length-1].push('BT /F'+this.font+' '+this.fs.toFixed(2)+' Tf '+mpCol(this.tc)+' rg '+(x*this.k).toFixed(2)+' '+(this.ph-y*this.k).toFixed(2)+' Td ('+mpEsc(t)+') Tj ET');return this},
   line:function(x1,y1,x2,y2){this.pages[this.pages.length-1].push(this.lw.toFixed(3)+' w '+mpCol(this.dc)+' RG '+(x1*this.k).toFixed(2)+' '+(this.ph-y1*this.k).toFixed(2)+' m '+(x2*this.k).toFixed(2)+' '+(this.ph-y2*this.k).toFixed(2)+' l S');return this},
+  ellipse:function(cx,cy,rx,ry){var k=this.k,ph=this.ph,c=0.5523,q=function(x,y){return (x*k).toFixed(2)+' '+(ph-y*k).toFixed(2)};
+    this.pages[this.pages.length-1].push(this.lw.toFixed(3)+' w '+mpCol(this.dc)+' RG '+q(cx+rx,cy)+' m '
+     +q(cx+rx,cy+c*ry)+' '+q(cx+c*rx,cy+ry)+' '+q(cx,cy+ry)+' c '
+     +q(cx-c*rx,cy+ry)+' '+q(cx-rx,cy+c*ry)+' '+q(cx-rx,cy)+' c '
+     +q(cx-rx,cy-c*ry)+' '+q(cx-c*rx,cy-ry)+' '+q(cx,cy-ry)+' c '
+     +q(cx+c*rx,cy-ry)+' '+q(cx+rx,cy-c*ry)+' '+q(cx+rx,cy)+' c h S');return this},
   rect:function(x,y,w,h,st){var op=st==='F'?'f':(st==='FD'||st==='DF')?'B':'S';
     this.pages[this.pages.length-1].push(this.lw.toFixed(3)+' w '+mpCol(this.dc)+' RG '+mpCol(this.fc)+' rg '+(x*this.k).toFixed(2)+' '+(this.ph-(y+h)*this.k).toFixed(2)+' '+(w*this.k).toFixed(2)+' '+(h*this.k).toFixed(2)+' re '+op);return this},
   output:function(){
@@ -412,9 +450,10 @@ MiniPDF.prototype={
     objs[4]='<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>';
     for(i=0;i<n;i++){
       var c=this.pages[i].join('\n');
-      objs[5+2*i]='<< /Type /Page /Parent 2 0 R /MediaBox [0 0 '+this.pw.toFixed(2)+' '+this.ph.toFixed(2)+'] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents '+(6+2*i)+' 0 R >>';
+      objs[5+2*i]='<< /Type /Page /Parent 2 0 R /MediaBox [0 0 '+this.pw.toFixed(2)+' '+this.ph.toFixed(2)+'] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 '+(5+2*n)+' 0 R >> >> /Contents '+(6+2*i)+' 0 R >>';
       objs[6+2*i]='<< /Length '+c.length+' >>\nstream\n'+c+'\nendstream';
     }
+    objs[5+2*n]='<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique /Encoding /WinAnsiEncoding >>';
     var out='%PDF-1.4\n',off=[];
     for(i=1;i<objs.length;i++){off[i]=out.length;out+=i+' 0 obj\n'+objs[i]+'\nendobj\n'}
     var xr=out.length;out+='xref\n0 '+objs.length+'\n0000000000 65535 f \n';
@@ -431,7 +470,7 @@ function wrapT(doc,t,w){var out=[],cur='';t.split(' ').forEach(function(wd){var 
 const pdfT=s=>String(s).replace(/\u00a0/g," ").replace(/[\u2192\u2794]/g,"->").replace(/\s+/g," ").trim();
 const safeName=s=>String(s).replace(/[\\\/:*?"<>|]/g," ").replace(/\s+/g," ").trim();
 const cellTxt=c=>{const i=c.querySelector("input");return pdfT(i?i.value:c.textContent)};
-const RED=[193,18,31],INK=[20,20,20],GRID=[110,110,110],HEADFILL=[226,235,228];
+const RED=[193,18,31],GREEN=[21,128,61],INK=[20,20,20],GRID=[110,110,110],HEADFILL=[226,235,228];
 
 function buildPdf(cards){
  const doc=new MiniPDF({orientation:"landscape"}),W=297,H=210,M=10,BOT=H-M-4,AV=W-2*M;
@@ -455,7 +494,7 @@ function buildPdf(cards){
    [...tr.cells].forEach(c=>{
     while(grid[ri][ci])ci++;
     const cs=c.colSpan||1,rs=c.rowSpan||1,inHead=tr.parentNode.tagName==="THEAD",tot=tr.classList.contains("tot"),th=c.tagName==="TH";
-    const o={r:ri,c:ci,cs,rs,txt:cellTxt(c),bold:th||tot,red:c.classList.contains("fr"),fill:inHead||th||tot,left:th&&!inHead};
+    const o={r:ri,c:ci,cs,rs,txt:cellTxt(c),bold:th||tot||c.classList.contains("b"),red:c.classList.contains("fr")||c.classList.contains("en"),green:c.classList.contains("ep"),circ:!!c.querySelector(".cer"),fill:inHead||th||tot,left:th&&!inHead};
     for(let a=0;a<rs;a++){grid[ri+a]=grid[ri+a]||[];for(let b=0;b<cs;b++)grid[ri+a][ci+b]=o}
     cells.push(o);ci+=cs;ncol=Math.max(ncol,ci)})});
   if(!ncol)return;
@@ -486,9 +525,10 @@ function buildPdf(cards){
     let w=0,h=0;for(let k=0;k<o.cs;k++)w+=cw[o.c+k];for(let k=0;k<o.rs;k++)h+=rh[ri+k];
     const x=cx[o.c];
     doc.setLineWidth(0.2);doc.setDrawColor(...GRID);doc.setFillColor(...(o.fill?HEADFILL:[255,255,255]));doc.rect(x,yy,w,h,"FD");
-    doc.setFont("helvetica",o.bold?"bold":"normal");doc.setFontSize(fs);doc.setTextColor(...(o.red?RED:INK));
+    doc.setFont("helvetica",o.bold?"bold":"normal");doc.setFontSize(fs);doc.setTextColor(...(o.green?GREEN:o.red?RED:INK));
     const n=o.ls.length,top=yy+(h-n*lh)/2;
     o.ls.forEach((l,k)=>doc.text(l,o.left?x+1.5:x+w/2,top+lh*(k+1)-lh*0.22,o.left?undefined:{align:"center"}));
+    if(o.circ&&!o.left&&n===1){const tw=doc.getTextWidth(o.ls[0]),base=top+lh-lh*0.22;doc.setDrawColor(...RED);doc.setLineWidth(0.3);doc.ellipse(x+w/2,base-fs*0.3528*0.34,Math.min(tw/2+2.2,w/2-0.4),Math.min(fs*0.3528*0.95,h/2-0.35))}
     doc.setTextColor(...INK)})};
   const headH=rh.slice(0,headRows).reduce((a,b)=>a+b,0);
   const drawHead=()=>{let yy=y;for(let r=0;r<headRows;r++){drawRow(r,yy);yy+=rh[r]}y=yy};
@@ -501,19 +541,24 @@ function buildPdf(cards){
   y+=3}
 
  function sign(el){
-  const kids=[...el.childNodes],first=kids.find(n=>n.nodeType===3);
-  const blocks=[...el.querySelectorAll(".sg > div")].map(d=>{
+  const dEl=el.querySelector(".sgd"),tds=[...el.querySelectorAll("tr:last-child > td")];
+  const blocks=tds.map(d=>{
    const ns=[...d.childNodes];const ix=ns.findIndex(n=>n.nodeName==="I");
    const title=pdfT(ns.slice(0,ix<0?ns.length:ix).map(n=>n.textContent).join(" "));
-   const rest=ix<0?[]:ns.slice(ix+1).map(n=>n.nodeName==="BR"?"\n":n.textContent).join("").split("\n").map(pdfT).filter(Boolean);
-   return {title,rest}});
+   const after=ix<0?[]:ns.slice(ix+1);
+   const nm=after.find(n=>n.nodeName==="B"),jb=after.find(n=>n.nodeName==="EM");
+   return {title,name:nm?pdfT(nm.textContent):"",job:jb?pdfT(jb.textContent):""}});
   need(44);y+=5;
-  if(first){doc.setFont("helvetica","normal");doc.setFontSize(10.5);doc.setTextColor(...INK);doc.text(pdfT(first.textContent),W-M,y,{align:"right"})}
+  if(dEl){doc.setFont("helvetica","normal");doc.setFontSize(10.5);doc.setTextColor(...INK);doc.text(pdfT(dEl.textContent),W-M-55,y,{align:"center"})}
   y+=8;
   blocks.forEach((b,i)=>{
    const cx=i===0?M+55:W-M-55;
    doc.setFont("helvetica","bold");doc.setFontSize(10.5);doc.text(b.title,cx,y,{align:"center"});
-   doc.setFont("helvetica","normal");b.rest.forEach((l,k)=>doc.text(l,cx,y+17+k*5,{align:"center"}))});
+   let yy=y+17;
+   if(b.name){doc.setFont("helvetica","bold");doc.setFontSize(10.5);doc.text(b.name,cx,yy,{align:"center"});
+    const tw=doc.getTextWidth(b.name);doc.setDrawColor(...INK);doc.setLineWidth(0.25);doc.line(cx-tw/2,yy+0.9,cx+tw/2,yy+0.9);yy+=5}
+   if(b.job){doc.setFont("helvetica","italic");doc.setFontSize(8.5);doc.text(b.job,cx,yy,{align:"center"})}
+   doc.setFont("helvetica","normal");doc.setFontSize(10.5)});
   y+=17+14}
 
  const proc=el=>{
@@ -570,7 +615,54 @@ async function saveBlob(blob,name,ouvrir){
 
 /* ===== Recherche d'une école en tapant ses premières lettres ===== */
 const nrm=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/\s+/g," ").trim();
-const schoolBox=(key,val,ph,id)=>`<input class="np" style="min-width:260px" list="${id}" value="${esc(val)}" placeholder="${ph}" aria-label="${ph}" autocomplete="off" onfocus="this.select()" onclick="this.select()" onchange="pickSchool(this,'${key}')"><datalist id="${id}">${S.schools.map(s=>`<option value="${esc(s)}"></option>`).join("")}</datalist>`;
+/* ===== Refus des doublons (écoles / disciplines) ===== */
+function sansDoublon(el,key){
+ const NL=String.fromCharCode(10);
+ const brut=el.value,vu=new Map(),res=[],noms=[];let dbl=false;
+ brut.split(NL).forEach(l=>{const t=l.trim();if(!t)return;const k=nrm(t);if(vu.has(k)){dbl=true;if(!noms.includes(vu.get(k)))noms.push(vu.get(k));return}vu.set(k,t);res.push(t)});
+ S[key]=res;save();
+ const lab=el.closest("label")||el.parentNode;
+ const ancien=lab.parentNode.querySelector(".dblbox");if(ancien)ancien.remove();
+ if(dbl){
+  el.value=res.join(NL)+(brut.endsWith(NL)?NL:"");
+  const msg=noms.map(n=>(key==="schools"?"L'école ":key==="zeps"?"La ZEP ":"La discipline ")+esc(n)+" a déjà été saisie.").join("<br>");
+  const d=document.createElement("div");d.className="dblbox";d.setAttribute("role","alert");
+  d.style.cssText="margin:10px 0;padding:10px 14px;border:2px solid #d00000;border-radius:8px;background:#fdecec;color:#c00000;font-weight:600;position:relative";
+  d.innerHTML='<div style="font-size:1.05em;margin-bottom:4px">Doublons détectés</div><div>'+msg+'</div><button type="button" aria-label="Fermer" style="position:absolute;top:6px;right:8px;border:0;background:none;color:#c00000;font-size:18px;cursor:pointer" onclick="this.parentNode.remove()">×</button>';
+  lab.parentNode.insertBefore(d,lab.nextSibling);
+ }
+}
+const cbBox=(src,val,ph,pick,w,tot)=>`<span class="cb${tot?"":""}"><input style="min-width:${w}px" data-src="${src}"${tot?' data-tot="1"':""} role="combobox" aria-expanded="false" value="${esc(val)}" placeholder="${ph}" aria-label="${ph}" autocomplete="off" onfocus="this.select();cbRender(this,0)" onclick="this.select();cbRender(this,0)" oninput="cbRender(this,1)" onkeydown="cbKey(event,this)" onblur="cbClose(this)" onchange="${pick}"><button type="button" class="cbb" tabindex="-1" aria-label="Afficher la liste" onmousedown="event.preventDefault();cbToggle(this)">&#9662;</button><div class="cbl" role="listbox" hidden></div></span>`;
+const schoolBox=(key,val,ph,id)=>`<span class="np">${cbBox("schools",val,ph,"pickSchool(this,'"+key+"')",260,key==="scope")}</span>`;
+function cbRender(el,filter){
+ const box=el.parentNode.querySelector(".cbl"),q=filter?nrm(el.value):"",cur=nrm(el.value);
+ let L=(S[el.dataset.src]||[]).map(x=>[x,x]);
+ if(q){const a=L.filter(x=>nrm(x[0]).startsWith(q)),b=L.filter(x=>!nrm(x[0]).startsWith(q)&&nrm(x[0]).includes(q));L=a.concat(b)}
+ else if(el.dataset.tot)L.unshift(["Total CEB",""]);
+ box.innerHTML=L.length?L.map(x=>`<div class="cbi${x[1]&&nrm(x[1])===cur?" on":""}" role="option" data-v="${esc(x[1])}" onmousedown="event.preventDefault();cbPick(this)">${esc(x[0])}</div>`).join(""):`<div class="cbe">Aucun résultat</div>`;
+ box.hidden=false;el.setAttribute("aria-expanded","true");
+ const on=box.querySelector(".on");if(on)on.scrollIntoView({block:"nearest"})}
+function cbToggle(b){const el=b.parentNode.querySelector("input"),box=b.parentNode.querySelector(".cbl");if(box.hidden){el.focus();cbRender(el,0)}else cbClose(el,1)}
+function cbClose(el,now){const f=()=>{const box=el.parentNode&&el.parentNode.querySelector(".cbl");if(box){box.hidden=true;el.setAttribute("aria-expanded","false")}};now?f():setTimeout(f,120)}
+function cbPick(d){const w=d.closest(".cb"),el=w.querySelector("input");el.value=d.dataset.v;w.querySelector(".cbl").hidden=true;el.dispatchEvent(new Event("change"))}
+function cbKey(e,el){
+ const box=el.parentNode.querySelector(".cbl");
+ if(e.key==="Escape"){cbClose(el,1);return}
+ if(e.key==="ArrowDown"||e.key==="ArrowUp"){
+  e.preventDefault();if(box.hidden)cbRender(el,0);
+  const L=[...box.querySelectorAll(".cbi")];if(!L.length)return;
+  let i=L.findIndex(x=>x.classList.contains("hl"));L.forEach(x=>x.classList.remove("hl"));
+  i=e.key==="ArrowDown"?(i+1)%L.length:(i<=0?L.length-1:i-1);
+  L[i].classList.add("hl");L[i].scrollIntoView({block:"nearest"});return}
+ if(e.key==="Enter"&&!box.hidden){const h=box.querySelector(".hl");if(h){e.preventDefault();cbPick(h)}}}
+function pickZep(el){
+ const q=nrm(el.value),s=S.ui.school,L=S.zeps;let r;
+ if(!q){Mt(s).zep="";save();R();return}
+ r=L.find(z=>nrm(z)===q);
+ if(r===undefined){const m=L.filter(z=>nrm(z).startsWith(q));if(m.length===1)r=m[0];else if(m.length>1){r=m[0];toast(m.length+" ZEP commencent par « "+el.value.trim()+" » : la première est choisie.")}}
+ if(r===undefined){const m=L.filter(z=>nrm(z).includes(q));if(m.length===1)r=m[0]}
+ if(r===undefined){toast("Aucune ZEP trouvée pour « "+el.value.trim()+" ».");R();return}
+ Mt(s).zep=r;save();R()}
 function pickSchool(el,key){
  const q=nrm(el.value);let r;
  if(!q&&key==="scope")r="";
@@ -584,6 +676,15 @@ function pickSchool(el,key){
  S.ui[key]=r;save();R()}
 
 
+/* Colonne « T » toujours en gras, dans tous les tableaux F / G / T */
+function boldT(){document.querySelectorAll("#app table").forEach(t=>{
+ const hr=t.tHead?[...t.tHead.rows]:[];if(!hr.length)return;
+ const occ=[],tc=[];
+ hr.forEach((tr,ri)=>{occ[ri]=occ[ri]||[];let ci=0;
+  [...tr.cells].forEach(c=>{while(occ[ri][ci])ci++;const cs=c.colSpan||1,rs=c.rowSpan||1;
+   for(let a=0;a<rs;a++){occ[ri+a]=occ[ri+a]||[];for(let b=0;b<cs;b++)occ[ri+a][ci+b]=1}
+   if(cs===1&&c.textContent.trim()==="T")tc.push(ci);ci+=cs})});
+ [...t.tBodies].forEach(tb=>[...tb.rows].forEach(tr=>tc.forEach(i=>{const c=tr.cells[i];if(c&&c.tagName==="TD")c.classList.add("b")})))})}
 function go(t){S.ui.tab=t;save();R()}
 function R(){
  const u=S.ui,nav=document.querySelector("nav"),L=licInfo();
@@ -591,7 +692,8 @@ function R(){
  nav.style.display=u.tab=="ac"?"none":"";
  S.schools.sort((a,b)=>a.localeCompare(b,"fr"));
  if(!S.schools.includes(u.school))u.school=S.schools[0]||"";
- $("app").innerHTML=licBanner()+{ac:pgAc,id:pgId,ec:pgEc,di:pgDi,sa:pgSa,re:pgRe,me:pgMe,cp:pgCp}[u.tab]();
+ $("app").innerHTML=licBanner()+{ac:pgAc,id:pgId,ec:pgEc,zp:pgZp,di:pgDi,sa:pgSa,re:pgRe,me:pgMe,cp:pgCp}[u.tab]();
+ boldT();
  document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.t==u.tab));
  if(u.tab=="sa")refresh(true);window.scrollTo(0,0)}
 S.ui.tab="ac";
