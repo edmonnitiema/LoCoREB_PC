@@ -62,10 +62,12 @@ main{max-width:1100px;margin:auto;padding:16px}
 h2{font:700 18px Georgia,serif;text-align:center;margin:8px 0 12px}
 h3{font:600 15px system-ui,sans-serif;margin:16px 0 8px}
 .ctl{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+input[hidden]{display:none!important}
+.fmod{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:14px}.fmod>div{background:var(--sf);color:var(--tx);border:1px solid var(--ln);border-radius:10px;max-width:560px;width:100%;max-height:88vh;overflow:auto;padding:18px 20px;box-shadow:0 10px 30px rgba(0,0,0,.3)}.fmod li{margin:3px 0}
 .cb{position:relative;display:inline-block}.cb input{padding-right:30px}.cbb{position:absolute;right:2px;top:0;bottom:0;border:0;background:none;color:var(--mu);font-size:14px;cursor:pointer;padding:0 8px}
 .cbl{position:absolute;left:0;min-width:100%;top:100%;margin-top:2px;z-index:60;max-height:260px;overflow:auto;background:var(--sf);border:1px solid var(--ln);border-radius:6px;box-shadow:0 6px 18px rgba(0,0,0,.18);text-align:left}
 .cbi,.cbe{padding:8px 12px;white-space:nowrap;font-size:14px;color:var(--tx);cursor:pointer}.cbe{color:var(--mu);cursor:default}.cbi:hover,.cbi.hl{background:var(--hd)}.cbi.on{font-weight:700;color:var(--ac)}
-@media print{.cbb,.cbl{display:none!important}}
+@media print{.cbb,.cbl,.fmod{display:none!important}}
 .schl{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.schl .lt{max-width:360px;line-height:1.3;color:var(--tx)}.schl .lt b{font-size:14px}.schl input,.schl select{display:inline-block;width:auto;margin-top:0}
 select,input,textarea{font:inherit;color:var(--tx);background:var(--sf);border:1px solid var(--ln);border-radius:5px;padding:6px 8px}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
@@ -188,7 +190,7 @@ function val(r,q){
  return o[k].f+o[k].g}
 
 function tabs(r,edit){
- const cell=(p,v)=>{const c=p.endsWith(".f")?' class="fr"':"";return edit?`<td${c}><input type="number" min="0" data-p="${p}" value="${v||""}" oninput="setv(this)" onchange="fix(this)" aria-label="${p}"></td>`:`<td${c}>${v}</td>`};
+ const cell=(p,v)=>{const c=p.endsWith(".f")?' class="fr"':"";return edit?`<td${c}><input type="number" min="0" data-p="${p}"${/^p\.\d+\.co\./.test(p)?' tabindex="-1"':' enterkeyhint="next"'} value="${v||""}" oninput="setv(this)" onchange="fix(this)" aria-label="${p}"></td>`:`<td${c}>${v}</td>`};
  const cm=q=>`<td class="c${q.endsWith(".f")?" fr":""}" data-q="${q}">${val(r,q)}</td>`;
  const g=K.map((k,i)=>`<tr><th>${LB[i]}</th>${cell("g."+k+".f",r.g[k].f)}${cell("g."+k+".g",r.g[k].g)}${cm("g."+k+".t")}</tr>`).join("")
   +`<tr class="tot"><th>Taux de réussite</th>${["f","g","t"].map(j=>cm("g.tx."+j)).join("")}</tr>`;
@@ -252,7 +254,9 @@ function pgId(){
 <div class="grid">${f("annee","Année scolaire")}${f("dreppnf","DREPPNF")}${f("dpeppnf","DPEPPNF")}${f("ceb","CEB")}${f("cceb","Nom et prénom du CCEB")}${sx("ccebs","Sexe du CCEB")}${f("ccebt","Emploi ou titre honorifique du CCEB")}${f("rb","Nom et prénom du R/BEPrim")}${sx("rbs","Sexe du/de la R/BEPrim")}${f("rbt","Emploi ou titre honorifique du/de la R/BEPrim")}${f("lieu","Fait à")}<label>Le<input type="date" value="${esc(S.id.date||today())}" oninput="S.id.date=this.value;save()"></label></div></div>
 <div class="card"><button class="bt" onclick="go('ec')">Passer à la saisie des écoles</button></div>
 <div class="card"><h3>Sauvegarde des données</h3><p class="mu">Enregistrez un fichier de sauvegarde après chaque séance de saisie, et restaurez-le sur un autre appareil ou après un effacement du navigateur.</p>
-<div class="ctl"><button class="bt" onclick="sauver()">Sauvegarder (fichier)</button><label class="bt" style="margin:0">Restaurer un fichier<input type="file" accept=".json" hidden onchange="restaurer(this)"></label></div></div>`}
+<div class="ctl"><button class="bt" onclick="sauver()">Sauvegarder (fichier)</button><label class="bt" style="margin:0">Restaurer un fichier<input type="file" accept=".json,application/json,text/plain,application/octet-stream" hidden onchange="restaurer(this)"></label></div></div>
+<div class="card"><h3>Fusion de données</h3><p class="mu">Plusieurs personnes ont saisi des données sur leur appareil ? Chacune envoie son fichier de sauvegarde (bouton « Sauvegarder (fichier) »). La personne qui centralise sélectionne ici tous les fichiers reçus : les écoles, les ZEP, les disciplines et les résultats sont réunis, sans effacer ce qui est déjà saisi.</p>
+<div class="ctl"><label class="bt" style="margin:0">Fusionner des fichiers<input type="file" accept=".json,application/json,text/plain,application/octet-stream" multiple hidden onchange="fusionChoisir(this)"></label>${(()=>{try{return localStorage.getItem(KEY+"_avant_fusion")?'<button class="bt" onclick="annulerFusion()">Annuler la dernière fusion</button>':""}catch(e){return""}})()}</div></div>`}
 function pgAc(){
  const B=[["id","Identification"],["ec","Saisie des écoles"],["zp","Saisie des ZEP"],["di","Saisie des disciplines"],["sa","Saisie des résultats"],["re","Résultats"],["me","Ordre de mérite"],["cp","Comparatif"]];
  const logo=document.querySelector("header .lg svg").outerHTML;
@@ -277,6 +281,87 @@ function pgDi(){
 
 function sauver(){saveBlob(new Blob([JSON.stringify(S)],{type:"application/json"}),"LoCoREB_sauvegarde_"+new Date().toISOString().slice(0,10)+".json")}
 function restaurer(el){const f=el.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!d.ex||!d.schools)throw 0;S=d;S.zeps=S.zeps||[];save();R()}catch(e){alert("Fichier de sauvegarde invalide.")}};r.readAsText(f)}
+
+/* ===== Fusion de données : plusieurs personnes saisissent, puis on réunit les fichiers ===== */
+const nkey=t=>nrm(t).replace(/[-_'\u2019.]/g," ").replace(/\s+/g," ").trim();
+const aVal=v=>v!==undefined&&v!==null&&v!=="";
+function ensureM(x,discs){if(x.m)return;const m={};(discs||[]).forEach(d=>["f","g"].forEach(j=>{if(man(x,d,j))m[d+"|co|"+j]=1}));x.m=m}
+function fusionner(T,F,mode,rep){
+ const canon=(list,name,kind)=>{const n=String(name==null?"":name).trim();if(!n)return"";const k=nkey(n);let c=list.find(x=>nkey(x)===k);if(!c){list.push(n);c=n;rep[kind]++}return c};
+ T.id=T.id||{};T.meta=T.meta||{};T.ex=T.ex||{};T.schools=T.schools||[];T.zeps=T.zeps||[];T.disc=T.disc||[];
+ (F.schools||[]).forEach(x=>canon(T.schools,x,"ecoles"));
+ (F.zeps||[]).forEach(x=>canon(T.zeps,x,"zeps"));
+ (F.disc||[]).forEach(x=>canon(T.disc,x,"disc"));
+ Object.keys(F.id||{}).forEach(k=>{if(!aVal(T.id[k])&&aVal(F.id[k]))T.id[k]=F.id[k]});
+ Object.keys(F.meta||{}).forEach(sn=>{
+  const c=canon(T.schools,sn,"ecoles"),fm=F.meta[sn]||{},tm=T.meta[c]=T.meta[c]||{};
+  ["st","zep"].forEach(f=>{let v=fm[f];if(!aVal(v))return;if(f==="zep")v=canon(T.zeps,v,"zeps");
+   if(!aVal(tm[f])){tm[f]=v;rep.meta++}
+   else if(nkey(tm[f])!==nkey(v)){rep.conf++;rep.confs.push(c+" – "+(f==="st"?"statut":"ZEP"));if(mode==="fichier")tm[f]=v}})});
+ Object.keys(F.ex||{}).forEach(n=>{
+  const fe=F.ex[n]||{},te=T.ex[n]=T.ex[n]||{niveau:fe.niveau||"CEB",d:{}};te.d=te.d||{};
+  if(!Object.keys(te.d).length&&fe.niveau)te.niveau=fe.niveau;
+  Object.keys(fe.d||{}).forEach(sn=>{
+   const fx=fe.d[sn];if(!fx)return;
+   const c=canon(T.schools,sn,"ecoles"),tx=te.d[c]=te.d[c]||{g:{},p:{}};
+   tx.g=tx.g||{};tx.p=tx.p||{};ensureM(tx,T.disc);
+   const lab=c+" – examen n°"+n;
+   const put=(o,j,fv,what)=>{if(!aVal(fv))return;
+    if(!aVal(o[j])){o[j]=fv;rep.filled++}
+    else if(+o[j]!==+fv){rep.conf++;rep.confs.push(lab+" – "+what);if(mode==="fichier")o[j]=fv}};
+   ["ef","co","mo"].forEach(k=>["f","g"].forEach(j=>{
+    const fv=fx.g&&fx.g[k]&&fx.g[k][j];if(!aVal(fv))return;
+    tx.g[k]=tx.g[k]||{};
+    put(tx.g[k],j,fv,(k==="ef"?"effectif":k==="co"?"ont composé":"ont eu la moyenne")+" "+j.toUpperCase())}));
+   Object.keys(fx.p||{}).forEach(dn=>{
+    const dc=canon(T.disc,dn,"disc"),fp=fx.p[dn]||{};
+    tx.p[dc]=tx.p[dc]||{};
+    ["f","g"].forEach(j=>{
+     const fm=fp.mo&&fp.mo[j];
+     if(aVal(fm)){tx.p[dc].mo=tx.p[dc].mo||{};put(tx.p[dc].mo,j,fm,dc+" – ont eu la moyenne "+j.toUpperCase())}
+     if(man(fx,dn,j)&&fp.co&&aVal(fp.co[j])){
+      const fv=fp.co[j],key=dc+"|co|"+j;tx.p[dc].co=tx.p[dc].co||{};
+      if(!tx.m[key]){tx.p[dc].co[j]=fv;tx.m[key]=1;rep.filled++}
+      else if(+tx.p[dc].co[j]!==+fv){rep.conf++;rep.confs.push(lab+" – "+dc+" – ont composé "+j.toUpperCase());if(mode==="fichier")tx.p[dc].co[j]=fv}}})})})})}
+function fusionRun(files,mode){
+ const T=JSON.parse(JSON.stringify(S)),rep={ecoles:0,zeps:0,disc:0,meta:0,filled:0,conf:0,confs:[]};
+ files.forEach(f=>fusionner(T,f.d,mode,rep));
+ T.schools.sort((a,b)=>a.localeCompare(b,"fr"));T.zeps.sort((a,b)=>a.localeCompare(b,"fr"));
+ return {T,rep}}
+let FUS=null;
+function fusionChoisir(el){
+ const fs=[...el.files];el.value="";if(!fs.length)return;
+ Promise.all(fs.map(f=>new Promise(ok=>{const r=new FileReader();
+  r.onload=()=>{try{const d=JSON.parse(r.result);if(!d||typeof d!=="object"||!d.ex||!d.schools)throw 0;ok({name:f.name,d})}catch(e){ok({name:f.name,err:1})}};
+  r.onerror=()=>ok({name:f.name,err:1});r.readAsText(f)}))).then(L=>fusionApercu(L))}
+function fusionApercu(L){
+ const good=L.filter(x=>!x.err),bad=L.filter(x=>x.err);
+ if(!good.length){alert("Aucun fichier de sauvegarde valide.");return}
+ FUS={good};
+ const {rep}=fusionRun(good,"garder"),nul=!(rep.ecoles||rep.zeps||rep.disc||rep.meta||rep.filled||rep.conf);
+ const li=t=>`<li>${t}</li>`;
+ const lines=[li(`Fichiers lus : <b>${good.length}</b>`+(bad.length?` (non valides, ignorés : ${bad.map(x=>esc(x.name)).join(", ")})`:"")),
+  li(`Écoles ajoutées : <b>${rep.ecoles}</b>`),li(`ZEP ajoutées : <b>${rep.zeps}</b>`),li(`Disciplines ajoutées : <b>${rep.disc}</b>`),
+  li(`Cases de résultats complétées : <b>${rep.filled+rep.meta}</b>`),li(`Valeurs différentes (conflits) : <b>${rep.conf}</b>`)].join("");
+ const ex=rep.confs.slice(0,8).map(x=>li(esc(x))).join("")+(rep.confs.length>8?li("… et "+(rep.confs.length-8)+" autre(s)"):"");
+ const d=document.createElement("div");d.className="fmod np";d.id="fmod";d.setAttribute("role","dialog");d.setAttribute("aria-label","Fusion des données");
+ d.innerHTML=`<div><h3 style="margin-top:0">Fusion des données</h3><ul>${lines}</ul>`
+  +(nul?`<p class="mu">Rien de nouveau : ces fichiers ne contiennent pas de données absentes de votre application.</p>`:"")
+  +(rep.conf?`<p><b>Si une même case a des valeurs différentes :</b></p><label style="display:block"><input type="radio" name="fmode" value="garder" checked style="width:auto;display:inline;margin:0 6px 0 0"> Garder mes valeurs (celles déjà saisies)</label><label style="display:block"><input type="radio" name="fmode" value="fichier" style="width:auto;display:inline;margin:0 6px 0 0"> Prendre les valeurs des fichiers</label><ul class="mu">${ex}</ul>`:"")
+  +`<p class="mu">Les cases vides sont complétées avec les données des fichiers. Une sauvegarde de vos données actuelles est conservée : vous pourrez annuler la fusion depuis la page Identification.</p>
+  <div class="ctl"><button class="bt" onclick="fusionAppliquer()"${nul?" disabled":""}>Appliquer la fusion</button><button class="bt" onclick="fusionFermer()">Annuler</button></div></div>`;
+ document.body.appendChild(d)}
+function fusionFermer(){const d=$("fmod");if(d)d.remove();FUS=null}
+function fusionAppliquer(){
+ if(!FUS)return;
+ const m=document.querySelector("#fmod input[name=fmode]:checked"),mode=m?m.value:"garder",{T}=fusionRun(FUS.good,mode);
+ try{localStorage.setItem(KEY+"_avant_fusion",JSON.stringify({t:Date.now(),s:S}))}catch(e){}
+ const ui=S.ui;S=T;S.ui=ui||T.ui;save();fusionFermer();R();toast("Fusion appliquée.")}
+function annulerFusion(){
+ try{const b=JSON.parse(localStorage.getItem(KEY+"_avant_fusion"));if(!b||!b.s)throw 0;
+  if(!confirm("Revenir aux données d'avant la dernière fusion ?"))return;
+  S=b.s;S.zeps=S.zeps||[];save();localStorage.removeItem(KEY+"_avant_fusion");R();toast("Fusion annulée.")}
+ catch(e){alert("Aucune fusion à annuler.")}}
 
 function pgSa(){
  const n=S.ui.n;
@@ -677,19 +762,20 @@ function pickSchool(el,key){
  S.ui[key]=r;save();R()}
 
 
-/* Saisie des résultats : flèches et Entrée pour passer d'une case à l'autre */
+/* Saisie des résultats : flèches et Entrée pour passer d'une case à l'autre (colonne « Ont eu la moyenne » uniquement) */
+const MOQ="#app input[data-p^='p.'][data-p*='.mo.']";
 document.addEventListener("keydown",e=>{
  const el=e.target;
- if(!el||!el.matches||!el.matches("#app input[data-p]")||e.ctrlKey||e.altKey||e.metaKey)return;
+ if(!el||!el.matches||!el.matches(MOQ)||e.ctrlKey||e.altKey||e.metaKey)return;
  const k=e.key,ent=(k==="Enter"||e.keyCode===13);
  if(!ent&&k!=="ArrowLeft"&&k!=="ArrowRight"&&k!=="ArrowUp"&&k!=="ArrowDown")return;
- const rows=[...document.querySelectorAll("#app tr")].map(tr=>[...tr.querySelectorAll("input[data-p]")]).filter(r=>r.length);
+ const rows=[...document.querySelectorAll("#app tr")].map(tr=>[...tr.querySelectorAll(MOQ)]).filter(r=>r.length);
  const all=rows.flat(),i=all.indexOf(el),ri=rows.findIndex(r=>r.includes(el));
  if(i<0)return;
  const ci=rows[ri].indexOf(el);let to=null;
  if(ent)to=all[i+(e.shiftKey?-1:1)];
- else if(k==="ArrowRight")to=all[i+1];
- else if(k==="ArrowLeft")to=all[i-1];
+ else if(k==="ArrowRight")to=rows[ri][ci+1];
+ else if(k==="ArrowLeft")to=rows[ri][ci-1];
  else{const r=rows[ri+(k==="ArrowDown"?1:-1)];if(r)to=r[Math.min(ci,r.length-1)]}
  e.preventDefault();
  if(to){to.focus();if(to.select)to.select()}
