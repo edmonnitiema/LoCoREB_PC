@@ -54,8 +54,14 @@ h1{font:700 22px Georgia,serif;margin:0}
 header p{margin:2px 0 10px;color:var(--mu);font-size:13px}
 nav{display:flex;gap:6px;flex-wrap:wrap;padding-bottom:10px;border-bottom:2px solid var(--ln)}
 nav button{border:0;background:var(--tb);color:var(--tt);padding:9px 14px;font:inherit;font-weight:600;cursor:pointer;border-radius:6px}
+nav.one{flex-wrap:nowrap;overflow-x:auto;gap:4px}
+nav.one button{flex:1 1 auto;min-width:0;padding:9px 6px;font-size:clamp(9px,1.05vw,13px);white-space:nowrap}
 nav button:not(.on):hover{filter:brightness(.94)}
 nav button.on{background:var(--ac);color:var(--tat)}
+/* Mobile : 2 lignes de 4 boutons, texte lisible (retour à la ligne dans le bouton) */
+@media(max-width:720px){
+nav,nav.one{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;overflow:visible;flex-wrap:initial}
+nav button,nav.one button{min-width:0;width:100%;min-height:42px;padding:5px 2px;font-size:clamp(9px,2.7vw,12px);line-height:1.15;white-space:normal;overflow-wrap:anywhere;text-align:center;display:flex;align-items:center;justify-content:center}}
 nav button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible,.bt:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
 main{max-width:1100px;margin:auto;padding:16px}
 .card{background:var(--sf);border:1px solid var(--ln);border-radius:8px;padding:16px;margin-bottom:16px}
@@ -84,6 +90,7 @@ table{border-collapse:collapse;width:100%;font-size:14px}
 th,td{border:2px solid var(--bd);padding:5px 7px;text-align:center}
 thead th{background:none}
 th.ve{border:0}
+th.fg{width:64px;min-width:64px}
 tbody th{text-align:left;font-weight:700;background:none}
 table.fx{table-layout:fixed}table.fx thead tr:first-child th:first-child{width:22%}table.fx td input{width:100%;max-width:72px}
 td input{width:62px;text-align:center;padding:4px;border-width:2px}
@@ -163,7 +170,7 @@ const KEY="locoreb",NV=["ÉCOLE","CEB","COMMUNAL","PROVINCIAL","RÉGIONAL"],K=["
 let S;
 try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){S=null}
 S=S||{};
-S.id=S.id||{};S.schools=S.schools||[];S.ex=S.ex||{};S.meta=S.meta||{};
+S.id=S.id||{};["dreppnf","dpeppnf","ceb"].forEach(k=>{if(S.id[k])S.id[k]=String(S.id[k]).toLocaleUpperCase("fr")});S.schools=S.schools||[];S.ex=S.ex||{};S.meta=S.meta||{};
 S.zeps=S.zeps||[];
 if(!S.zeps.length){const vu=new Set();Object.values(S.meta).forEach(m=>{const z=String(m&&m.zep||"").trim(),k=z.toLowerCase();if(z&&!vu.has(k)){vu.add(k);S.zeps.push(z)}});S.zeps.sort((a,b)=>a.localeCompare(b,"fr"))}
 normZeps();
@@ -173,7 +180,7 @@ const $=i=>document.getElementById(i);
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
 const esc=s=>String(s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const num=v=>+v||0;
-function normZeps(){const U=z=>String(z==null?"":z).trim().toLocaleUpperCase("fr"),vu=new Set();S.zeps=(S.zeps||[]).map(U).filter(z=>{const k=z.toLowerCase();if(!z||vu.has(k))return false;vu.add(k);return true});S.zeps.sort((a,b)=>a.localeCompare(b,"fr"));Object.values(S.meta||{}).forEach(m=>{if(m&&m.zep)m.zep=U(m.zep)})}
+function normZeps(){S.id=S.id||{};["dreppnf","dpeppnf","ceb"].forEach(k=>{if(S.id[k])S.id[k]=String(S.id[k]).toLocaleUpperCase("fr")});const U=z=>String(z==null?"":z).trim().toLocaleUpperCase("fr"),vu=new Set();S.zeps=(S.zeps||[]).map(U).filter(z=>{const k=z.toLowerCase();if(!z||vu.has(k))return false;vu.add(k);return true});S.zeps.sort((a,b)=>a.localeCompare(b,"fr"));Object.values(S.meta||{}).forEach(m=>{if(m&&m.zep)m.zep=U(m.zep)})}
 const UPS=s=>String(s==null?"":s).toLocaleUpperCase("fr");
 const today=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
 const E=n=>S.ex[n]||(S.ex[n]={niveau:"CEB",d:{}});
@@ -208,7 +215,7 @@ function tabs(r,edit){
  const g=K.map((k,i)=>`<tr><th>${LB[i]}</th>${cell("g."+k+".f",r.g[k].f)}${cell("g."+k+".g",r.g[k].g)}${cm("g."+k+".t")}</tr>`).join("")
   +`<tr class="tot"><th>Taux de réussite</th>${["f","g","t"].map(j=>cm("g.tx."+j)).join("")}</tr>`;
  const p=S.disc.map((d,i)=>`<tr><th>${esc(d)}</th>`+["co","mo"].map(k=>cell(`p.${i}.${k}.f`,r.p[d][k].f)+cell(`p.${i}.${k}.g`,r.p[d][k].g)+cm(`p.${i}.${k}.t`)).join("")+["f","g","t"].map(j=>cm(`p.${i}.tx.${j}`)).join("")+"</tr>").join("");
- const fgt='<th class="fr">F</th><th>G</th><th>T</th>';
+ const fgt='<th class="fr fg">F</th><th class="fg">G</th><th class="fg">T</th>';
  return `<h3>Résultats globaux</h3><div class="w"><table><thead><tr><th class="ve"></th>${fgt}</tr></thead><tbody>${g}</tbody></table></div>
 <h3>Taux de réussite par discipline</h3><div class="w"><table class="fx"><thead><tr><th rowspan="2">Disciplines</th><th colspan="3">Ont composé</th><th colspan="3">Ont eu la moyenne</th><th colspan="3">Taux de réussite</th></tr><tr>${fgt}${fgt}${fgt}</tr></thead><tbody>${p}</tbody></table></div>`}
 
@@ -252,7 +259,7 @@ function validate(x){
 
 const exSel=k=>`<select class="np" aria-label="Examen blanc" onchange="S.ui.${k}=+this.value;save();R()">${[1,2,3,4,5,6].map(i=>`<option value="${i}"${S.ui[k]==i?" selected":""}>Examen blanc n°${i}</option>`).join("")}</select>`;
 const title=n=>`<h2>RÉSULTATS DE L’EXAMEN BLANC N°${n} – NIVEAU ${esc(E(n).niveau)}</h2>`;
-const hd=()=>{const I=S.id;return `<div class="hd"><table class="hdt"><tr><td class="hl"><b>MEBAPLN</b><br>SECRÉTARIAT GÉNÉRAL<br>DREPPNF : ${esc(I.dreppnf)}<br>DPEPPNF : ${esc(I.dpeppnf)}<br>CEB : ${esc(I.ceb)}</td><td class="hr"><b>Burkina Faso</b><br>La Patrie ou la Mort, nous Vaincrons<br>Année scolaire : ${esc(I.annee)}</td></tr></table></div>`};
+const hd=()=>{const I=S.id;return `<div class="hd"><table class="hdt"><tr><td class="hl"><b>MEBAPLN</b><br>SECRÉTARIAT GÉNÉRAL<br>DREPPNF : ${esc(String(I.dreppnf||"").toLocaleUpperCase("fr"))}<br>DPEPPNF : ${esc(String(I.dpeppnf||"").toLocaleUpperCase("fr"))}<br>CEB : ${esc(String(I.ceb||"").toLocaleUpperCase("fr"))}</td><td class="hr"><b>Burkina Faso</b><br>La Patrie ou la Mort, nous Vaincrons<br>Année scolaire : ${esc(I.annee)}</td></tr></table></div>`};
 const MOIS=["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
 const dateLong=v=>{const p=String(v).split("-").map(Number);if(p.length<3||!p[0]||!p[1]||!p[2]||p[1]>12)return String(v).split("-").reverse().join("/");return (p[2]===1?"1er":p[2])+" "+MOIS[p[1]-1]+" "+p[0]};
 const sig=()=>{const I=S.id,d=dateLong(I.date||today());
@@ -261,7 +268,7 @@ const sig=()=>{const I=S.id,d=dateLong(I.date||today());
 const pdf=`<button class="bt np" onclick="exportPdf()">Exporter en PDF</button>`;
 
 function pgId(){
- const f=(k,l)=>`<label>${l}<input value="${esc(S.id[k])}" oninput="S.id[k='${k}']=this.value;save()"></label>`;
+ const UQ=["dreppnf","dpeppnf","ceb"],f=(k,l)=>UQ.includes(k)?`<label>${l}<input style="text-transform:uppercase" value="${esc(S.id[k])}" oninput="S.id[k='${k}']=this.value.toLocaleUpperCase('fr');save()"></label>`:`<label>${l}<input value="${esc(S.id[k])}" oninput="S.id[k='${k}']=this.value;save()"></label>`;
  const sx=(k,l)=>`<label>${l}<select onchange="S.id.${k}=this.value;save()"><option value=""></option>${["F","M"].map(v=>`<option${S.id[k]==v?" selected":""}>${v}</option>`).join("")}</select></label>`;
  return `<div class="card idp"><h2>IDENTIFICATION</h2><p style="text-align:center;margin:0 0 14px"><b>MEBAPLN</b><br><b>SECRÉTARIAT GÉNÉRAL</b></p>
 <div class="idr" style="grid-template-columns:repeat(3,minmax(0,1fr))">${f("annee","Année scolaire")}</div><div class="idr" style="grid-template-columns:repeat(3,minmax(0,1fr))">${f("dreppnf","DREPPNF")}${f("dpeppnf","DPEPPNF")}${f("ceb","CEB")}</div><div class="idr" style="grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,2fr)">${f("cceb","Nom et prénom du CCEB")}${sx("ccebs","Sexe du CCEB")}${f("ccebt","Emploi ou titre honorifique du CCEB")}</div><div class="idr" style="grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,2fr)">${f("rb","Nom et prénom du R/BEPrim")}${sx("rbs","Sexe du R/BEPrim")}${f("rbt","Emploi ou titre honorifique du R/BEPrim")}</div><div class="idr" style="grid-template-columns:minmax(0,2fr) minmax(0,1fr)">${f("lieu","Fait à")}<label>Le<input type=\"date\" value=\"${esc(S.id.date||today())}\" oninput=\"S.id.date=this.value;save()\"></label></div></div>
@@ -390,14 +397,14 @@ const grpBy=(f,em,or=[])=>{const m=new Map();
 const gZ=()=>grpBy(s=>Mt(s).zep,"ZEP non renseignée");
 const gS=()=>grpBy(s=>Mt(s).st,"Statut non renseigné",["public","privé"]);
 function tGrp(n,t,G){
- const fgt='<th class="fr">F</th><th>G</th><th>T</th>';
+ const fgt='<th class="fr fg">F</th><th class="fg">G</th><th class="fg">T</th>';
  const row=(nm,c,r,cl)=>`<tr class="${cl||""}"><th>${esc(nm)}</th><td>${c}</td>`+K.map(k=>`<td class="fr">${r.g[k].f}</td><td>${r.g[k].g}</td><td${k=="ef"?' class="b"':""}>${r.g[k].f+r.g[k].g}</td>`).join("")+["f","g","t"].map(j=>`<td${j=="f"?' class="fr"':""}>${val(r,"g.tx."+j)}</td>`).join("")+"</tr>";
  return `<h3 style="text-align:center">RÉSULTATS PAR ${t.toUpperCase()}</h3><div class="w"><table><thead><tr><th rowspan="2">${t}</th><th rowspan="2">Écoles</th><th colspan="3">Effectif</th><th colspan="3">Ont composé</th><th colspan="3">Ont eu la moyenne</th><th colspan="3">Taux de réussite</th></tr><tr>${fgt}${fgt}${fgt}${fgt}</tr></thead><tbody>${G.map(g=>row(g.name,g.list.length,agg(n,g.list))).join("")}${row("TOTAL CEB",S.schools.length,agg(n,S.schools),"tot")}</tbody></table></div>`}
 
 function pgRe(){
  const n=S.ui.n,L=S.schools,T=agg(n,L);
  const row=(nm,r,c,i)=>`<tr class="${c||""}"><td>${i||""}</td><th>${esc(UPS(nm))}</th><td class="b">${i?esc(Mt(nm).st):""}</td><td class="b">${i?esc(Mt(nm).zep):""}</td>`+K.map(k=>`<td class="fr">${r.g[k].f}</td><td>${r.g[k].g}</td><td${k=="ef"?' class="b"':""}>${r.g[k].f+r.g[k].g}</td>`).join("")+["f","g","t"].map(j=>`<td${j=="f"?' class="fr"':""}>${val(r,"g.tx."+j)}</td>`).join("")+"</tr>";
- const fgt='<th class="fr">F</th><th>G</th><th>T</th>';
+ const fgt='<th class="fr fg">F</th><th class="fg">G</th><th class="fg">T</th>';
  return `<div class="ctl np">${exSel("n")}${pdf}</div>
 <div class="card por">${hd()}${title(n)}<h3 style="text-align:center">TOTAL CEB</h3>${tabs(T,false)}${sig()}</div>
 <div class="card" data-rep="1">${hd()}${title(n)}<h3 style="text-align:center">RÉCAPITULATIF PAR ÉCOLE</h3><div class="w"><table><thead><tr><th rowspan="2">N°</th><th rowspan="2">École</th><th rowspan="2">Statut</th><th rowspan="2">ZEP</th><th colspan="3">Effectif</th><th colspan="3">Ont composé</th><th colspan="3">Ont eu la moyenne</th><th colspan="3">Taux de réussite</th></tr><tr>${fgt}${fgt}${fgt}${fgt}</tr></thead><tbody>${L.map((s,i)=>row(s,agg(n,[s]),"",i+1)).join("")}${row("TOTAL CEB",T,"tot")}</tbody></table></div>${sig()}</div>
@@ -411,7 +418,7 @@ function pgMe(){
  const rk=x=>{if(x.t==null)return "—";const k=1+rows.filter(y=>y.t!=null&&y.t>x.t).length;return k==1?"1er":k+"e"};
  const rt=(o,j)=>j=="t"?pc(o.mo.f+o.mo.g,o.co.f+o.co.g):pc(o.mo[j],o.co[j]);
  const cells=o=>["co","mo"].map(k=>`<td class="fr">${o[k].f}</td><td>${o[k].g}</td><td>${o[k].f+o[k].g}</td>`).join("")+["f","g","t"].map(j=>`<td${j=="f"?' class="fr"':""}>${rt(o,j)}</td>`).join("");
- const fgt='<th class="fr">F</th><th>G</th><th>T</th>';
+ const fgt='<th class="fr fg">F</th><th class="fg">G</th><th class="fg">T</th>';
  const body=rows.map(x=>`<tr><td>${rk(x)}</td><th>${esc(UPS(x.s))}</th><td class="b">${esc(Mt(x.s).st)}</td><td class="b">${esc(Mt(x.s).zep)}</td>${cells(x.o)}</tr>`).join("")+`<tr class="tot"><td></td><th>TOTAL CEB</th><td></td><td></td>${cells(pick(agg(n,S.schools)))}</tr>`;
  return `<div class="ctl np">${exSel("n")}<select aria-label="Classement selon" onchange="S.ui.crit=this.value;save();R()"><option value="">Résultats globaux</option>${S.disc.map((d,i)=>`<option value="${i}"${i==di?" selected":""}>${esc(d)}</option>`).join("")}</select>${pdf}</div>
 <div class="card">${hd()}<h2>ORDRE DE MÉRITE DES ÉCOLES – EXAMEN BLANC N°${n} – NIVEAU ${esc(E(n).niveau)}</h2><p style="text-align:center;margin:0">${di<0?"Résultats globaux":esc(S.disc[di])}</p>
@@ -420,7 +427,7 @@ function pgMe(){
 
 function pgCp(){
  const u=S.ui,L=u.scope&&S.schools.includes(u.scope)?[u.scope]:S.schools,A=agg(u.a,L),B=agg(u.b,L);
- const fgt='<th class="fr">F</th><th>G</th><th>T</th>';
+ const fgt='<th class="fr fg">F</th><th class="fg">G</th><th class="fg">T</th>';
  const cEc=(v,txt,j)=>{const r=v==null?0:Math.round(v*100)/100,c=[j=="f"?"fr":"",r>0?"ep":r<0?"en":""].filter(Boolean).join(" ");return `<td${c?` class="${c}"`:""}>${r<0&&j=="f"?`<span class="cer">${txt}</span>`:txt}</td>`};
  const ecs=(a,b)=>["f","g","t"].map(j=>{const x=tn(a,j),y=tn(b,j);return cEc(x==null||y==null?null:y-x,ec(x,y),j)}).join("");
  const g=K.map((k,i)=>`<tr><th>${LB[i]}</th>`+[A,B].map(r=>`<td class="fr">${r.g[k].f}</td><td>${r.g[k].g}</td><td>${r.g[k].f+r.g[k].g}</td>`).join("")+[["f",B.g[k].f-A.g[k].f],["g",B.g[k].g-A.g[k].g],["t",B.g[k].f+B.g[k].g-A.g[k].f-A.g[k].g]].map(x=>cEc(x[1],sg(x[1]),x[0])).join("")+"</tr>").join("")
@@ -615,6 +622,10 @@ function buildPdf(cards,cnt){
   if(sNat>AV){cw=sMin<AV?L.nat.map((n,i)=>L.min[i]+(n-L.min[i])*(AV-sMin)/(sNat-sMin)):L.nat.map(n=>n*AV/sNat)}
   else{const target=ncol<=4?Math.min(AV,Math.max(sNat,150)):AV;cw=L.nat.map(n=>n*target/sNat)}
   if(tbl.classList.contains("fx")&&ncol>2){const m=Math.max(...cw.slice(1)),k=Math.min(1,(AV-cw[0])/(m*(ncol-1)));cw=cw.map((w,i)=>i?m*k:w)}
+  {const hr=grid[headRows-1]||[],fg=[];for(let c=0;c<ncol;c++){const h=hr[c];if(h&&h.cs===1&&/^[FGT]$/.test(h.txt.trim()))fg.push(c)}
+   if(fg.length>1){const need=Math.max(...fg.map(c=>L.min[c])),sumFg=fg.reduce((a,c)=>a+cw[c],0),tg=Math.max(sumFg/fg.length,need),oth=cw.reduce((a,b,i)=>fg.includes(i)?a:a+b,0);
+    let k=1;if(tg*fg.length+oth>AV&&oth>0)k=Math.max(0.5,(AV-tg*fg.length)/oth);
+    cw=cw.map((w,i)=>fg.includes(i)?tg:w*k)}}
   const tw=cw.reduce((a,b)=>a+b,0),x0=M+(AV-tw)/2,cx=[];let ax=x0;cw.forEach(w=>{cx.push(ax);ax+=w});
   const lh=fs*0.3528*1.25,pad=1.8;
   const lines=o=>{doc.setFont("helvetica",o.bold?"bold":"normal");doc.setFontSize(fs);let w=0;for(let k=0;k<o.cs;k++)w+=cw[o.c+k];return wrapT(doc,o.txt,w-2.5)};
@@ -816,7 +827,7 @@ function go(t){S.ui.tab=t;save();R()}
 function R(){
  const u=S.ui,nav=document.querySelector("nav"),L=licInfo();
  if(L.bloque){nav.style.display="none";$("app").innerHTML=lockHtml(L);window.scrollTo(0,0);return}
- nav.style.display=u.tab=="ac"?"none":"";
+ nav.style.display=u.tab=="ac"?"none":"";nav.classList.toggle("one",u.tab!="id");
  S.schools.sort((a,b)=>a.localeCompare(b,"fr"));
  if(!S.schools.includes(u.school))u.school=S.schools[0]||"";
  $("app").innerHTML=licBanner()+{ac:pgAc,id:pgId,ec:pgEc,zp:pgZp,di:pgDi,sa:pgSa,re:pgRe,me:pgMe,cp:pgCp}[u.tab]();
