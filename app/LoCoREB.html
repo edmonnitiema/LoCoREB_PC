@@ -82,18 +82,19 @@ td.ep,td.fr.ep{color:var(--gn)}td.en{color:var(--rd)}.cer{display:inline-block;b
 .w{overflow-x:auto}
 table{border-collapse:collapse;width:100%;font-size:14px}
 th,td{border:2px solid var(--bd);padding:5px 7px;text-align:center}
-thead th{background:var(--hd)}
-tbody th{text-align:left;font-weight:700;background:var(--hd)}
+thead th{background:none}
+th.ve{border:0}
+tbody th{text-align:left;font-weight:700;background:none}
 table.fx{table-layout:fixed}table.fx thead tr:first-child th:first-child{width:22%}table.fx td input{width:100%;max-width:72px}
 td input{width:62px;text-align:center;padding:4px;border-width:2px}
-td input[readonly]{background:var(--hd);cursor:default}
+td input[readonly]{background:none;cursor:default}
 .gb,.gb select,.gb input{font-weight:700;color:var(--tx)}
 .ctl>label.gb{display:flex;align-items:center;gap:8px;font-size:14px}.ctl>label.gb select,.ctl>label.gb .cb,.ctl>label.gb input{display:inline-block;width:auto;margin-top:0}
 .cb input[data-src="schools"]{font-weight:700;text-transform:uppercase}
 textarea.up{text-transform:uppercase}
 td.c{font-variant-numeric:tabular-nums}
 td.b{font-weight:700}
-tr.tot td,tr.tot th{font-weight:700;background:var(--hd)}
+tr.tot td,tr.tot th{font-weight:700;background:none}
 .hd{font-size:13px;line-height:1.5;margin-bottom:6px}
 .hdt{width:100%;border-collapse:collapse;font-size:inherit}.hdt td{border:0;padding:0;text-align:left;vertical-align:top}.hdt td.hr{text-align:center;white-space:nowrap;width:1%;padding-left:16px}
 .sig{margin-top:28px;break-inside:avoid}
@@ -111,6 +112,7 @@ body{background:#fff}main{padding:0;max-width:none}
 .card{border:0;padding:0}
 table{font-size:10.5px}
 @page{size:A4 landscape;margin:10mm}}
+@page por{size:A4 portrait;margin:10mm}.por{page:por}
 .bad{border-color:var(--rd)!important;outline:2px solid var(--rd)}
 #vmsg:not(:empty){border:1px solid var(--rd);color:var(--rd);border-radius:6px;padding:8px 12px;margin:10px 0;font-size:13px}
 .lock{max-width:520px;margin:4vh auto}.lid{font:700 1.25em ui-monospace,Consolas,monospace;user-select:all}
@@ -164,12 +166,14 @@ S=S||{};
 S.id=S.id||{};S.schools=S.schools||[];S.ex=S.ex||{};S.meta=S.meta||{};
 S.zeps=S.zeps||[];
 if(!S.zeps.length){const vu=new Set();Object.values(S.meta).forEach(m=>{const z=String(m&&m.zep||"").trim(),k=z.toLowerCase();if(z&&!vu.has(k)){vu.add(k);S.zeps.push(z)}});S.zeps.sort((a,b)=>a.localeCompare(b,"fr"))}
+normZeps();
 S.disc=S.disc||["Dictée","Questions de dictée","Rédaction","Mathématiques","Lecture"];
 S.ui=S.ui||{tab:"ac",n:1,school:"",a:1,b:2,scope:""};
 const $=i=>document.getElementById(i);
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
 const esc=s=>String(s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const num=v=>+v||0;
+function normZeps(){const U=z=>String(z==null?"":z).trim().toLocaleUpperCase("fr"),vu=new Set();S.zeps=(S.zeps||[]).map(U).filter(z=>{const k=z.toLowerCase();if(!z||vu.has(k))return false;vu.add(k);return true});S.zeps.sort((a,b)=>a.localeCompare(b,"fr"));Object.values(S.meta||{}).forEach(m=>{if(m&&m.zep)m.zep=U(m.zep)})}
 const UPS=s=>String(s==null?"":s).toLocaleUpperCase("fr");
 const today=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
 const E=n=>S.ex[n]||(S.ex[n]={niveau:"CEB",d:{}});
@@ -205,7 +209,7 @@ function tabs(r,edit){
   +`<tr class="tot"><th>Taux de réussite</th>${["f","g","t"].map(j=>cm("g.tx."+j)).join("")}</tr>`;
  const p=S.disc.map((d,i)=>`<tr><th>${esc(d)}</th>`+["co","mo"].map(k=>cell(`p.${i}.${k}.f`,r.p[d][k].f)+cell(`p.${i}.${k}.g`,r.p[d][k].g)+cm(`p.${i}.${k}.t`)).join("")+["f","g","t"].map(j=>cm(`p.${i}.tx.${j}`)).join("")+"</tr>").join("");
  const fgt='<th class="fr">F</th><th>G</th><th>T</th>';
- return `<h3>Résultats globaux</h3><div class="w"><table><thead><tr><th></th>${fgt}</tr></thead><tbody>${g}</tbody></table></div>
+ return `<h3>Résultats globaux</h3><div class="w"><table><thead><tr><th class="ve"></th>${fgt}</tr></thead><tbody>${g}</tbody></table></div>
 <h3>Taux de réussite par discipline</h3><div class="w"><table class="fx"><thead><tr><th rowspan="2">Disciplines</th><th colspan="3">Ont composé</th><th colspan="3">Ont eu la moyenne</th><th colspan="3">Taux de réussite</th></tr><tr>${fgt}${fgt}${fgt}</tr></thead><tbody>${p}</tbody></table></div>`}
 
 function setv(el){
@@ -248,7 +252,7 @@ function validate(x){
 
 const exSel=k=>`<select class="np" aria-label="Examen blanc" onchange="S.ui.${k}=+this.value;save();R()">${[1,2,3,4,5,6].map(i=>`<option value="${i}"${S.ui[k]==i?" selected":""}>Examen blanc n°${i}</option>`).join("")}</select>`;
 const title=n=>`<h2>RÉSULTATS DE L’EXAMEN BLANC N°${n} – NIVEAU ${esc(E(n).niveau)}</h2>`;
-const hd=()=>{const I=S.id;return `<div class="hd"><table class="hdt"><tr><td class="hl"><b>MEBAPLN</b><br>DREPPNF : ${esc(I.dreppnf)}<br>DPEPPNF : ${esc(I.dpeppnf)}<br>CEB : ${esc(I.ceb)}</td><td class="hr"><b>Burkina Faso</b><br>La Patrie ou la Mort, nous Vaincrons<br>Année scolaire : ${esc(I.annee)}</td></tr></table></div>`};
+const hd=()=>{const I=S.id;return `<div class="hd"><table class="hdt"><tr><td class="hl"><b>MEBAPLN</b><br>SECRÉTARIAT GÉNÉRAL<br>DREPPNF : ${esc(I.dreppnf)}<br>DPEPPNF : ${esc(I.dpeppnf)}<br>CEB : ${esc(I.ceb)}</td><td class="hr"><b>Burkina Faso</b><br>La Patrie ou la Mort, nous Vaincrons<br>Année scolaire : ${esc(I.annee)}</td></tr></table></div>`};
 const MOIS=["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
 const dateLong=v=>{const p=String(v).split("-").map(Number);if(p.length<3||!p[0]||!p[1]||!p[2]||p[1]>12)return String(v).split("-").reverse().join("/");return (p[2]===1?"1er":p[2])+" "+MOIS[p[1]-1]+" "+p[0]};
 const sig=()=>{const I=S.id,d=dateLong(I.date||today());
@@ -259,8 +263,8 @@ const pdf=`<button class="bt np" onclick="exportPdf()">Exporter en PDF</button>`
 function pgId(){
  const f=(k,l)=>`<label>${l}<input value="${esc(S.id[k])}" oninput="S.id[k='${k}']=this.value;save()"></label>`;
  const sx=(k,l)=>`<label>${l}<select onchange="S.id.${k}=this.value;save()"><option value=""></option>${["F","M"].map(v=>`<option${S.id[k]==v?" selected":""}>${v}</option>`).join("")}</select></label>`;
- return `<div class="card idp"><h2>IDENTIFICATION</h2><p style="text-align:center;margin:0 0 14px"><b>MEBAPLN</b></p>
-<div class="idr" style="grid-template-columns:repeat(3,minmax(0,1fr))">${f("annee","Année scolaire")}</div><div class="idr" style="grid-template-columns:repeat(3,minmax(0,1fr))">${f("dreppnf","DREPPNF")}${f("dpeppnf","DPEPPNF")}${f("ceb","CEB")}</div><div class="idr" style="grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,2fr)">${f("cceb","Nom et prénom du CCEB")}${sx("ccebs","Sexe du CCEB")}${f("ccebt","Emploi ou titre honorifique du CCEB")}</div><div class="idr" style="grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,2fr)">${f("rb","Nom et prénom du R/BEPrim")}${sx("rbs","Sexe du/de la R/BEPrim")}${f("rbt","Emploi ou titre honorifique du/de la R/BEPrim")}</div><div class="idr" style="grid-template-columns:minmax(0,2fr) minmax(0,1fr)">${f("lieu","Fait à")}<label>Le<input type=\"date\" value=\"${esc(S.id.date||today())}\" oninput=\"S.id.date=this.value;save()\"></label></div></div>
+ return `<div class="card idp"><h2>IDENTIFICATION</h2><p style="text-align:center;margin:0 0 14px"><b>MEBAPLN</b><br><b>SECRÉTARIAT GÉNÉRAL</b></p>
+<div class="idr" style="grid-template-columns:repeat(3,minmax(0,1fr))">${f("annee","Année scolaire")}</div><div class="idr" style="grid-template-columns:repeat(3,minmax(0,1fr))">${f("dreppnf","DREPPNF")}${f("dpeppnf","DPEPPNF")}${f("ceb","CEB")}</div><div class="idr" style="grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,2fr)">${f("cceb","Nom et prénom du CCEB")}${sx("ccebs","Sexe du CCEB")}${f("ccebt","Emploi ou titre honorifique du CCEB")}</div><div class="idr" style="grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,2fr)">${f("rb","Nom et prénom du R/BEPrim")}${sx("rbs","Sexe du R/BEPrim")}${f("rbt","Emploi ou titre honorifique du R/BEPrim")}</div><div class="idr" style="grid-template-columns:minmax(0,2fr) minmax(0,1fr)">${f("lieu","Fait à")}<label>Le<input type=\"date\" value=\"${esc(S.id.date||today())}\" oninput=\"S.id.date=this.value;save()\"></label></div></div>
 <div class="card"><button class="bt" onclick="go('ec')">Passer à la saisie des écoles</button></div>
 <div class="card"><h3>Sauvegarde des données</h3><p class="mu">Enregistrez un fichier de sauvegarde après chaque séance de saisie, et restaurez-le sur un autre appareil ou après un effacement du navigateur.</p>
 <div class="ctl"><button class="bt" onclick="sauver()">Sauvegarder (fichier)</button><label class="bt" style="margin:0">Restaurer un fichier<input type="file" accept=".json,application/json,text/plain,application/octet-stream" hidden onchange="restaurer(this)"></label></div></div>
@@ -279,7 +283,7 @@ function pgEc(){
 <div class="ctl"><button class="bt" onclick="go('id')">Précédent</button><button class="bt" onclick="go('zp')">Passer à la saisie des ZEP</button></div></div>`}
 function pgZp(){
  return `<div class="card"><h2>SAISIE DES ZEP DE LA CEB</h2>
-<label>Une ZEP par ligne<textarea style="min-height:220px" onchange="sansDoublon(this,'zeps');S.zeps.sort((a,b)=>a.localeCompare(b,'fr'));this.value=S.zeps.join(String.fromCharCode(10));save()" onpaste="const t=this;setTimeout(()=>sansDoublon(t,'zeps'),0)" oninput="S.zeps=this.value.split(/\\n/).map(s=>s.trim()).filter(Boolean);save();if(this.value.slice(-1)===String.fromCharCode(10)||/^insert(LineBreak|Paragraph)$/.test(event.inputType||''))sansDoublon(this,'zeps')" onkeyup="if(event.key==='Enter')sansDoublon(this,'zeps')">${esc(S.zeps.join("\n"))}</textarea></label>
+<label>Une ZEP par ligne<textarea style="min-height:220px;text-transform:uppercase" onchange="sansDoublon(this,'zeps');S.zeps.sort((a,b)=>a.localeCompare(b,'fr'));this.value=S.zeps.join(String.fromCharCode(10));save()" onpaste="const t=this;setTimeout(()=>sansDoublon(t,'zeps'),0)" oninput="S.zeps=this.value.split(/\\n/).map(s=>s.trim().toLocaleUpperCase("fr")).filter(Boolean);save();if(this.value.slice(-1)===String.fromCharCode(10)||/^insert(LineBreak|Paragraph)$/.test(event.inputType||''))sansDoublon(this,'zeps')" onkeyup="if(event.key==='Enter')sansDoublon(this,'zeps')">${esc(S.zeps.join("\n"))}</textarea></label>
 <p class="mu">Les ZEP sont classées par ordre alphabétique. Elles alimentent la liste déroulante de la case ZEP dans Saisie des résultats. Renommer une ZEP après l’avoir attribuée à une école ne modifie pas l’école : choisissez de nouveau la ZEP. Les données restent sur cet appareil.</p>
 <div class="ctl"><button class="bt" onclick="go('ec')">Précédent</button><button class="bt" onclick="go('di')">Passer à la saisie des disciplines</button></div></div>`}
 function pgDi(){
@@ -289,7 +293,7 @@ function pgDi(){
 <div class="ctl"><button class="bt" onclick="go('zp')">Précédent</button><button class="bt" onclick="go('sa')">Passer à la saisie des résultats</button></div></div>`}
 
 function sauver(){saveBlob(new Blob([JSON.stringify(S)],{type:"application/json"}),"LoCoREB_sauvegarde_"+new Date().toISOString().slice(0,10)+".json")}
-function restaurer(el){const f=el.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!d.ex||!d.schools)throw 0;S=d;S.zeps=S.zeps||[];save();R()}catch(e){alert("Fichier de sauvegarde invalide.")}};r.readAsText(f)}
+function restaurer(el){const f=el.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!d.ex||!d.schools)throw 0;S=d;S.zeps=S.zeps||[];normZeps();save();R()}catch(e){alert("Fichier de sauvegarde invalide.")}};r.readAsText(f)}
 
 /* ===== Fusion de données : plusieurs personnes saisissent, puis on réunit les fichiers ===== */
 const nkey=t=>nrm(t).replace(/[-_'\u2019.]/g," ").replace(/\s+/g," ").trim();
@@ -335,7 +339,7 @@ function fusionner(T,F,mode,rep){
 function fusionRun(files,mode){
  const T=JSON.parse(JSON.stringify(S)),rep={ecoles:0,zeps:0,disc:0,meta:0,filled:0,conf:0,confs:[]};
  files.forEach(f=>fusionner(T,f.d,mode,rep));
- T.schools.sort((a,b)=>a.localeCompare(b,"fr"));T.zeps.sort((a,b)=>a.localeCompare(b,"fr"));
+ T.schools.sort((a,b)=>a.localeCompare(b,"fr"));{const U=z=>String(z==null?"":z).trim().toLocaleUpperCase("fr"),vu=new Set();T.zeps=T.zeps.map(U).filter(z=>{const k=z.toLowerCase();if(!z||vu.has(k))return false;vu.add(k);return true});Object.values(T.meta||{}).forEach(m=>{if(m&&m.zep)m.zep=U(m.zep)})}T.zeps.sort((a,b)=>a.localeCompare(b,"fr"));
  return {T,rep}}
 let FUS=null;
 function fusionChoisir(el){
@@ -369,7 +373,7 @@ function fusionAppliquer(){
 function annulerFusion(){
  try{const b=JSON.parse(localStorage.getItem(KEY+"_avant_fusion"));if(!b||!b.s)throw 0;
   if(!confirm("Revenir aux données d'avant la dernière fusion ?"))return;
-  S=b.s;S.zeps=S.zeps||[];save();localStorage.removeItem(KEY+"_avant_fusion");R();toast("Fusion annulée.")}
+  S=b.s;S.zeps=S.zeps||[];normZeps();save();localStorage.removeItem(KEY+"_avant_fusion");R();toast("Fusion annulée.")}
  catch(e){alert("Aucune fusion à annuler.")}}
 
 function pgSa(){
@@ -377,7 +381,7 @@ function pgSa(){
  if(!S.schools.length)return `<div class="card">Ajoutez d’abord les écoles dans l’onglet Saisie des écoles.</div>`;
  return `<div class="ctl np">${exSel("n")}<label class="schl np"><b style="font-size:14px;color:var(--tx)">NIVEAU :</b><select aria-label="Niveau" onchange="E(S.ui.n).niveau=this.value;save();R()">${NV.map(v=>`<option${v==E(n).niveau?" selected":""}>${v}</option>`).join("")}</select></label>
 <label class="schl np"><span class="lt"><b>École</b> (Sélectionnez votre école ici. Pour la retrouver facilement, tapez ses premières lettres.)</span>${schoolBox("school",S.ui.school,"École : tapez les premières lettres","lst-ec")}</label>${pdf}</div>
-<div class="card">${hd()}${title(n)}<h3 style="text-align:center;font-weight:700">ÉCOLE : ${esc(UPS(S.ui.school))}</h3><div class="ctl" style="justify-content:center"><label class="gb">Statut<select onchange="Mt(S.ui.school).st=this.value;save()"><option value=""></option>${["Public","Privé"].map(v=>`<option${Mt(S.ui.school).st==v?" selected":""}>${v}</option>`).join("")}</select></label><label class="gb">ZEP${cbBox("zeps",Mt(S.ui.school).zep,S.zeps.length?"ZEP : tapez les premières lettres":"Saisissez d’abord les ZEP","pickZep(this)",220,0)}</label></div><div id="vmsg" class="np" role="alert"></div>${tabs(agg(n,[S.ui.school]),true)}${sig()}</div>`}
+<div class="card por">${hd()}${title(n)}<h3 style="text-align:center;font-weight:700">ÉCOLE : ${esc(UPS(S.ui.school))}</h3><div class="ctl" style="justify-content:center"><label class="gb">Statut<select onchange="Mt(S.ui.school).st=this.value;save()"><option value=""></option>${["Public","Privé"].map(v=>`<option${Mt(S.ui.school).st==v?" selected":""}>${v}</option>`).join("")}</select></label><label class="gb">ZEP${cbBox("zeps",Mt(S.ui.school).zep,S.zeps.length?"ZEP : tapez les premières lettres":"Saisissez d’abord les ZEP","pickZep(this)",220,0)}</label></div><div id="vmsg" class="np" role="alert"></div>${tabs(agg(n,[S.ui.school]),true)}${sig()}</div>`}
 
 const grpBy=(f,em,or=[])=>{const m=new Map();
  S.schools.forEach(s=>{const raw=(f(s)||"").trim(),k=raw.toLowerCase();if(!m.has(k))m.set(k,{name:raw||em,list:[],k});m.get(k).list.push(s)});
@@ -395,7 +399,7 @@ function pgRe(){
  const row=(nm,r,c,i)=>`<tr class="${c||""}"><td>${i||""}</td><th>${esc(UPS(nm))}</th><td class="b">${i?esc(Mt(nm).st):""}</td><td class="b">${i?esc(Mt(nm).zep):""}</td>`+K.map(k=>`<td class="fr">${r.g[k].f}</td><td>${r.g[k].g}</td><td${k=="ef"?' class="b"':""}>${r.g[k].f+r.g[k].g}</td>`).join("")+["f","g","t"].map(j=>`<td${j=="f"?' class="fr"':""}>${val(r,"g.tx."+j)}</td>`).join("")+"</tr>";
  const fgt='<th class="fr">F</th><th>G</th><th>T</th>';
  return `<div class="ctl np">${exSel("n")}${pdf}</div>
-<div class="card">${hd()}${title(n)}<h3 style="text-align:center">TOTAL CEB</h3>${tabs(T,false)}${sig()}</div>
+<div class="card por">${hd()}${title(n)}<h3 style="text-align:center">TOTAL CEB</h3>${tabs(T,false)}${sig()}</div>
 <div class="card" data-rep="1">${hd()}${title(n)}<h3 style="text-align:center">RÉCAPITULATIF PAR ÉCOLE</h3><div class="w"><table><thead><tr><th rowspan="2">N°</th><th rowspan="2">École</th><th rowspan="2">Statut</th><th rowspan="2">ZEP</th><th colspan="3">Effectif</th><th colspan="3">Ont composé</th><th colspan="3">Ont eu la moyenne</th><th colspan="3">Taux de réussite</th></tr><tr>${fgt}${fgt}${fgt}${fgt}</tr></thead><tbody>${L.map((s,i)=>row(s,agg(n,[s]),"",i+1)).join("")}${row("TOTAL CEB",T,"tot")}</tbody></table></div>${sig()}</div>
 <div class="card">${hd()}${title(n)}${tGrp(n,"ZEP",gZ())}${tGrp(n,"Statut",gS())}${sig()}</div>`}
 
@@ -425,7 +429,7 @@ function pgCp(){
  const cr=(nm,list,c)=>{const a=agg(u.a,list),b=agg(u.b,list);return `<tr class="${c||""}"><th>${esc(nm)}</th>`+[a,b].map(r=>["f","g","t"].map(j=>`<td${j=="f"?' class="fr"':""}>${val(r,"g.tx."+j)}</td>`).join("")).join("")+ecs(a.g,b.g)+"</tr>"};
  const ct=(t,items)=>`<h3>Taux de réussite par ${t.toLowerCase()}</h3><div class="w"><table>${head(t)}<tbody>${items.map(i=>cr(i.name,i.list)).join("")}${cr("TOTAL CEB",S.schools,"tot")}</tbody></table></div>`;
  const extra=()=>u.scope&&S.schools.includes(u.scope)?"":ct("École",S.schools.map(s=>({name:UPS(s),list:[s]})))+ct("ZEP",gZ())+ct("Statut",gS());
- const head=(a,b)=>`<thead><tr><th rowspan="2">${a}</th><th colspan="3">Examen blanc n°${u.a}</th><th colspan="3">Examen blanc n°${u.b}</th><th colspan="3">Écart</th></tr><tr>${fgt}${fgt}${fgt}</tr></thead>`;
+ const head=(a,b)=>`<thead><tr><th rowspan="2"${a?"":' class="ve"'}>${a}</th><th colspan="3">Examen blanc n°${u.a}</th><th colspan="3">Examen blanc n°${u.b}</th><th colspan="3">Écart</th></tr><tr>${fgt}${fgt}${fgt}</tr></thead>`;
  return `<div class="ctl np">${exSel("a")}${exSel("b")}<label class="schl np"><span class="lt"><b>École</b> (Sélectionnez votre école ici. Pour la retrouver facilement, tapez ses premières lettres.)</span>${schoolBox("scope",u.scope||"","Total CEB (ou tapez une école)","lst-cp")}</label>${pdf}</div>
 <div class="card">${hd()}<h2>COMPARAISON ENTRE LES EXAMENS BLANCS N°${u.a} ET N°${u.b}</h2><p style="text-align:center;margin:0">${esc(L.length==1?UPS(L[0]):"TOTAL CEB")}</p>
 <h3>Résultats globaux</h3><div class="w"><table>${head("")}<tbody>${g}</tbody></table></div>
@@ -514,7 +518,7 @@ function mpEnc(s){var o=[];for(var i=0;i<s.length;i++){var c=s.charCodeAt(i),b;i
 function mpEsc(s){return mpEnc(s).map(function(b){if(b===92||b===40||b===41)return '\\'+String.fromCharCode(b);if(b<32||b>126){var o=b.toString(8);return '\\'+('000'+o).slice(-3)}return String.fromCharCode(b)}).join('')}
 function mpC(r,g,b){if(g===undefined){g=r;b=r}return [r/255,g/255,b/255]}
 function mpCol(c){return c.map(function(v){return v.toFixed(3)}).join(' ')}
-function MiniPDF(o){o=o||{};var land=o.orientation==='landscape';this.k=72/25.4;this.pw=(land?297:210)*this.k;this.ph=(land?210:297)*this.k;this.pages=[[]];this.font=1;this.fs=12;this.tc=[0,0,0];this.dc=[0,0,0];this.fc=[1,1,1];this.lw=0.2*this.k}
+function MiniPDF(o){o=o||{};var land=o.orientation==='landscape';this.k=72/25.4;this.pw=(land?297:210)*this.k;this.ph=(land?210:297)*this.k;this.pages=[[]];this.sz=[[this.pw,this.ph]];this.font=1;this.fs=12;this.tc=[0,0,0];this.dc=[0,0,0];this.fc=[1,1,1];this.lw=0.2*this.k}
 MiniPDF.prototype={
   setFont:function(n,s){this.font=s==='bold'?2:(s==='italic'?3:1);return this},
   setFontSize:function(s){this.fs=s;return this},
@@ -522,7 +526,7 @@ MiniPDF.prototype={
   setDrawColor:function(r,g,b){this.dc=mpC(r,g,b);return this},
   setFillColor:function(r,g,b){this.fc=mpC(r,g,b);return this},
   setLineWidth:function(w){this.lw=w*this.k;return this},
-  addPage:function(){this.pages.push([]);return this},
+  addPage:function(land){this.pages.push([]);if(land!==undefined){this.pw=(land?297:210)*this.k;this.ph=(land?210:297)*this.k}this.sz.push([this.pw,this.ph]);return this},
   getTextWidth:function(t){var W=this.font===2?MP_W2:MP_W1,e=mpEnc(String(t)),s=0;for(var i=0;i<e.length;i++)s+=(W[e[i]-32]||0);return s/1000*this.fs/this.k},
   text:function(t,x,y,o){t=String(t);var w=this.getTextWidth(t);if(o&&o.align==='center')x-=w/2;else if(o&&o.align==='right')x-=w;
     this.pages[this.pages.length-1].push('BT /F'+this.font+' '+this.fs.toFixed(2)+' Tf '+mpCol(this.tc)+' rg '+(x*this.k).toFixed(2)+' '+(this.ph-y*this.k).toFixed(2)+' Td ('+mpEsc(t)+') Tj ET');return this},
@@ -544,7 +548,7 @@ MiniPDF.prototype={
     objs[4]='<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>';
     for(i=0;i<n;i++){
       var c=this.pages[i].join('\n');
-      objs[5+2*i]='<< /Type /Page /Parent 2 0 R /MediaBox [0 0 '+this.pw.toFixed(2)+' '+this.ph.toFixed(2)+'] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 '+(5+2*n)+' 0 R >> >> /Contents '+(6+2*i)+' 0 R >>';
+      objs[5+2*i]='<< /Type /Page /Parent 2 0 R /MediaBox [0 0 '+this.sz[i][0].toFixed(2)+' '+this.sz[i][1].toFixed(2)+'] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 '+(5+2*n)+' 0 R >> >> /Contents '+(6+2*i)+' 0 R >>';
       objs[6+2*i]='<< /Length '+c.length+' >>\nstream\n'+c+'\nendstream';
     }
     objs[5+2*n]='<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique /Encoding /WinAnsiEncoding >>';
@@ -564,14 +568,17 @@ function wrapT(doc,t,w){var out=[],cur='';t.split(' ').forEach(function(wd){var 
 const pdfT=s=>String(s).replace(/\u00a0/g," ").replace(/[\u2192\u2794]/g,"->").replace(/\s+/g," ").trim();
 const safeName=s=>String(s).replace(/[\\\/:*?"<>|]/g," ").replace(/\s+/g," ").trim();
 const cellTxt=c=>{const i=c.querySelector("input");return pdfT(i?i.value:c.textContent)};
-const RED=[193,18,31],GREEN=[21,128,61],INK=[20,20,20],GRID=[110,110,110],HEADFILL=[226,235,228];
+const RED=[193,18,31],GREEN=[21,128,61],INK=[20,20,20],GRID=[110,110,110],HEADFILL=[255,255,255];
 
-function buildPdf(cards){
- const doc=new MiniPDF({orientation:"landscape"}),W=297,H=210,M=10,BOT=H-M-4,AV=W-2*M;
- let y=M,pg=1;
+function buildPdf(cards,cnt){
+ cnt=cnt||{};const cnt2={},isPor=c=>c.classList.contains("por");
+ const doc=new MiniPDF({orientation:cards.length&&isPor(cards[0])?"portrait":"landscape"});
+ let W=cards.length&&isPor(cards[0])?210:297,H=cards.length&&isPor(cards[0])?297:210;const M=10;let BOT=H-M-4,AV=W-2*M;
+ let y=M,pg=1,cur=0,part=1,perPart=cards.some(c=>c.dataset.rep);
+ const setO=land=>{W=land?297:210;H=land?210:297;BOT=H-M-4;AV=W-2*M};
  const dn=new Date(),STAMP=p2(dn.getDate())+"/"+p2(dn.getMonth()+1)+"/"+dn.getFullYear()+" à "+p2(dn.getHours())+":"+p2(dn.getMinutes())+":"+p2(dn.getSeconds());
- const foot=()=>{doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(110,110,110);doc.text("Généré par LoCoREB",M,H-6);doc.text("Page "+pg,W/2,H-6,{align:"center"});doc.text(STAMP,W-M,H-6,{align:"right"});doc.setTextColor(...INK)};
- const np=()=>{foot();doc.addPage();pg++;y=M};
+ const foot=()=>{doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(110,110,110);doc.text("Généré par LoCoREB",M,H-6);doc.text(perPart?"Page "+(pg-part+1)+(cnt[cur]?"/"+cnt[cur]:""):"Page "+pg,W/2,H-6,{align:"center"});doc.text(STAMP,W-M,H-6,{align:"right"});doc.setTextColor(...INK)};
+ const np=land=>{foot();if(land===undefined)land=W>H;setO(land);doc.addPage(land);pg++;y=M};
  const need=h=>{if(y+h>BOT)np()};
  doc.setTextColor(...INK);
  const para=(t,fs,bold,align,col,gap)=>{
@@ -588,7 +595,7 @@ function buildPdf(cards){
    [...tr.cells].forEach(c=>{
     while(grid[ri][ci])ci++;
     const cs=c.colSpan||1,rs=c.rowSpan||1,inHead=tr.parentNode.tagName==="THEAD",tot=tr.classList.contains("tot"),th=c.tagName==="TH";
-    const o={r:ri,c:ci,cs,rs,txt:cellTxt(c),bold:th||tot||c.classList.contains("b"),red:c.classList.contains("fr")||c.classList.contains("en"),green:c.classList.contains("ep"),circ:!!c.querySelector(".cer"),fill:inHead||th||tot,left:th&&!inHead};
+    const o={ve:c.classList.contains("ve"),r:ri,c:ci,cs,rs,txt:cellTxt(c),bold:th||tot||c.classList.contains("b"),red:c.classList.contains("fr")||c.classList.contains("en"),green:c.classList.contains("ep"),circ:!!c.querySelector(".cer"),fill:inHead||th||tot,left:th&&!inHead};
     for(let a=0;a<rs;a++){grid[ri+a]=grid[ri+a]||[];for(let b=0;b<cs;b++)grid[ri+a][ci+b]=o}
     cells.push(o);ci+=cs;ncol=Math.max(ncol,ci)})});
   if(!ncol)return;
@@ -619,6 +626,7 @@ function buildPdf(cards){
    cells.filter(o=>o.r===ri).forEach(o=>{
     let w=0,h=0;for(let k=0;k<o.cs;k++)w+=cw[o.c+k];for(let k=0;k<o.rs;k++)h+=rh[ri+k];
     const x=cx[o.c];
+    if(o.ve)return;
     doc.setLineWidth(0.2);doc.setDrawColor(...GRID);doc.setFillColor(...(o.fill?HEADFILL:[255,255,255]));doc.rect(x,yy,w,h,"FD");
     doc.setFont("helvetica",o.bold?"bold":"normal");doc.setFontSize(fs);doc.setTextColor(...(o.green?GREEN:o.red?RED:INK));
     const n=o.ls.length,top=yy+(h-n*lh)/2;
@@ -629,9 +637,9 @@ function buildPdf(cards){
   const drawHead=()=>{let yy=y;for(let r=0;r<headRows;r++){drawRow(r,yy);yy+=rh[r]}y=yy};
   need(headH+(rh[headRows]||0)+2);
   drawHead();
-  const lim=rep?BOT-46:BOT;
   for(let r=headRows;r<rows.length;r++){
-   if(y+rh[r]>lim){if(rep){sign(rep.sig);np();rep.top.forEach(proc)}else np();drawHead()}
+   const lim=rep&&r===rows.length-1?BOT-46:BOT;
+   if(y+rh[r]>lim){np();drawHead()}
    drawRow(r,y);y+=rh[r]}
   y+=3}
 
@@ -675,11 +683,14 @@ function buildPdf(cards){
   else if(el.classList.contains("w")){const t=el.querySelector("table");if(t)table(t)}
   else if(el.classList.contains("sig"))sign(el)};
  cards.forEach((card,ci)=>{
-  if(ci)np();
+  if(ci){cnt2[cur]=pg-part+1;np(!isPor(card))}
+  cur=ci;part=pg;
   const kids=[...card.children],fw=kids.findIndex(k=>k.classList.contains("w"));
   const rep=card.dataset.rep&&fw>=0?{sig:card.querySelector(".sig"),top:kids.slice(0,fw)}:null;
   kids.forEach(el=>{if(rep&&el.classList.contains("w"))table(el.querySelector("table"),rep);else proc(el)})});
+ cnt2[cur]=pg-part+1;
  foot();
+ doc._cnt=cnt2;
  return doc}
 
 function pdfFileName(){
@@ -692,7 +703,7 @@ function pdfFileName(){
 function exportPdf(){
  const cards=[...new Set([...document.querySelectorAll("#app .hd")].map(h=>h.closest(".card")))];
  if(!cards.length){toast("Aucun document à exporter sur cette page.");return}
- try{saveBlob(buildPdf(cards).output(),pdfFileName(),true)}catch(e){toast("Le PDF n’a pas pu être créé : "+(e&&e.message||e))}}
+ try{saveBlob(buildPdf(cards,buildPdf(cards)._cnt).output(),pdfFileName(),true)}catch(e){toast("Le PDF n’a pas pu être créé : "+(e&&e.message||e))}}
 
 /* Enregistrement d'un fichier : application Windows (boîte « Enregistrer sous »), APK (partage Android) ou navigateur (téléchargement) */
 async function saveBlob(blob,name,ouvrir){
@@ -714,7 +725,7 @@ const nrm=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLow
 function sansDoublon(el,key){
  const NL=String.fromCharCode(10),kk=t=>nrm(t).replace(/[-_'\u2019.]/g," ").replace(/\s+/g," ").trim();
  const brut=el.value,vu=new Map(),res=[],noms=[];let dbl=false;
- brut.split(NL).forEach(l=>{const t=l.trim();if(!t)return;const k=kk(t);if(vu.has(k)){dbl=true;if(!noms.includes(vu.get(k)))noms.push(vu.get(k));return}vu.set(k,t);res.push(t)});
+ brut.split(NL).forEach(l=>{const t=l.trim();if(!t)return;const k=kk(t);if(vu.has(k)){dbl=true;if(!noms.includes(vu.get(k)))noms.push(vu.get(k));return}const tt=key==="zeps"?t.toLocaleUpperCase("fr"):t;vu.set(k,tt);res.push(tt)});
  S[key]=res;save();
  if(dbl){
   const lab=el.closest("label")||el.parentNode;
