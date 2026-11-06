@@ -827,7 +827,7 @@ function go(t){S.ui.tab=t;save();R()}
 function R(){
  const u=S.ui,nav=document.querySelector("nav"),L=licInfo();
  if(L.bloque){nav.style.display="none";$("app").innerHTML=lockHtml(L);window.scrollTo(0,0);return}
- nav.style.display=u.tab=="ac"?"none":"";nav.classList.toggle("one",u.tab!="id");
+ nav.style.display=u.tab=="ac"?"none":"";nav.classList.add("one");
  S.schools.sort((a,b)=>a.localeCompare(b,"fr"));
  if(!S.schools.includes(u.school))u.school=S.schools[0]||"";
  $("app").innerHTML=licBanner()+{ac:pgAc,id:pgId,ec:pgEc,zp:pgZp,di:pgDi,sa:pgSa,re:pgRe,me:pgMe,cp:pgCp}[u.tab]();
