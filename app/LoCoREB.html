@@ -81,6 +81,25 @@ nav button.on{background:var(--ac);color:var(--tat)}
 @media(max-width:720px){
 nav,nav.one{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;overflow:visible;flex-wrap:initial}
 nav button,nav.one button{min-width:0;width:100%;min-height:42px;padding:5px 2px;font-size:clamp(9px,2.7vw,12px);line-height:1.15;white-space:normal;overflow-wrap:anywhere;text-align:center;display:flex;align-items:center;justify-content:center}}
+/* Portable : cases de saisie des résultats lisibles (le tableau défile horizontalement, la 1re colonne reste visible) */
+@media(max-width:720px){
+table.fx{table-layout:auto;min-width:640px}
+table.fx td input{width:56px;max-width:none}
+td input{width:56px;min-width:56px;font-size:16px;padding:6px 2px}
+th.fg{width:auto;min-width:58px}
+th,td{padding:5px 4px}
+.w{-webkit-overflow-scrolling:touch}
+.w tbody tr>th:first-child{position:sticky;left:0;z-index:1;background:var(--sf);min-width:86px}}
+/* Portable : le tableau « Taux de réussite par discipline » tient dans la largeur de l'écran (sans défilement), cases de saisie incluses */
+@media(max-width:720px){
+table.fx.sx{table-layout:fixed;min-width:0;width:100%}
+table.sx col.c0{width:20%}table.sx col.cn{width:7.5%}table.sx col.ct{width:11.67%}
+table.sx th,table.sx td{padding:2px 1px;border-width:1px;font-size:10px;line-height:1.15}
+table.sx th.fg{width:auto;min-width:0;padding:3px 0}
+table.sx thead th{overflow-wrap:anywhere}
+table.sx tbody th{position:static;min-width:0;padding:2px 3px;overflow-wrap:anywhere;font-size:9.5px}
+table.sx td input{box-sizing:border-box;width:100%;min-width:0;max-width:none;padding:5px 0;font-size:12px;border-width:1px;border-radius:3px}
+table.sx td.c{overflow-wrap:normal}}
 nav button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible,.bt:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
 main{max-width:1100px;margin:auto;padding:16px}
 .card{background:var(--sf);border:1px solid var(--ln);border-radius:8px;padding:16px;margin-bottom:16px}
@@ -128,6 +147,7 @@ tr.tot td,tr.tot th{font-weight:700;background:none}
 .sgt{width:100%;border-collapse:collapse;border:0;margin-top:8px;table-layout:fixed}
 .sgt td{border:0;padding:0 8px;text-align:center;vertical-align:top;width:50%}
 .sgt td.sgd{padding-bottom:10px}
+.sgx .sgt td{padding:0}
 .sgt i{display:block;height:54px}
 .sgt b{display:block;font-weight:700}.sgt b u{text-decoration:underline}
 .sgt em{display:block;font-style:italic!important;font-size:.85em;font-weight:400}
@@ -202,13 +222,17 @@ const esc=s=>String(s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&g
 const num=v=>+v||0;
 function normZeps(){S.id=S.id||{};["dreppnf","dpeppnf","ceb"].forEach(k=>{if(S.id[k])S.id[k]=String(S.id[k]).toLocaleUpperCase("fr")});const U=z=>String(z==null?"":z).trim().toLocaleUpperCase("fr"),vu=new Set();S.zeps=(S.zeps||[]).map(U).filter(z=>{const k=z.toLowerCase();if(!z||vu.has(k))return false;vu.add(k);return true});S.zeps.sort((a,b)=>a.localeCompare(b,"fr"));Object.values(S.meta||{}).forEach(m=>{if(m&&m.zep)m.zep=U(m.zep)})}
 const UPS=s=>String(s==null?"":s).toLocaleUpperCase("fr");
+/* Noms : NOM en majuscules, Prénom en « nom propre » ; signature = Prénom + NOM ; anciennes données « Nom et prénom » séparées automatiquement */
+const cap1=s=>String(s==null?"":s).trim().toLocaleLowerCase("fr").replace(/(^|[\s-])(\S)/g,(m,a,b)=>a+b.toLocaleUpperCase("fr"));
+const fullNm=(n,p)=>[cap1(p),UPS(String(n==null?"":n).trim())].filter(Boolean).join(" ");
+const migNm=(o,k,kn,kp)=>{if(!o||!o[k]||o[kn]!=null||o[kp]!=null)return;const t=String(o[k]).trim().split(/\s+/).filter(Boolean),isU=w=>w.length>1&&w===UPS(w)&&w!==w.toLocaleLowerCase("fr");let n=t.filter(isU),p=t.filter(w=>!isU(w));if(!n.length&&t.length){n=[t[t.length-1]];p=t.slice(0,-1)}o[kn]=UPS(n.join(" "));o[kp]=cap1(p.join(" "))};
 const today=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
 const E=n=>S.ex[n]||(S.ex[n]={niveau:"CEB",d:{}});
 const D=(n,s)=>E(n).d[s]||(E(n).d[s]={g:{},p:{}});
 const Mt=s=>S.meta[s]||(S.meta[s]={});
-const pc=(m,c)=>c?(m/c*100).toFixed(2).replace(".",",")+" %":"—";
+const pc=(m,c)=>c?(m/c*100).toFixed(2).replace(".",","):"—";
 const tn=(o,j)=>{const c=j=="t"?o.co.f+o.co.g:o.co[j],m=j=="t"?o.mo.f+o.mo.g:o.mo[j];return c?m/c*100:null};
-const ec=(x,y)=>x==null||y==null?"—":((y-x>0?"+":"")+(y-x).toFixed(2).replace(".",",")+" pts");
+const ec=(x,y)=>x==null||y==null?"—":((y-x>0?"+":"")+(y-x).toFixed(2).replace(".",","));
 const sg=v=>(v>0?"+":"")+v;
 const z=()=>({f:0,g:0});
 const man=(x,d,j)=>{const k=d+"|co|"+j;if(x.m)return !!x.m[k];const v=x.p&&x.p[d]&&x.p[d].co&&x.p[d].co[j];return v!==undefined&&v!==""&&num(v)!==num(x.g&&x.g.co&&x.g.co[j])};
@@ -237,7 +261,7 @@ function tabs(r,edit){
  const p=S.disc.map((d,i)=>`<tr><th>${esc(d)}</th>`+["co","mo"].map(k=>cell(`p.${i}.${k}.f`,r.p[d][k].f)+cell(`p.${i}.${k}.g`,r.p[d][k].g)+cm(`p.${i}.${k}.t`)).join("")+["f","g","t"].map(j=>cm(`p.${i}.tx.${j}`)).join("")+"</tr>").join("");
  const fgt='<th class="fr fg">F</th><th class="fg">G</th><th class="fg">T</th>';
  return `<h3>RÉSULTATS GLOBAUX</h3><div class="w"><table><thead><tr><th class="ve"></th>${fgt}</tr></thead><tbody>${g}</tbody></table></div>
-<h3>TAUX DE RÉUSSITE PAR DISCIPLINE</h3><div class="w"><table class="fx"><thead><tr><th rowspan="2">Disciplines</th><th colspan="3">Ont composé</th><th colspan="3">Ont eu la moyenne</th><th colspan="3">Taux de réussite</th></tr><tr>${fgt}${fgt}${fgt}</tr></thead><tbody>${p}</tbody></table></div>`}
+<h3>TAUX DE RÉUSSITE PAR DISCIPLINE</h3><div class="w"><table class="fx sx"><colgroup><col class="c0"><col class="cn" span="6"><col class="ct" span="3"></colgroup><thead><tr><th rowspan="2">Disciplines</th><th colspan="3">Ont composé</th><th colspan="3">Ont eu la moyenne</th><th colspan="3">Taux de réussite</th></tr><tr>${fgt}${fgt}${fgt}</tr></thead><tbody>${p}</tbody></table></div>`}
 
 function setv(el){
  const [t,a,b,c]=el.dataset.p.split("."),x=D(S.ui.n,S.ui.school);
@@ -282,16 +306,18 @@ const title=n=>`<h2>RÉSULTATS DE L’EXAMEN BLANC N°${n} – NIVEAU ${esc(E(n)
 const hd=()=>{const I=S.id;return `<div class="hd"><table class="hdt"><tr><td class="hl">MEBAPLN<br>SECRÉTARIAT GÉNÉRAL<br>DREPPNF : ${esc(String(I.dreppnf||"").toLocaleUpperCase("fr"))}<br>DPEPPNF : ${esc(String(I.dpeppnf||"").toLocaleUpperCase("fr"))}<br>CEB : ${esc(String(I.ceb||"").toLocaleUpperCase("fr"))}</td><td class="hr">BURKINA FASO<br>La Patrie ou la Mort, nous Vaincrons<br>Année scolaire : ${esc(I.annee)}</td></tr></table></div>`};
 const MOIS=["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
 const dateLong=v=>{const p=String(v).split("-").map(Number);if(p.length<3||!p[0]||!p[1]||!p[2]||p[1]>12)return String(v).split("-").reverse().join("/");return (p[2]===1?"1er":p[2])+" "+MOIS[p[1]-1]+" "+p[0]};
-const sig=()=>{const I=S.id,d=dateLong(I.date||today());
+const sig=(a,b,ext)=>{const I=S.id;migNm(I,"cceb","ccebn","ccebp");migNm(I,"rb","rbn","rbp");const d=dateLong(I.date||today()),A=a||{sx:I.rbs,tt:"R/BEPrim",nm:fullNm(I.rbn,I.rbp),jb:I.rbt},B=b||{sx:I.ccebs,tt:"CCEB",nm:fullNm(I.ccebn,I.ccebp),jb:I.ccebt};
  const blk=(sx,tt,nm,jb)=>`${sx=="F"?"La":sx=="M"?"Le":"Le/la"} ${tt}<i></i>${nm?`<b><u>${esc(nm)}</u></b>`:""}${jb?`<em style="font-style:italic">${esc(jb)}</em>`:""}`;
- return `<div class="sig"><table class="sgt"><tr><td></td><td class="sgd">Fait à ${esc(I.lieu)||"……"}, le ${d}</td></tr><tr><td>${blk(I.rbs,"R/BEPrim",I.rb,I.rbt)}</td><td>${blk(I.ccebs,"CCEB",I.cceb,I.ccebt)}</td></tr></table></div>`};
+ return `<div class="sig${ext?" sgx":""}"><table class="sgt"><tr><td></td><td class="sgd">Fait à ${esc(I.lieu)||"……"}, le ${d}</td></tr><tr><td>${blk(A.sx,A.tt,A.nm,A.jb)}</td><td>${blk(B.sx,B.tt,B.nm,B.jb)}</td></tr></table></div>`};
 const pdf=`<button class="bt np" onclick="exportPdf()">Exporter en PDF</button>`;
 
 function pgId(){
+ migNm(S.id,"cceb","ccebn","ccebp");migNm(S.id,"rb","rbn","rbp");
  const UQ=["dreppnf","dpeppnf","ceb"],f=(k,l)=>UQ.includes(k)?`<label>${l}<input enterkeyhint="next" style="text-transform:uppercase" value="${esc(S.id[k])}" oninput="S.id[k='${k}']=this.value.toLocaleUpperCase('fr');save()"></label>`:`<label>${l}<input enterkeyhint="next" value="${esc(S.id[k])}" oninput="S.id[k='${k}']=this.value;save()"></label>`;
+ const nn=(k,l)=>`<label>${l}<input enterkeyhint="next" style="text-transform:uppercase" value="${esc(S.id[k])}" oninput="S.id['${k}']=UPS(this.value.trim())" onchange="this.value=S.id['${k}']=UPS(this.value.trim());save()"></label>`,pn=(k,l)=>`<label>${l}<input enterkeyhint="next" value="${esc(S.id[k])}" oninput="S.id['${k}']=cap1(this.value)" onchange="this.value=S.id['${k}']=cap1(this.value);save()"></label>`;
  const sx=(k,l)=>`<label>${l}<select onchange="S.id.${k}=this.value;save()"><option value=""></option>${["F","M"].map(v=>`<option${S.id[k]==v?" selected":""}>${v}</option>`).join("")}</select></label>`;
  return `<div class="card idp"><h2>IDENTIFICATION</h2><p style="text-align:center;margin:0 0 14px">MEBAPLN<br>SECRÉTARIAT GÉNÉRAL</p>
-<div class="idr" style="grid-template-columns:repeat(3,minmax(0,1fr))">${f("annee","Année scolaire")}</div><div class="idr" style="grid-template-columns:repeat(3,minmax(0,1fr))">${f("dreppnf","DREPPNF")}${f("dpeppnf","DPEPPNF")}${f("ceb","CEB")}</div><div class="idr" style="grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,2fr)">${f("cceb","Nom et prénom du CCEB")}${sx("ccebs","Sexe du CCEB")}${f("ccebt","Emploi ou titre honorifique du CCEB")}</div><div class="idr" style="grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,2fr)">${f("rb","Nom et prénom du R/BEPrim")}${sx("rbs","Sexe du R/BEPrim")}${f("rbt","Emploi ou titre honorifique du R/BEPrim")}</div><div class="idr" style="grid-template-columns:minmax(0,2fr) minmax(0,1fr)">${f("lieu","Fait à")}<label>Le<input type=\"date\" value=\"${esc(S.id.date||today())}\" oninput=\"S.id.date=this.value;save()\"></label></div></div>
+<div class="idr" style="grid-template-columns:repeat(3,minmax(0,1fr))">${f("annee","Année scolaire")}</div><div class="idr" style="grid-template-columns:repeat(3,minmax(0,1fr))">${f("dreppnf","DREPPNF")}${f("dpeppnf","DPEPPNF")}${f("ceb","CEB")}</div><div class="idr" style="grid-template-columns:minmax(0,1.4fr) minmax(0,1.4fr) minmax(0,.6fr) minmax(0,2fr)">${nn("ccebn","Nom du CCEB")}${pn("ccebp","Prénom du CCEB")}${sx("ccebs","Sexe du CCEB")}${f("ccebt","Emploi ou titre honorifique du CCEB")}</div><div class="idr" style="grid-template-columns:minmax(0,1.4fr) minmax(0,1.4fr) minmax(0,.6fr) minmax(0,2fr)">${nn("rbn","Nom du R/BEPrim")}${pn("rbp","Prénom du R/BEPrim")}${sx("rbs","Sexe du R/BEPrim")}${f("rbt","Emploi ou titre honorifique du R/BEPrim")}</div><div class="idr" style="grid-template-columns:minmax(0,2fr) minmax(0,1fr)">${f("lieu","Fait à")}<label>Le<input type=\"date\" value=\"${esc(S.id.date||today())}\" oninput=\"S.id.date=this.value;save()\"></label></div></div>
 <div class="card"><button class="bt" onclick="go('ec')">Passer à la saisie des écoles</button></div>
 <div class="card"><h3>Sauvegarde des données</h3><p class="mu">Enregistrez un fichier de sauvegarde après chaque séance de saisie, et restaurez-le sur un autre appareil ou après un effacement du navigateur.</p>
 <div class="ctl"><button class="bt" onclick="sauver()">Sauvegarder (fichier)</button><label class="bt" style="margin:0">Restaurer un fichier<input type="file" accept=".json,application/json,text/plain,application/octet-stream" hidden onchange="restaurer(this)"></label></div></div>
@@ -430,8 +456,8 @@ function pgSa(){
  const n=S.ui.n;
  if(!S.schools.length)return `<div class="card">Ajoutez d’abord les écoles dans l’onglet Saisie des écoles.</div>`;
  return `<div class="ctl np">${exSel("n")}<label class="schl np"><b style="font-size:14px;color:var(--tx)">NIVEAU :</b><select aria-label="Niveau" onchange="E(S.ui.n).niveau=this.value;save();R()">${NV.map(v=>`<option${v==E(n).niveau?" selected":""}>${v}</option>`).join("")}</select></label>
-<label class="schl np"><span class="lt"><b>École</b> (Sélectionnez votre école ici. Pour la retrouver facilement, tapez ses premières lettres.)</span>${schoolBox("school",S.ui.school,"École : tapez les premières lettres","lst-ec")}</label>${pdf}</div>
-<div class="card por">${hd()}${title(n)}<h3 style="text-align:center;font-weight:700">ÉCOLE : ${esc(UPS(S.ui.school))}</h3><div class="ctl" style="justify-content:center;gap:40px"><label class="gb">Statut<select onchange="Mt(S.ui.school).st=this.value;save()"><option value=""></option>${["Public","Privé"].map(v=>`<option${Mt(S.ui.school).st==v?" selected":""}>${v}</option>`).join("")}</select></label><label class="gb">ZEP${cbBox("zeps",Mt(S.ui.school).zep,S.zeps.length?"ZEP : tapez les premières lettres":"Saisissez d’abord les ZEP","pickZep(this)",220,0)}</label></div><div id="vmsg" class="np" role="alert"></div>${tabs(agg(n,[S.ui.school]),true)}${sig()}</div>`}
+<div class="np" style="display:flex;flex-direction:column;align-items:flex-start;gap:8px"><label class="schl np"><span class="lt"><b>École</b> (Sélectionnez votre école ici. Pour la retrouver facilement, tapez ses premières lettres.)</span>${schoolBox("school",S.ui.school,"École : tapez les premières lettres","lst-ec")}</label><div class="ctl np" style="margin:0;padding:0"><label class="gb"><b>Statut</b><select onchange="Mt(S.ui.school).st=this.value;save();R()"><option value=""></option>${["Public","Privé"].map(v=>`<option${Mt(S.ui.school).st==v?" selected":""}>${v}</option>`).join("")}</select></label><label class="gb"><b>ZEP</b>${cbBox("zeps",Mt(S.ui.school).zep,S.zeps.length?"ZEP : tapez les premières lettres":"Saisissez d’abord les ZEP","pickZep(this)",220,0)}</label></div></div>${pdf}</div>
+<div class="card por">${hd()}${title(n)}<h3 style="text-align:center;font-weight:700">ÉCOLE : ${esc(UPS(S.ui.school))}</h3><p style="text-align:center;font-weight:700;margin:0 0 6px">Statut : ${esc(Mt(S.ui.school).st||"........")}          ZEP : ${esc(Mt(S.ui.school).zep||"........")}</p><div id="vmsg" class="np" role="alert"></div>${tabs(agg(n,[S.ui.school]),true)}${sig()}</div>`}
 
 const grpBy=(f,em,or=[])=>{const m=new Map();
  S.schools.forEach(s=>{const raw=(f(s)||"").trim(),k=raw.toLowerCase();if(!m.has(k))m.set(k,{name:raw||em,list:[],k});m.get(k).list.push(s)});
@@ -444,13 +470,31 @@ function tGrp(n,t,G){
  const row=(nm,c,r,cl)=>`<tr class="${cl||""}"><th>${esc(nm)}</th><td>${c}</td>`+K.map(k=>`<td class="fr">${r.g[k].f}</td><td>${r.g[k].g}</td><td${k=="ef"?' class="b"':""}>${r.g[k].f+r.g[k].g}</td>`).join("")+["f","g","t"].map(j=>`<td${j=="f"?' class="fr"':""}>${val(r,"g.tx."+j)}</td>`).join("")+"</tr>";
  return `<h3 style="text-align:center">RÉSULTATS PAR ${t.toUpperCase()}</h3><div class="w"><table><thead><tr><th rowspan="2">${t}</th><th rowspan="2">Écoles</th><th colspan="3">Effectif</th><th colspan="3">Ont composé</th><th colspan="3">Ont eu la moyenne</th><th colspan="3">Taux de réussite</th></tr><tr>${fgt}${fgt}${fgt}${fgt}</tr></thead><tbody>${G.map(g=>row(g.name,g.list.length,agg(n,g.list))).join("")}${row("TOTAL CEB",S.schools.length,agg(n,S.schools),"tot")}</tbody></table></div>`}
 
+/* Groupe choisi sur la page Résultats : une zone (ZEP) ou un statut ; null = TOTAL CEB */
+function reScope(){
+ const u=S.ui,key=g=>g.k||"~",z=gZ().find(g=>key(g)===u.rz),t=gS().find(g=>key(g)===u.rs);
+ return z?{lab:"Zone",g:z,id:"z:"+key(z)}:t?{lab:"Statut",g:t,id:"s:"+key(t)}:null}
+/* Signataires des pages « zone » et « statut » : Le/la R/ZEP (à gauche) et Le/la R/BEPrim (à droite) */
+function sigZ(sc,ext){
+ const I=S.id,z=(S.zr&&S.zr[sc.id])||{};migNm(z,"nom","n","p");migNm(I,"rb","rbn","rbp");
+ return sig({sx:z.sx,tt:"R/ZEP",nm:fullNm(z.n,z.p),jb:z.tt},{sx:I.rbs,tt:"R/BEPrim",nm:fullNm(I.rbn,I.rbp),jb:I.rbt},ext)}
+function setZr(k,v){const sc=reScope();if(!sc)return;S.zr=S.zr||{};(S.zr[sc.id]=S.zr[sc.id]||{})[k]=v;save();R()}
 function pgRe(){
- const n=S.ui.n,L=S.schools,T=agg(n,L);
- const row=(nm,r,c,i)=>`<tr class="${c||""}"><td>${i||""}</td><th>${esc(UPS(nm))}</th><td class="b">${i?esc(Mt(nm).st):""}</td><td class="b">${i?esc(Mt(nm).zep):""}</td>`+K.map(k=>`<td class="fr">${r.g[k].f}</td><td>${r.g[k].g}</td><td${k=="ef"?' class="b"':""}>${r.g[k].f+r.g[k].g}</td>`).join("")+["f","g","t"].map(j=>`<td${j=="f"?' class="fr"':""}>${val(r,"g.tx."+j)}</td>`).join("")+"</tr>";
+ const n=S.ui.n,L=S.schools,T=agg(n,L),sc=reScope(),key=g=>g.k||"~";
+ const pick=(lab,G,cur,other)=>`<label class="gb">${lab}<select aria-label="${lab}" onchange="S.ui.${cur}=this.value;S.ui.${other}='';save();R()"><option value="">${lab==="Zone"?"Toutes les zones":"Tous les statuts"}</option>${G.map(g=>`<option value="${esc(key(g))}"${S.ui[cur]===key(g)?" selected":""}>${esc(g.name)}</option>`).join("")}</select></label>`;
+ let ctl=`<div class="ctl np">${exSel("n")}${pick("Zone",gZ(),"rz","rs")}${pick("Statut",gS(),"rs","rz")}${pdf}</div>`;
+ if(sc){const z=(S.zr&&S.zr[sc.id])||{};migNm(z,"nom","n","p");
+  ctl+=`<div class="ctl np"><label>Nom du R/ZEP<input style="text-transform:uppercase" value="${esc(z.n||"")}" onchange="setZr('n',UPS(this.value.trim()))"></label><label>Prénom du R/ZEP<input value="${esc(z.p||"")}" onchange="setZr('p',cap1(this.value))"></label><label>Sexe<select onchange="setZr('sx',this.value)"><option value=""></option>${["F","M"].map(v=>`<option${z.sx===v?" selected":""}>${v}</option>`).join("")}</select></label><label>Emploi ou titre honorifique<input value="${esc(z.tt||"")}" onchange="setZr('tt',this.value)"></label></div>`}
+ const row=(nm,r,c,i,lite)=>`<tr class="${c||""}"><td>${i||""}</td><th>${esc(UPS(nm))}</th>${lite?"":`<td class="b">${i?esc(Mt(nm).st):""}</td><td class="b">${i?esc(Mt(nm).zep):""}</td>`}`+K.map(k=>`<td class="fr">${r.g[k].f}</td><td>${r.g[k].g}</td><td${k=="ef"?' class="b"':""}>${r.g[k].f+r.g[k].g}</td>`).join("")+["f","g","t"].map(j=>`<td${j=="f"?' class="fr"':""}>${val(r,"g.tx."+j)}</td>`).join("")+"</tr>";
  const fgt='<th class="fr fg">F</th><th class="fg">G</th><th class="fg">T</th>';
- return `<div class="ctl np">${exSel("n")}${pdf}</div>
+ const rec=(list,TT,lab,ttl,lite)=>`<h3 style="text-align:center">${ttl}</h3><div class="w"><table><thead><tr><th rowspan="2">N°</th><th rowspan="2">École</th>${lite?"":`<th rowspan="2">Statut</th><th rowspan="2">ZEP</th>`}<th colspan="3">Effectif</th><th colspan="3">Ont composé</th><th colspan="3">Ont eu la moyenne</th><th colspan="3">Taux de réussite</th></tr><tr>${fgt}${fgt}${fgt}${fgt}</tr></thead><tbody>${list.map((s,i)=>row(s,agg(n,[s]),"",i+1,lite)).join("")}${row(lab,TT,"tot",0,lite)}</tbody></table></div>`;
+ if(sc){const G=sc.g,nm=sc.lab.toUpperCase()+" : "+esc(G.name.toLocaleUpperCase("fr")),TG=agg(n,G.list);
+  return `${ctl}
+<div class="card por">${hd()}${title(n)}<h3 style="text-align:center">${nm}</h3>${tabs(TG,false)}${sigZ(sc)}</div>
+<div class="card por" data-rep="1">${hd()}${title(n)}${rec(G.list,TG,"TOTAL "+sc.lab.toUpperCase(),"RÉCAPITULATIF PAR ÉCOLE – "+nm,true)}${sigZ(sc,true)}</div>`}
+ return `${ctl}
 <div class="card por">${hd()}${title(n)}<h3 style="text-align:center">TOTAL CEB</h3>${tabs(T,false)}${sig()}</div>
-<div class="card" data-rep="1">${hd()}${title(n)}<h3 style="text-align:center">RÉCAPITULATIF PAR ÉCOLE</h3><div class="w"><table><thead><tr><th rowspan="2">N°</th><th rowspan="2">École</th><th rowspan="2">Statut</th><th rowspan="2">ZEP</th><th colspan="3">Effectif</th><th colspan="3">Ont composé</th><th colspan="3">Ont eu la moyenne</th><th colspan="3">Taux de réussite</th></tr><tr>${fgt}${fgt}${fgt}${fgt}</tr></thead><tbody>${L.map((s,i)=>row(s,agg(n,[s]),"",i+1)).join("")}${row("TOTAL CEB",T,"tot")}</tbody></table></div>${sig()}</div>
+<div class="card por" data-rep="1">${hd()}${title(n)}${rec(L,T,"TOTAL CEB","RÉCAPITULATIF PAR ÉCOLE",true)}${sig(null,null,true)}</div>
 <div class="card">${hd()}${title(n)}${tGrp(n,"ZEP",gZ())}${tGrp(n,"Statut",gS())}${sig()}</div>`}
 
 function pgMe(){
@@ -462,10 +506,10 @@ function pgMe(){
  const rt=(o,j)=>j=="t"?pc(o.mo.f+o.mo.g,o.co.f+o.co.g):pc(o.mo[j],o.co[j]);
  const cells=o=>["co","mo"].map(k=>`<td class="fr">${o[k].f}</td><td>${o[k].g}</td><td>${o[k].f+o[k].g}</td>`).join("")+["f","g","t"].map(j=>`<td${j=="f"?' class="fr"':""}>${rt(o,j)}</td>`).join("");
  const fgt='<th class="fr fg">F</th><th class="fg">G</th><th class="fg">T</th>';
- const body=rows.map(x=>`<tr><td>${rk(x)}</td><th>${esc(UPS(x.s))}</th><td class="b">${esc(Mt(x.s).st)}</td><td class="b">${esc(Mt(x.s).zep)}</td>${cells(x.o)}</tr>`).join("")+`<tr class="tot"><td></td><th>TOTAL CEB</th><td></td><td></td>${cells(pick(agg(n,S.schools)))}</tr>`;
+ const body=rows.map(x=>`<tr><td>${rk(x)}</td><th>${esc(UPS(x.s))}</th>${cells(x.o)}</tr>`).join("")+`<tr class="tot"><td></td><th>TOTAL CEB</th>${cells(pick(agg(n,S.schools)))}</tr>`;
  return `<div class="ctl np">${exSel("n")}<select aria-label="Classement selon" onchange="S.ui.crit=this.value;save();R()"><option value="">RÉSULTATS GLOBAUX</option>${S.disc.map((d,i)=>`<option value="${i}"${i==di?" selected":""}>${esc(d)}</option>`).join("")}</select>${pdf}</div>
-<div class="card">${hd()}<h2>ORDRE DE MÉRITE DES ÉCOLES – EXAMEN BLANC N°${n} – NIVEAU ${esc(E(n).niveau)}</h2><p style="text-align:center;margin:0">${di<0?"RÉSULTATS GLOBAUX":esc(S.disc[di])}</p>
-<div class="w"><table><thead><tr><th rowspan="2">Rang</th><th rowspan="2">École</th><th rowspan="2">Statut</th><th rowspan="2">ZEP</th><th colspan="3">Ont composé</th><th colspan="3">Ont eu la moyenne</th><th colspan="3">Taux de réussite</th></tr><tr>${fgt}${fgt}${fgt}</tr></thead><tbody>${body}</tbody></table></div>
+<div class="card por" data-rep="1">${hd()}<h2>ORDRE DE MÉRITE DES ÉCOLES – EXAMEN BLANC N°${n} – NIVEAU ${esc(E(n).niveau)}</h2><p style="text-align:center;margin:0">${di<0?"RÉSULTATS GLOBAUX":esc(S.disc[di])}</p>
+<div class="w"><table class="f12"><thead><tr><th rowspan="2">Rang</th><th rowspan="2">École</th><th colspan="3">Ont composé</th><th colspan="3">Ont eu la moyenne</th><th colspan="3">Taux de réussite</th></tr><tr>${fgt}${fgt}${fgt}</tr></thead><tbody>${body}</tbody></table></div>
 <p class="mu">Classement selon le taux de réussite (T). Les écoles à égalité ont le même rang.</p>${sig()}</div>`}
 
 function pgCp(){
@@ -478,12 +522,15 @@ function pgCp(){
  const p=S.disc.map((d,i)=>`<tr><th>${esc(d)}</th>`+[A,B].map(r=>["f","g","t"].map(j=>`<td${j=="f"?' class="fr"':""}>${val(r,`p.${i}.tx.${j}`)}</td>`).join("")).join("")+ecs(A.p[d],B.p[d])+"</tr>").join("");
  const cr=(nm,list,c)=>{const a=agg(u.a,list),b=agg(u.b,list);return `<tr class="${c||""}"><th>${esc(nm)}</th>`+[a,b].map(r=>["f","g","t"].map(j=>`<td${j=="f"?' class="fr"':""}>${val(r,"g.tx."+j)}</td>`).join("")).join("")+ecs(a.g,b.g)+"</tr>"};
  const ct=(t,items)=>`<h3>TAUX DE RÉUSSITE PAR ${t.toUpperCase()}</h3><div class="w"><table>${head(t)}<tbody>${items.map(i=>cr(i.name,i.list)).join("")}${cr("TOTAL CEB",S.schools,"tot")}</tbody></table></div>`;
- const extra=()=>u.scope&&S.schools.includes(u.scope)?"":ct("École",S.schools.map(s=>({name:UPS(s),list:[s]})))+ct("ZEP",gZ())+ct("Statut",gS());
+ const sc=!!(u.scope&&S.schools.includes(u.scope));
  const head=(a,b)=>`<thead><tr><th rowspan="2"${a?"":' class="ve"'}>${a}</th><th colspan="3">Examen blanc n°${u.a} (${esc(E(u.a).niveau)})</th><th colspan="3">Examen blanc n°${u.b} (${esc(E(u.b).niveau)})</th><th colspan="3">Écart</th></tr><tr>${fgt}${fgt}${fgt}</tr></thead>`;
+ const ttl=`<h2>COMPARAISON ENTRE LES EXAMENS BLANCS N°${u.a} (${esc(E(u.a).niveau)}) ET N°${u.b} (${esc(E(u.b).niveau)})</h2><p style="text-align:center;margin:0">${esc(L.length==1?UPS(L[0]):"TOTAL CEB")}</p>`;
  return `<div class="ctl np">${exSel("a")}${exSel("b")}<label class="schl np"><span class="lt"><b>École</b> (Sélectionnez votre école ici. Pour la retrouver facilement, tapez ses premières lettres.)</span>${schoolBox("scope",u.scope||"","Total CEB (ou tapez une école)","lst-cp")}</label>${pdf}</div>
-<div class="card">${hd()}<h2>COMPARAISON ENTRE LES EXAMENS BLANCS N°${u.a} (${esc(E(u.a).niveau)}) ET N°${u.b} (${esc(E(u.b).niveau)})</h2><p style="text-align:center;margin:0">${esc(L.length==1?UPS(L[0]):"TOTAL CEB")}</p>
+<div class="card por">${hd()}${ttl}
 <h3>RÉSULTATS GLOBAUX</h3><div class="w"><table>${head("")}<tbody>${g}</tbody></table></div>
-<h3>TAUX DE RÉUSSITE PAR DISCIPLINE</h3><div class="w"><table class="fx">${head("Disciplines")}<tbody>${p}</tbody></table></div>${extra()}${sig()}</div>`}
+<h3>TAUX DE RÉUSSITE PAR DISCIPLINE</h3><div class="w"><table class="fx">${head("Disciplines")}<tbody>${p}</tbody></table></div>${sig()}</div>`
+ +(sc?"":`<div class="card por" data-rep="1">${hd()}${ttl}${ct("École",S.schools.map(s=>({name:UPS(s),list:[s]})))}${sig()}</div>
+<div class="card por">${hd()}${ttl}${ct("ZEP",gZ())}${ct("Statut",gS())}${sig()}</div>`)}
 
 /* ===== Licence (même principe que LoGeNo : identifiant propre à l'appareil + code signé Ed25519 avec date d'expiration) ===== */
 const LIC_KEY="locoreb-lic-v1",LPUB="86abec07e30211fd8bee4cdc7a548600b6ec823b3e7575f0ad202a8fec6f86c5",B32A="ABCDEFGHIJKLMNOPQRSTUVWXYZ234567",WA_NUM="22678214250";
@@ -651,24 +698,27 @@ function buildPdf(cards,cnt){
   if(!ncol)return;
   const mw=(o,fs)=>{doc.setFont("helvetica",o.bold?"bold":"normal");doc.setFontSize(fs);return doc.getTextWidth(o.txt)};
   const longest=(o,fs)=>{doc.setFont("helvetica",o.bold?"bold":"normal");doc.setFontSize(fs);return Math.max(0,...o.txt.split(" ").map(w=>doc.getTextWidth(w)))};
+  const fgc=[],fgk={};{const hr=grid[headRows-1]||[],gr=headRows>1?grid[headRows-2]||[]:[];for(let c=0;c<ncol;c++){const h=hr[c];if(h&&h.cs===1&&/^[FGT]$/.test(h.txt.trim())){fgc.push(c);fgk[c]=!!(gr[c]&&/compos|moyenne|effectif/i.test(gr[c].txt))}}}
   const measure=fs=>{
-   const nat=Array(ncol).fill(6),min=Array(ncol).fill(6);
+   const nat=Array(ncol).fill(6),min=Array(ncol).fill(6),f12=tbl.classList.contains("f12");
+   /* Colonnes F / G / T : largeur fixe selon la nature de la colonne (effectifs : « 000 », taux : « 100,00 »), quelles que soient les valeurs saisies → mise en page identique d'un tableau à l'autre */
+   const eq=()=>{if(fgc.length<2)return;doc.setFont("helvetica","bold");doc.setFontSize(fs);
+    const wc=doc.getTextWidth("000")+3.5,wt=doc.getTextWidth("100,00")+3.5,cn=fgc.filter(c=>fgk[c]),ct=fgc.filter(c=>!fgk[c]);
+    [[cn,wc],[ct,wt]].forEach(([cl,ref])=>{if(cl.length){const w=Math.max(ref,...cl.map(c=>nat[c]));cl.forEach(c=>{nat[c]=w;min[c]=w})}})};
    cells.filter(o=>o.cs===1).forEach(o=>{nat[o.c]=Math.max(nat[o.c],mw(o,fs)+3.5);min[o.c]=Math.max(min[o.c],longest(o,fs)+3.5)});
+   eq();
    cells.filter(o=>o.cs>1).forEach(o=>{
     const sum=a=>{let s=0;for(let k=0;k<o.cs;k++)s+=a[o.c+k];return s},add=(a,need)=>{const d=need-sum(a);if(d>0)for(let k=0;k<o.cs;k++)a[o.c+k]+=d/o.cs};
-    add(nat,mw(o,fs)+3.5);add(min,longest(o,fs)+3.5)});
+    add(nat,(f12?longest(o,fs):mw(o,fs))+3.5);add(min,longest(o,fs)+3.5)});
+   eq();
    return {nat,min}};
-  let fs=9.5,L=measure(fs);
+  let fs=tbl.classList.contains("f12")?12:9.5,L=measure(fs);
   while(L.nat.reduce((a,b)=>a+b,0)>AV&&fs>6.5){fs-=0.5;L=measure(fs)}
   const sNat=L.nat.reduce((a,b)=>a+b,0),sMin=L.min.reduce((a,b)=>a+b,0);
   let cw;
   if(sNat>AV){cw=sMin<AV?L.nat.map((n,i)=>L.min[i]+(n-L.min[i])*(AV-sMin)/(sNat-sMin)):L.nat.map(n=>n*AV/sNat)}
   else{const target=ncol<=4?Math.min(AV,Math.max(sNat,150)):AV;cw=L.nat.map(n=>n*target/sNat)}
   if(tbl.classList.contains("fx")&&ncol>2){const m=Math.max(...cw.slice(1)),k=Math.min(1,(AV-cw[0])/(m*(ncol-1)));cw=cw.map((w,i)=>i?m*k:w)}
-  {const hr=grid[headRows-1]||[],fg=[];for(let c=0;c<ncol;c++){const h=hr[c];if(h&&h.cs===1&&/^[FGT]$/.test(h.txt.trim()))fg.push(c)}
-   if(fg.length>1){const need=Math.max(...fg.map(c=>L.min[c])),sumFg=fg.reduce((a,c)=>a+cw[c],0),tg=Math.max(sumFg/fg.length,need),oth=cw.reduce((a,b,i)=>fg.includes(i)?a:a+b,0);
-    let k=1;if(tg*fg.length+oth>AV&&oth>0)k=Math.max(0.5,(AV-tg*fg.length)/oth);
-    cw=cw.map((w,i)=>fg.includes(i)?tg:w*k)}}
   const tw=cw.reduce((a,b)=>a+b,0),x0=M+(AV-tw)/2,cx=[];let ax=x0;cw.forEach(w=>{cx.push(ax);ax+=w});
   const lh=fs*0.3528*1.25,pad=1.8;
   const lines=o=>{doc.setFont("helvetica",o.bold?"bold":"normal");doc.setFontSize(fs);let w=0;for(let k=0;k<o.cs;k++)w+=cw[o.c+k];return wrapT(doc,o.txt,w-2.5)};
@@ -705,16 +755,17 @@ function buildPdf(cards,cnt){
    const after=ix<0?[]:ns.slice(ix+1);
    const nm=after.find(n=>n.nodeName==="B"),jb=after.find(n=>n.nodeName==="EM");
    return {title,name:nm?pdfT(nm.textContent):"",job:jb?pdfT(jb.textContent):""}});
+  const ext=el.classList.contains("sgx");
   need(44);y+=5;
-  if(dEl){doc.setFont("helvetica","normal");doc.setFontSize(10.5);doc.setTextColor(...INK);doc.text(pdfT(dEl.textContent),W-M-55,y,{align:"center"})}
+  if(dEl){doc.setFont("helvetica","normal");doc.setFontSize(10.5);doc.setTextColor(...INK);doc.text(pdfT(dEl.textContent),ext?W-M-AV/4:W-M-55,y,{align:"center"})}
   y+=8;
   blocks.forEach((b,i)=>{
-   const cx=i===0?M+55:W-M-55;
-   doc.setFont("helvetica","bold");doc.setFontSize(10.5);doc.text(b.title,cx,y,{align:"center"});
+   const cx=ext?(i===0?M+AV/4:W-M-AV/4):(i===0?M+55:W-M-55),al="center";
+   doc.setFont("helvetica","bold");doc.setFontSize(10.5);doc.text(b.title,cx,y,{align:al});
    let yy=y+17;
-   if(b.name){doc.setFont("helvetica","bold");doc.setFontSize(10.5);doc.text(b.name,cx,yy,{align:"center"});
-    const tw=doc.getTextWidth(b.name);doc.setDrawColor(...INK);doc.setLineWidth(0.25);doc.line(cx-tw/2,yy+0.9,cx+tw/2,yy+0.9);yy+=5}
-   if(b.job){doc.setFont("helvetica","italic");doc.setFontSize(8.5);doc.text(b.job,cx,yy,{align:"center"})}
+   if(b.name){doc.setFont("helvetica","bold");doc.setFontSize(10.5);doc.text(b.name,cx,yy,{align:al});
+    const tw=doc.getTextWidth(b.name),x1=cx-tw/2;doc.setDrawColor(...INK);doc.setLineWidth(0.25);doc.line(x1,yy+0.9,x1+tw,yy+0.9);yy+=5}
+   if(b.job){doc.setFont("helvetica","italic");doc.setFontSize(8.5);doc.text(b.job,cx,yy,{align:al})}
    doc.setFont("helvetica","normal");doc.setFontSize(10.5)});
   y+=17+14}
 
@@ -750,7 +801,7 @@ function buildPdf(cards,cnt){
 function pdfFileName(){
  const u=S.ui,t=u.tab,n=u.n,ex=i=>"Examen blanc n"+i+"_Niveau "+E(i).niveau,cb=String(S.id.ceb||"").trim(),P=safeName(!cb?"CEB":/^ceb\b/i.test(cb)?cb:"CEB "+cb);
  if(t==="sa")return safeName(P+"_"+u.school+"_"+ex(n))+".pdf";
- if(t==="re")return safeName(P+"_Résultats CEB_"+ex(n))+".pdf";
+ if(t==="re"){const sc=reScope();return safeName(P+"_Résultats "+(sc?sc.lab+" "+sc.g.name:"CEB")+"_"+ex(n))+".pdf"}
  if(t==="me"){const c=u.crit===""||u.crit===undefined||!S.disc[+u.crit]?"global":S.disc[+u.crit];return safeName(P+"_Ordre de mérite_"+ex(n)+"_"+c)+".pdf"}
  if(t==="cp")return safeName(P+"_Comparatif_EB"+u.a+"_EB"+u.b+"_Niveau "+(E(u.a).niveau==E(u.b).niveau?E(u.a).niveau:E(u.a).niveau+"-"+E(u.b).niveau)+(u.scope?"_"+u.scope:""))+".pdf";
  return P+".pdf"}
