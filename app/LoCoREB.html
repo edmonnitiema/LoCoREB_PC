@@ -23,18 +23,37 @@
   }
   function init(){
     if(window.Pont||!isNative())return;
-    window.Pont={enregistrer:async function(name,type,b64){
-      try{
-        var FS=plug('Filesystem'),SH=plug('Share');
-        if(!FS||!SH)throw new Error('plugin introuvable (Filesystem/Share)');
-        var w=await FS.writeFile({path:name,data:b64,directory:'CACHE',recursive:true});
-        await SH.share({title:name,url:w.uri,dialogTitle:'Enregistrer ou envoyer '+name});
-      }catch(e){
-        var m=String((e&&e.message)||e);
-        if(/cancel|dismiss/i.test(m))return;
-        alert("Le fichier n'a pas pu être enregistré : "+m);
+    window.Pont={
+      enregistrer:async function(name,type,b64,dossier){
+        var FS=plug('Filesystem'),SH=plug('Share'),repli=null;
+        try{
+          if(!FS)throw new Error('plugin introuvable (Filesystem)');
+          if(dossier){
+            /* Création du dossier dans « Documents » puis enregistrement du fichier dedans */
+            try{
+              try{var pm=await FS.checkPermissions();if(pm&&pm.publicStorage&&pm.publicStorage!=='granted')await FS.requestPermissions()}catch(e){}
+              var rel=dossier+'/'+name;
+              await FS.writeFile({path:rel,data:b64,directory:'DOCUMENTS',recursive:true});
+              var g=await FS.getUri({path:rel,directory:'DOCUMENTS'});
+              var ch=decodeURI(String(g.uri).replace(/^file:\/\//,''));
+              return {chemin:ch,dossier:dossier,dossierChemin:ch.slice(0,ch.lastIndexOf('/')),uri:g.uri};
+            }catch(e){repli=String((e&&e.message)||e)}
+          }
+          if(!SH)throw new Error('plugin introuvable (Share)');
+          var w=await FS.writeFile({path:name,data:b64,directory:'CACHE',recursive:true});
+          await SH.share({title:name,url:w.uri,dialogTitle:'Enregistrer ou envoyer '+name});
+          return repli!==null?{repli:true,erreur:repli}:undefined;
+        }catch(e){
+          var m=String((e&&e.message)||e);
+          if(/cancel|dismiss/i.test(m))return {annule:true};
+          alert("Le fichier n'a pas pu être enregistré : "+m);
+          return {annule:true};
+        }
+      },
+      partager:async function(uri,name){
+        try{var SH=plug('Share');if(SH)await SH.share({title:name,url:uri,dialogTitle:'Envoyer '+name})}catch(e){}
       }
-    }};
+    };
   }
   init();
   document.addEventListener('DOMContentLoaded',init);
@@ -74,7 +93,7 @@ input[hidden]{display:none!important}
 .cbl{position:absolute;left:0;min-width:100%;top:100%;margin-top:2px;z-index:60;max-height:260px;overflow:auto;background:var(--sf);border:1px solid var(--ln);border-radius:6px;box-shadow:0 6px 18px rgba(0,0,0,.18);text-align:left}
 .cbi,.cbe{padding:8px 12px;white-space:nowrap;font-size:14px;color:var(--tx);cursor:pointer}.cbe{color:var(--mu);cursor:default}.cbi:hover,.cbi.hl{background:var(--hd)}.cbi.on{font-weight:700;color:var(--ac)}
 @media print{.cbb,.cbl,.fmod{display:none!important}}
-.schl{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.schl .lt{max-width:360px;line-height:1.3;color:var(--tx)}.schl .lt b{font-size:14px}.schl input,.schl select{display:inline-block;width:auto;margin-top:0}
+.schl{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.schl .lt{max-width:360px;line-height:1.3;color:var(--tx);text-align:right}@media(max-width:720px){.schl .lt{text-align:left;max-width:none}}.schl .lt b{font-size:14px}.schl input,.schl select{display:inline-block;width:auto;margin-top:0}
 select,input,textarea{font:inherit;color:var(--tx);background:var(--sf);border:2px solid var(--bd);border-radius:5px;padding:6px 8px}
 .idr{display:grid;gap:12px;margin-bottom:12px}.idr label{white-space:nowrap}
 @media(max-width:720px){.idr{grid-template-columns:minmax(0,1fr)!important}.idr label{white-space:normal}}
@@ -83,6 +102,7 @@ label{display:block;font-size:13px;color:var(--mu)}
 label input,label select,label textarea{display:block;width:100%;margin-top:3px;color:var(--tx)}
 textarea{min-height:130px}
 .bt{background:var(--ac);color:var(--sf);border:0;border-radius:5px;padding:8px 14px;font:inherit;font-weight:600;cursor:pointer}
+.bt.rdg{background:var(--rd);color:var(--tat)}.bt[disabled]{opacity:.45;cursor:not-allowed}.rst{border-color:var(--rd)}.rst h3{margin-top:0;color:var(--rd)}.fmod ul{padding-left:20px;margin:8px 0}
 .fr,.fr input{color:var(--rd)}
 td.ep,td.fr.ep{color:var(--gn)}td.en{color:var(--rd)}.cer{display:inline-block;border:2px solid var(--rd);border-radius:50%;padding:2px 9px;line-height:1.2}
 .w{overflow-x:auto}
@@ -211,13 +231,13 @@ function val(r,q){
 
 function tabs(r,edit){
  const cell=(p,v)=>{const c=p.endsWith(".f")?' class="fr"':"";return edit?`<td${c}><input type="number" min="0" data-p="${p}"${/^p\.\d+\.co\./.test(p)?' tabindex="-1"':' enterkeyhint="next"'} value="${v||""}" oninput="setv(this)" onchange="fix(this)" aria-label="${p}"></td>`:`<td${c}>${v}</td>`};
- const cm=q=>edit&&q.endsWith(".t")?`<td class="c"><input readonly tabindex="-1" data-q="${q}" value="${val(r,q)}" aria-label="${q}"></td>`:`<td class="c${q.endsWith(".f")?" fr":""}" data-q="${q}">${val(r,q)}</td>`;
+ const cm=q=>edit&&q.endsWith(".t")&&!q.includes(".tx.")?`<td class="c"><input readonly tabindex="-1" data-q="${q}" value="${val(r,q)}" aria-label="${q}"></td>`:`<td class="c${q.endsWith(".f")?" fr":""}" data-q="${q}">${val(r,q)}</td>`;
  const g=K.map((k,i)=>`<tr><th>${LB[i]}</th>${cell("g."+k+".f",r.g[k].f)}${cell("g."+k+".g",r.g[k].g)}${cm("g."+k+".t")}</tr>`).join("")
   +`<tr class="tot"><th>Taux de réussite</th>${["f","g","t"].map(j=>cm("g.tx."+j)).join("")}</tr>`;
  const p=S.disc.map((d,i)=>`<tr><th>${esc(d)}</th>`+["co","mo"].map(k=>cell(`p.${i}.${k}.f`,r.p[d][k].f)+cell(`p.${i}.${k}.g`,r.p[d][k].g)+cm(`p.${i}.${k}.t`)).join("")+["f","g","t"].map(j=>cm(`p.${i}.tx.${j}`)).join("")+"</tr>").join("");
  const fgt='<th class="fr fg">F</th><th class="fg">G</th><th class="fg">T</th>';
- return `<h3>Résultats globaux</h3><div class="w"><table><thead><tr><th class="ve"></th>${fgt}</tr></thead><tbody>${g}</tbody></table></div>
-<h3>Taux de réussite par discipline</h3><div class="w"><table class="fx"><thead><tr><th rowspan="2">Disciplines</th><th colspan="3">Ont composé</th><th colspan="3">Ont eu la moyenne</th><th colspan="3">Taux de réussite</th></tr><tr>${fgt}${fgt}${fgt}</tr></thead><tbody>${p}</tbody></table></div>`}
+ return `<h3>RÉSULTATS GLOBAUX</h3><div class="w"><table><thead><tr><th class="ve"></th>${fgt}</tr></thead><tbody>${g}</tbody></table></div>
+<h3>TAUX DE RÉUSSITE PAR DISCIPLINE</h3><div class="w"><table class="fx"><thead><tr><th rowspan="2">Disciplines</th><th colspan="3">Ont composé</th><th colspan="3">Ont eu la moyenne</th><th colspan="3">Taux de réussite</th></tr><tr>${fgt}${fgt}${fgt}</tr></thead><tbody>${p}</tbody></table></div>`}
 
 function setv(el){
  const [t,a,b,c]=el.dataset.p.split("."),x=D(S.ui.n,S.ui.school);
@@ -259,7 +279,7 @@ function validate(x){
 
 const exSel=k=>`<select class="np" aria-label="Examen blanc" onchange="S.ui.${k}=+this.value;save();R()">${[1,2,3,4,5,6].map(i=>`<option value="${i}"${S.ui[k]==i?" selected":""}>Examen blanc n°${i}</option>`).join("")}</select>`;
 const title=n=>`<h2>RÉSULTATS DE L’EXAMEN BLANC N°${n} – NIVEAU ${esc(E(n).niveau)}</h2>`;
-const hd=()=>{const I=S.id;return `<div class="hd"><table class="hdt"><tr><td class="hl"><b>MEBAPLN</b><br>SECRÉTARIAT GÉNÉRAL<br>DREPPNF : ${esc(String(I.dreppnf||"").toLocaleUpperCase("fr"))}<br>DPEPPNF : ${esc(String(I.dpeppnf||"").toLocaleUpperCase("fr"))}<br>CEB : ${esc(String(I.ceb||"").toLocaleUpperCase("fr"))}</td><td class="hr"><b>Burkina Faso</b><br>La Patrie ou la Mort, nous Vaincrons<br>Année scolaire : ${esc(I.annee)}</td></tr></table></div>`};
+const hd=()=>{const I=S.id;return `<div class="hd"><table class="hdt"><tr><td class="hl">MEBAPLN<br>SECRÉTARIAT GÉNÉRAL<br>DREPPNF : ${esc(String(I.dreppnf||"").toLocaleUpperCase("fr"))}<br>DPEPPNF : ${esc(String(I.dpeppnf||"").toLocaleUpperCase("fr"))}<br>CEB : ${esc(String(I.ceb||"").toLocaleUpperCase("fr"))}</td><td class="hr">BURKINA FASO<br>La Patrie ou la Mort, nous Vaincrons<br>Année scolaire : ${esc(I.annee)}</td></tr></table></div>`};
 const MOIS=["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
 const dateLong=v=>{const p=String(v).split("-").map(Number);if(p.length<3||!p[0]||!p[1]||!p[2]||p[1]>12)return String(v).split("-").reverse().join("/");return (p[2]===1?"1er":p[2])+" "+MOIS[p[1]-1]+" "+p[0]};
 const sig=()=>{const I=S.id,d=dateLong(I.date||today());
@@ -270,7 +290,7 @@ const pdf=`<button class="bt np" onclick="exportPdf()">Exporter en PDF</button>`
 function pgId(){
  const UQ=["dreppnf","dpeppnf","ceb"],f=(k,l)=>UQ.includes(k)?`<label>${l}<input style="text-transform:uppercase" value="${esc(S.id[k])}" oninput="S.id[k='${k}']=this.value.toLocaleUpperCase('fr');save()"></label>`:`<label>${l}<input value="${esc(S.id[k])}" oninput="S.id[k='${k}']=this.value;save()"></label>`;
  const sx=(k,l)=>`<label>${l}<select onchange="S.id.${k}=this.value;save()"><option value=""></option>${["F","M"].map(v=>`<option${S.id[k]==v?" selected":""}>${v}</option>`).join("")}</select></label>`;
- return `<div class="card idp"><h2>IDENTIFICATION</h2><p style="text-align:center;margin:0 0 14px"><b>MEBAPLN</b><br><b>SECRÉTARIAT GÉNÉRAL</b></p>
+ return `<div class="card idp"><h2>IDENTIFICATION</h2><p style="text-align:center;margin:0 0 14px">MEBAPLN<br>SECRÉTARIAT GÉNÉRAL</p>
 <div class="idr" style="grid-template-columns:repeat(3,minmax(0,1fr))">${f("annee","Année scolaire")}</div><div class="idr" style="grid-template-columns:repeat(3,minmax(0,1fr))">${f("dreppnf","DREPPNF")}${f("dpeppnf","DPEPPNF")}${f("ceb","CEB")}</div><div class="idr" style="grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,2fr)">${f("cceb","Nom et prénom du CCEB")}${sx("ccebs","Sexe du CCEB")}${f("ccebt","Emploi ou titre honorifique du CCEB")}</div><div class="idr" style="grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,2fr)">${f("rb","Nom et prénom du R/BEPrim")}${sx("rbs","Sexe du R/BEPrim")}${f("rbt","Emploi ou titre honorifique du R/BEPrim")}</div><div class="idr" style="grid-template-columns:minmax(0,2fr) minmax(0,1fr)">${f("lieu","Fait à")}<label>Le<input type=\"date\" value=\"${esc(S.id.date||today())}\" oninput=\"S.id.date=this.value;save()\"></label></div></div>
 <div class="card"><button class="bt" onclick="go('ec')">Passer à la saisie des écoles</button></div>
 <div class="card"><h3>Sauvegarde des données</h3><p class="mu">Enregistrez un fichier de sauvegarde après chaque séance de saisie, et restaurez-le sur un autre appareil ou après un effacement du navigateur.</p>
@@ -282,7 +302,7 @@ function pgAc(){
  const logo=document.querySelector("header .lg svg").outerHTML;
  let k=0;const ttl="BIENVENUE DANS LoCoREB,".split(" ").map(w=>`<i class="wl">${[...w].map(c=>`<i class="ch" style="--i:${k++}" aria-hidden="true">${c}</i>`).join("")}</i>`).join(" ");
  return `<div class="card home"><div class="lgbig">${logo}</div><h2><i class="sr">BIENVENUE DANS LoCoREB,</i>${ttl}<span class="sub" style="--n:${k}">le Logiciel de Compilation des Résultats des Examens Blancs.</span></h2>
-<div class="tiles">${B.map((x,i)=>`<button class="bt tile" onclick="go('${x[0]}')"><b>${i+1}</b>${x[1]}</button>`).join("")}</div></div>${licHtml()}<div class="card">${credit()}</div>`}
+<div class="tiles">${B.map((x,i)=>`<button class="bt tile" onclick="go('${x[0]}')"><b>${i+1}</b>${x[1]}</button>`).join("")}</div></div>${licHtml()}<div class="card rst np"><h3>Réinitialisation</h3><p class="mu">Efface les résultats saisis de tous les examens blancs. L’identification, les écoles, les ZEP, les disciplines et la licence sont conservés. Un message d’avertissement vous demandera de confirmer.</p><div class="ctl"><button class="bt rdg" type="button" onclick="reinitOuvrir()">Réinitialiser l’application</button></div></div><div class="card">${credit()}</div>`}
 function pgEc(){
  return `<div class="card"><h2>SAISIE DES ÉCOLES DE LA CEB</h2>
 <label>Une école par ligne<textarea class="up" style="min-height:220px" onchange="sansDoublon(this,'schools');S.schools.sort((a,b)=>a.localeCompare(b,'fr'));this.value=S.schools.join(String.fromCharCode(10));save()" onpaste="const t=this;setTimeout(()=>sansDoublon(t,'schools'),0)" oninput="S.schools=this.value.split(/\\n/).map(s=>s.trim()).filter(Boolean);save();if(this.value.slice(-1)===String.fromCharCode(10)||/^insert(LineBreak|Paragraph)$/.test(event.inputType||''))sansDoublon(this,'schools')" onkeyup="if(event.key==='Enter')sansDoublon(this,'schools')">${esc(S.schools.join("\n"))}</textarea></label>
@@ -299,6 +319,29 @@ function pgDi(){
 <p class="mu">Renommer une discipline après saisie en détache les chiffres. Les données restent sur cet appareil.</p>
 <div class="ctl"><button class="bt" onclick="go('zp')">Précédent</button><button class="bt" onclick="go('sa')">Passer à la saisie des résultats</button></div></div>`}
 
+/* ===== Réinitialisation de l'application (page d'accueil) : efface les données, conserve la licence ===== */
+function reinitFermer(){const d=$("rmod");if(d)d.remove()}
+function reinitCheck(){const v=String($("rmi").value||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim().toUpperCase();$("rmo").disabled=v!=="REINITIALISER"}
+function reinitOuvrir(){
+ if($("rmod"))return;
+ const d=document.createElement("div");d.id="rmod";d.className="fmod np";d.setAttribute("role","dialog");d.setAttribute("aria-modal","true");d.setAttribute("aria-labelledby","rmt");
+ d.onkeydown=e=>{if(e.key==="Escape")reinitFermer()};
+ d.innerHTML='<div><h3 id="rmt" style="margin-top:0;color:var(--rd)">&#9888; Réinitialiser l’application ?</h3>'
+ +'<p>Cette action efface les résultats saisis sur cet appareil. Lisez attentivement avant de continuer :</p>'
+ +'<ul><li><b>Seuls les résultats saisis de tous les examens blancs seront effacés définitivement</b> (effectifs, ont composé, ont eu la moyenne, par école et par discipline).</li><li>L’identification, la liste des écoles (avec leur statut et leur ZEP), la liste des ZEP, la liste des disciplines et le niveau de chaque examen sont <b>conservés</b>.</li>'
+ +'<li>Cette opération est <b>irréversible</b> : elle ne pourra pas être annulée.</li>'
+ +''
+ +'<li>Votre licence d’utilisation <b>n’est pas</b> supprimée.</li>'
+ +'<li>Recommandation : enregistrez d’abord un fichier de sauvegarde pour pouvoir restaurer vos résultats plus tard.</li></ul>'
+ +'<div class="ctl"><button class="bt" type="button" onclick="sauver()">Sauvegarder (fichier) d’abord</button></div>'
+ +'<label>Pour confirmer, tapez <b>REINITIALISER</b> ci-dessous<input id="rmi" autocomplete="off" autocapitalize="characters" spellcheck="false" oninput="reinitCheck()"></label>'
+ +'<div class="ctl" style="justify-content:flex-end;margin:14px 0 0"><button class="bt" type="button" onclick="reinitFermer()">Annuler</button><button class="bt rdg" id="rmo" type="button" disabled onclick="reinitFaire()">Réinitialiser</button></div></div>';
+ document.body.appendChild(d);$("rmi").focus()}
+function reinitFaire(){
+ try{localStorage.removeItem(KEY+"_avant_fusion")}catch(e){}
+ Object.keys(S.ex||{}).forEach(n=>{if(S.ex[n])S.ex[n].d={}});
+ S.ui=S.ui||{};S.ui.tab="ac";
+ reinitFermer();save();R();toast("Résultats effacés.")}
 function sauver(){saveBlob(new Blob([JSON.stringify(S)],{type:"application/json"}),"LoCoREB_sauvegarde_"+new Date().toISOString().slice(0,10)+".json")}
 function restaurer(el){const f=el.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!d.ex||!d.schools)throw 0;S=d;S.zeps=S.zeps||[];normZeps();save();R()}catch(e){alert("Fichier de sauvegarde invalide.")}};r.readAsText(f)}
 
@@ -388,7 +431,7 @@ function pgSa(){
  if(!S.schools.length)return `<div class="card">Ajoutez d’abord les écoles dans l’onglet Saisie des écoles.</div>`;
  return `<div class="ctl np">${exSel("n")}<label class="schl np"><b style="font-size:14px;color:var(--tx)">NIVEAU :</b><select aria-label="Niveau" onchange="E(S.ui.n).niveau=this.value;save();R()">${NV.map(v=>`<option${v==E(n).niveau?" selected":""}>${v}</option>`).join("")}</select></label>
 <label class="schl np"><span class="lt"><b>École</b> (Sélectionnez votre école ici. Pour la retrouver facilement, tapez ses premières lettres.)</span>${schoolBox("school",S.ui.school,"École : tapez les premières lettres","lst-ec")}</label>${pdf}</div>
-<div class="card por">${hd()}${title(n)}<h3 style="text-align:center;font-weight:700">ÉCOLE : ${esc(UPS(S.ui.school))}</h3><div class="ctl" style="justify-content:center"><label class="gb">Statut<select onchange="Mt(S.ui.school).st=this.value;save()"><option value=""></option>${["Public","Privé"].map(v=>`<option${Mt(S.ui.school).st==v?" selected":""}>${v}</option>`).join("")}</select></label><label class="gb">ZEP${cbBox("zeps",Mt(S.ui.school).zep,S.zeps.length?"ZEP : tapez les premières lettres":"Saisissez d’abord les ZEP","pickZep(this)",220,0)}</label></div><div id="vmsg" class="np" role="alert"></div>${tabs(agg(n,[S.ui.school]),true)}${sig()}</div>`}
+<div class="card por">${hd()}${title(n)}<h3 style="text-align:center;font-weight:700">ÉCOLE : ${esc(UPS(S.ui.school))}</h3><div class="ctl" style="justify-content:center;gap:40px"><label class="gb">Statut<select onchange="Mt(S.ui.school).st=this.value;save()"><option value=""></option>${["Public","Privé"].map(v=>`<option${Mt(S.ui.school).st==v?" selected":""}>${v}</option>`).join("")}</select></label><label class="gb">ZEP${cbBox("zeps",Mt(S.ui.school).zep,S.zeps.length?"ZEP : tapez les premières lettres":"Saisissez d’abord les ZEP","pickZep(this)",220,0)}</label></div><div id="vmsg" class="np" role="alert"></div>${tabs(agg(n,[S.ui.school]),true)}${sig()}</div>`}
 
 const grpBy=(f,em,or=[])=>{const m=new Map();
  S.schools.forEach(s=>{const raw=(f(s)||"").trim(),k=raw.toLowerCase();if(!m.has(k))m.set(k,{name:raw||em,list:[],k});m.get(k).list.push(s)});
@@ -420,8 +463,8 @@ function pgMe(){
  const cells=o=>["co","mo"].map(k=>`<td class="fr">${o[k].f}</td><td>${o[k].g}</td><td>${o[k].f+o[k].g}</td>`).join("")+["f","g","t"].map(j=>`<td${j=="f"?' class="fr"':""}>${rt(o,j)}</td>`).join("");
  const fgt='<th class="fr fg">F</th><th class="fg">G</th><th class="fg">T</th>';
  const body=rows.map(x=>`<tr><td>${rk(x)}</td><th>${esc(UPS(x.s))}</th><td class="b">${esc(Mt(x.s).st)}</td><td class="b">${esc(Mt(x.s).zep)}</td>${cells(x.o)}</tr>`).join("")+`<tr class="tot"><td></td><th>TOTAL CEB</th><td></td><td></td>${cells(pick(agg(n,S.schools)))}</tr>`;
- return `<div class="ctl np">${exSel("n")}<select aria-label="Classement selon" onchange="S.ui.crit=this.value;save();R()"><option value="">Résultats globaux</option>${S.disc.map((d,i)=>`<option value="${i}"${i==di?" selected":""}>${esc(d)}</option>`).join("")}</select>${pdf}</div>
-<div class="card">${hd()}<h2>ORDRE DE MÉRITE DES ÉCOLES – EXAMEN BLANC N°${n} – NIVEAU ${esc(E(n).niveau)}</h2><p style="text-align:center;margin:0">${di<0?"Résultats globaux":esc(S.disc[di])}</p>
+ return `<div class="ctl np">${exSel("n")}<select aria-label="Classement selon" onchange="S.ui.crit=this.value;save();R()"><option value="">RÉSULTATS GLOBAUX</option>${S.disc.map((d,i)=>`<option value="${i}"${i==di?" selected":""}>${esc(d)}</option>`).join("")}</select>${pdf}</div>
+<div class="card">${hd()}<h2>ORDRE DE MÉRITE DES ÉCOLES – EXAMEN BLANC N°${n} – NIVEAU ${esc(E(n).niveau)}</h2><p style="text-align:center;margin:0">${di<0?"RÉSULTATS GLOBAUX":esc(S.disc[di])}</p>
 <div class="w"><table><thead><tr><th rowspan="2">Rang</th><th rowspan="2">École</th><th rowspan="2">Statut</th><th rowspan="2">ZEP</th><th colspan="3">Ont composé</th><th colspan="3">Ont eu la moyenne</th><th colspan="3">Taux de réussite</th></tr><tr>${fgt}${fgt}${fgt}</tr></thead><tbody>${body}</tbody></table></div>
 <p class="mu">Classement selon le taux de réussite (T). Les écoles à égalité ont le même rang.</p>${sig()}</div>`}
 
@@ -434,13 +477,13 @@ function pgCp(){
   +`<tr class="tot"><th>Taux de réussite</th>`+[A,B].map(r=>["f","g","t"].map(j=>`<td${j=="f"?' class="fr"':""}>${val(r,"g.tx."+j)}</td>`).join("")).join("")+ecs(A.g,B.g)+"</tr>";
  const p=S.disc.map((d,i)=>`<tr><th>${esc(d)}</th>`+[A,B].map(r=>["f","g","t"].map(j=>`<td${j=="f"?' class="fr"':""}>${val(r,`p.${i}.tx.${j}`)}</td>`).join("")).join("")+ecs(A.p[d],B.p[d])+"</tr>").join("");
  const cr=(nm,list,c)=>{const a=agg(u.a,list),b=agg(u.b,list);return `<tr class="${c||""}"><th>${esc(nm)}</th>`+[a,b].map(r=>["f","g","t"].map(j=>`<td${j=="f"?' class="fr"':""}>${val(r,"g.tx."+j)}</td>`).join("")).join("")+ecs(a.g,b.g)+"</tr>"};
- const ct=(t,items)=>`<h3>Taux de réussite par ${t.toLowerCase()}</h3><div class="w"><table>${head(t)}<tbody>${items.map(i=>cr(i.name,i.list)).join("")}${cr("TOTAL CEB",S.schools,"tot")}</tbody></table></div>`;
+ const ct=(t,items)=>`<h3>TAUX DE RÉUSSITE PAR ${t.toUpperCase()}</h3><div class="w"><table>${head(t)}<tbody>${items.map(i=>cr(i.name,i.list)).join("")}${cr("TOTAL CEB",S.schools,"tot")}</tbody></table></div>`;
  const extra=()=>u.scope&&S.schools.includes(u.scope)?"":ct("École",S.schools.map(s=>({name:UPS(s),list:[s]})))+ct("ZEP",gZ())+ct("Statut",gS());
- const head=(a,b)=>`<thead><tr><th rowspan="2"${a?"":' class="ve"'}>${a}</th><th colspan="3">Examen blanc n°${u.a}</th><th colspan="3">Examen blanc n°${u.b}</th><th colspan="3">Écart</th></tr><tr>${fgt}${fgt}${fgt}</tr></thead>`;
+ const head=(a,b)=>`<thead><tr><th rowspan="2"${a?"":' class="ve"'}>${a}</th><th colspan="3">Examen blanc n°${u.a} (${esc(E(u.a).niveau)})</th><th colspan="3">Examen blanc n°${u.b} (${esc(E(u.b).niveau)})</th><th colspan="3">Écart</th></tr><tr>${fgt}${fgt}${fgt}</tr></thead>`;
  return `<div class="ctl np">${exSel("a")}${exSel("b")}<label class="schl np"><span class="lt"><b>École</b> (Sélectionnez votre école ici. Pour la retrouver facilement, tapez ses premières lettres.)</span>${schoolBox("scope",u.scope||"","Total CEB (ou tapez une école)","lst-cp")}</label>${pdf}</div>
-<div class="card">${hd()}<h2>COMPARAISON ENTRE LES EXAMENS BLANCS N°${u.a} ET N°${u.b}</h2><p style="text-align:center;margin:0">${esc(L.length==1?UPS(L[0]):"TOTAL CEB")}</p>
-<h3>Résultats globaux</h3><div class="w"><table>${head("")}<tbody>${g}</tbody></table></div>
-<h3>Taux de réussite par discipline</h3><div class="w"><table class="fx">${head("Disciplines")}<tbody>${p}</tbody></table></div>${extra()}${sig()}</div>`}
+<div class="card">${hd()}<h2>COMPARAISON ENTRE LES EXAMENS BLANCS N°${u.a} (${esc(E(u.a).niveau)}) ET N°${u.b} (${esc(E(u.b).niveau)})</h2><p style="text-align:center;margin:0">${esc(L.length==1?UPS(L[0]):"TOTAL CEB")}</p>
+<h3>RÉSULTATS GLOBAUX</h3><div class="w"><table>${head("")}<tbody>${g}</tbody></table></div>
+<h3>TAUX DE RÉUSSITE PAR DISCIPLINE</h3><div class="w"><table class="fx">${head("Disciplines")}<tbody>${p}</tbody></table></div>${extra()}${sig()}</div>`}
 
 /* ===== Licence (même principe que LoGeNo : identifiant propre à l'appareil + code signé Ed25519 avec date d'expiration) ===== */
 const LIC_KEY="locoreb-lic-v1",LPUB="86abec07e30211fd8bee4cdc7a548600b6ec823b3e7575f0ad202a8fec6f86c5",B32A="ABCDEFGHIJKLMNOPQRSTUVWXYZ234567",WA_NUM="22678214250";
@@ -680,10 +723,10 @@ function buildPdf(cards,cnt){
   const tag=el.tagName,ctr=el.style.textAlign==="center";
   if(el.classList.contains("hd")){
    const y0=y,lh0=10*0.3528*1.35,spl=n=>n.innerHTML.split(/<br\s*\/?>/i).map(h=>{const t=document.createElement("div");t.innerHTML=h;return pdfT(t.textContent)});
-   spl(el.querySelector(".hl")).forEach((t,i)=>para(t,10,i===0,"left",INK,0.3));
+   spl(el.querySelector(".hl")).forEach((t,i)=>para(t,10,false,"left",INK,0.3));
    const R=spl(el.querySelector(".hr"));let wm=0;
-   R.forEach((t,i)=>{doc.setFont("helvetica",i===0?"bold":"normal");doc.setFontSize(10);wm=Math.max(wm,doc.getTextWidth(t))});
-   R.forEach((t,i)=>{doc.setFont("helvetica",i===0?"bold":"normal");doc.setFontSize(10);doc.setTextColor(...INK);doc.text(t,W-M-wm/2,y0+lh0*(i+1)-lh0*0.25+0.3*i,{align:"center"})});
+   R.forEach((t,i)=>{doc.setFont("helvetica","normal");doc.setFontSize(10);wm=Math.max(wm,doc.getTextWidth(t))});
+   R.forEach((t,i)=>{doc.setFont("helvetica","normal");doc.setFontSize(10);doc.setTextColor(...INK);doc.text(t,W-M-wm/2,y0+lh0*(i+1)-lh0*0.25+0.3*i,{align:"center"})});
    y+=3}
   else if(tag==="H2"){y+=1;para(el.textContent,13,true,"center",INK,2.5)}
   else if(tag==="H3"){need(26);y+=1;para(el.textContent,11,true,ctr?"center":"left",INK,1.5)}
@@ -711,23 +754,54 @@ function pdfFileName(){
  if(t==="me"){const c=u.crit===""||u.crit===undefined||!S.disc[+u.crit]?"global":S.disc[+u.crit];return safeName(P+"_Ordre de mérite_"+ex(n)+"_"+c)+".pdf"}
  if(t==="cp")return safeName(P+"_Comparatif_EB"+u.a+"_EB"+u.b+"_Niveau "+(E(u.a).niveau==E(u.b).niveau?E(u.a).niveau:E(u.a).niveau+"-"+E(u.b).niveau)+(u.scope?"_"+u.scope:""))+".pdf";
  return P+".pdf"}
+/* Dossier créé pour les PDF : « FICHIERS PDF_EB N°<n>_<NIVEAU> » (comparatif : « EB N°1-2 », niveaux séparés par « - » s'ils diffèrent) */
+function dossierPdf(){
+ const u=S.ui;let n,nv;
+ if(u.tab==="cp"){n=u.a===u.b?String(u.a):u.a+"-"+u.b;nv=E(u.a).niveau===E(u.b).niveau?E(u.a).niveau:E(u.a).niveau+"-"+E(u.b).niveau}
+ else{n=String(u.n);nv=E(u.n).niveau}
+ return safeName("FICHIERS PDF_EB N°"+n+"_"+nv)}
 function exportPdf(){
  const cards=[...new Set([...document.querySelectorAll("#app .hd")].map(h=>h.closest(".card")))];
  if(!cards.length){toast("Aucun document à exporter sur cette page.");return}
- try{saveBlob(buildPdf(cards,buildPdf(cards)._cnt).output(),pdfFileName(),true)}catch(e){toast("Le PDF n’a pas pu être créé : "+(e&&e.message||e))}}
+ try{saveBlob(buildPdf(cards,buildPdf(cards)._cnt).output(),pdfFileName(),true,dossierPdf())}catch(e){toast("Le PDF n’a pas pu être créé : "+(e&&e.message||e))}}
+
+/* Fenêtre qui indique l'emplacement exact du dossier des PDF */
+function infoDossier(r,name,dossier){
+ const old=$("pmod");if(old)old.remove();
+ const ch=String(r.chemin||""),sep=ch.indexOf("\\")>=0?"\\":"/",i=ch.lastIndexOf(sep),dir=r.dossierChemin||(i>0?ch.slice(0,i):""),
+  cree=!!ch&&dir.split(/[\\/]/).pop()===dossier;
+ const loc=t=>`<p style="margin:6px 0;padding:8px 10px;border:1px solid var(--ln);border-radius:6px;background:var(--hd);font-family:ui-monospace,Consolas,monospace;font-size:13px;overflow-wrap:anywhere;user-select:all">${esc(t)}</p>`;
+ let h;
+ if(cree){
+  const an=/^\/storage\/emulated\/0\//.test(dir)?`<p class="mu">Dans l’application « Fichiers » : ${esc(dir.replace(/^\/storage\/emulated\/0\//,"Stockage interne › ").split("/").join(" › "))}</p>`:"";
+  h=`<h3 style="margin-top:0;color:var(--ac)">Dossier créé</h3><p>Le dossier <b>${esc(dossier)}</b> a été créé et le fichier <b>${esc(name)}</b> y a été enregistré.</p><p style="margin-bottom:0">Emplacement exact du dossier :</p>${loc(dir)}${an}`}
+ else if(ch){
+  h=`<h3 style="margin-top:0">Fichier enregistré</h3><p>Le fichier <b>${esc(name)}</b> a été enregistré à l’emplacement exact suivant :</p>${loc(ch)}<p class="warn">Le dossier « ${esc(dossier)} » n’a pas été créé par cet environnement.</p>`}
+ else if(r.navigateur){
+  h=`<h3 style="margin-top:0">Fichier téléchargé</h3><p>Le fichier <b>${esc(name)}</b> a été téléchargé dans le dossier de téléchargement de votre navigateur.</p><p class="warn">Un navigateur ne permet pas à une page de créer le dossier « ${esc(dossier)} » : pour cela, utilisez l’application installée (Windows ou Android).</p>`}
+ else if(r.repli){
+  h=`<h3 style="margin-top:0;color:var(--rd)">Dossier non créé</h3><p>Le dossier « ${esc(dossier)} » n’a pas pu être créé sur cet appareil${r.erreur?" ("+esc(r.erreur)+")":""}. Vérifiez que l’application a l’autorisation d’accéder au stockage.</p><p>Le fichier <b>${esc(name)}</b> a été proposé au partage : choisissez l’emplacement où l’enregistrer.</p>`}
+ else{
+  h=`<h3 style="margin-top:0">Fichier prêt</h3><p>Le fichier <b>${esc(name)}</b> est prêt, mais cet environnement n’a pas communiqué l’emplacement exact ni créé le dossier « ${esc(dossier)} ».</p>`}
+ const d=document.createElement("div");d.id="pmod";d.className="fmod np";d.setAttribute("role","dialog");d.setAttribute("aria-modal","true");
+ d.onkeydown=e=>{if(e.key==="Escape")d.remove()};
+ const sh=r.uri&&window.Pont&&window.Pont.partager?`<button class="bt" type="button" onclick="window.Pont.partager('${esc(r.uri)}',${esc(JSON.stringify(name))})">Partager le fichier</button>`:"";
+ d.innerHTML=`<div>${h}<div class="ctl" style="justify-content:flex-end;margin:14px 0 0">${sh}<button class="bt" type="button" id="pok" onclick="this.closest('.fmod').remove()">OK</button></div></div>`;
+ document.body.appendChild(d);$("pok").focus()}
 
 /* Enregistrement d'un fichier : application Windows (boîte « Enregistrer sous »), APK (partage Android) ou navigateur (téléchargement) */
-async function saveBlob(blob,name,ouvrir){
+async function saveBlob(blob,name,ouvrir,dossier){
  try{
   if(window.Pont&&window.Pont.enregistrer){
    const b64=await new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>{const s=String(fr.result);res(s.slice(s.indexOf(",")+1))};fr.onerror=rej;fr.readAsDataURL(blob)});
-   const r=await window.Pont.enregistrer(name,blob.type||"application/octet-stream",b64);
+   const r=await window.Pont.enregistrer(name,blob.type||"application/octet-stream",b64,dossier||"");
    if(r&&r.annule)return;
    if(ouvrir&&r&&r.chemin&&window.Pont.ouvrir){try{await window.Pont.ouvrir(r.chemin)}catch(e){}}
-   toast(r&&r.chemin?"Fichier enregistré : "+r.chemin:"Fichier prêt : "+name);return}
+   if(dossier){infoDossier(r||{},name,dossier);return}
+    toast(r&&r.chemin?"Fichier enregistré : "+r.chemin:"Fichier prêt : "+name);return}
   const u=URL.createObjectURL(blob),a=document.createElement("a");a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();
   if(ouvrir)try{window.open(u,"_blank")}catch(e){}
-  setTimeout(()=>URL.revokeObjectURL(u),60000);toast("Fichier téléchargé : "+name)
+  setTimeout(()=>URL.revokeObjectURL(u),60000);if(dossier)infoDossier({navigateur:true},name,dossier);else toast("Fichier téléchargé : "+name)
  }catch(e){toast("Le fichier n’a pas pu être enregistré.")}}
 
 /* ===== Recherche d'une école en tapant ses premières lettres ===== */
