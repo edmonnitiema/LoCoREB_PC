@@ -288,7 +288,7 @@ const sig=()=>{const I=S.id,d=dateLong(I.date||today());
 const pdf=`<button class="bt np" onclick="exportPdf()">Exporter en PDF</button>`;
 
 function pgId(){
- const UQ=["dreppnf","dpeppnf","ceb"],f=(k,l)=>UQ.includes(k)?`<label>${l}<input style="text-transform:uppercase" value="${esc(S.id[k])}" oninput="S.id[k='${k}']=this.value.toLocaleUpperCase('fr');save()"></label>`:`<label>${l}<input value="${esc(S.id[k])}" oninput="S.id[k='${k}']=this.value;save()"></label>`;
+ const UQ=["dreppnf","dpeppnf","ceb"],f=(k,l)=>UQ.includes(k)?`<label>${l}<input enterkeyhint="next" style="text-transform:uppercase" value="${esc(S.id[k])}" oninput="S.id[k='${k}']=this.value.toLocaleUpperCase('fr');save()"></label>`:`<label>${l}<input enterkeyhint="next" value="${esc(S.id[k])}" oninput="S.id[k='${k}']=this.value;save()"></label>`;
  const sx=(k,l)=>`<label>${l}<select onchange="S.id.${k}=this.value;save()"><option value=""></option>${["F","M"].map(v=>`<option${S.id[k]==v?" selected":""}>${v}</option>`).join("")}</select></label>`;
  return `<div class="card idp"><h2>IDENTIFICATION</h2><p style="text-align:center;margin:0 0 14px">MEBAPLN<br>SECRÉTARIAT GÉNÉRAL</p>
 <div class="idr" style="grid-template-columns:repeat(3,minmax(0,1fr))">${f("annee","Année scolaire")}</div><div class="idr" style="grid-template-columns:repeat(3,minmax(0,1fr))">${f("dreppnf","DREPPNF")}${f("dpeppnf","DPEPPNF")}${f("ceb","CEB")}</div><div class="idr" style="grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,2fr)">${f("cceb","Nom et prénom du CCEB")}${sx("ccebs","Sexe du CCEB")}${f("ccebt","Emploi ou titre honorifique du CCEB")}</div><div class="idr" style="grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,2fr)">${f("rb","Nom et prénom du R/BEPrim")}${sx("rbs","Sexe du R/BEPrim")}${f("rbt","Emploi ou titre honorifique du R/BEPrim")}</div><div class="idr" style="grid-template-columns:minmax(0,2fr) minmax(0,1fr)">${f("lieu","Fait à")}<label>Le<input type=\"date\" value=\"${esc(S.id.date||today())}\" oninput=\"S.id.date=this.value;save()\"></label></div></div>
@@ -888,6 +888,18 @@ document.addEventListener("keydown",e=>{
  e.preventDefault();
  if(to){to.focus();if(to.select)to.select()}
  else if(ent)el.blur()});
+/* Page Identification : la touche Entrée passe à la case suivante (Maj+Entrée : à la précédente) */
+document.addEventListener("keydown",e=>{
+ const el=e.target;
+ if(!el||!el.closest||e.ctrlKey||e.altKey||e.metaKey||e.isComposing)return;
+ if(!(e.key==="Enter"||e.key==="NumpadEnter"))return;
+ const card=el.closest(".idp");
+ if(!card||!el.matches("input,select"))return;
+ const all=[...card.querySelectorAll("input,select")].filter(x=>!x.readOnly&&!x.disabled&&x.type!=="hidden");
+ const i=all.indexOf(el);if(i<0)return;
+ e.preventDefault();
+ const to=all[i+(e.shiftKey?-1:1)];
+ if(to){to.focus();if(to.select&&to.type!=="date")try{to.select()}catch(x){}}else el.blur()});
 /* Colonne « T » toujours en gras, dans tous les tableaux F / G / T */
 function boldT(){document.querySelectorAll("#app table").forEach(t=>{
  const hr=t.tHead?[...t.tHead.rows]:[];if(!hr.length)return;
