@@ -23,18 +23,47 @@
   }
   function init(){
     if(window.Pont||!isNative())return;
-    window.Pont={enregistrer:async function(name,type,b64){
-      try{
-        var FS=plug('Filesystem'),SH=plug('Share');
-        if(!FS||!SH)throw new Error('plugin introuvable (Filesystem/Share)');
-        var w=await FS.writeFile({path:name,data:b64,directory:'CACHE',recursive:true});
-        await SH.share({title:name,url:w.uri,dialogTitle:'Enregistrer ou envoyer '+name});
-      }catch(e){
-        var m=String((e&&e.message)||e);
-        if(/cancel|dismiss/i.test(m))return;
-        alert("Le fichier n'a pas pu être enregistré : "+m);
+    window.Pont={
+      enregistrer:async function(name,type,b64,dossier,titre){
+        var FS=plug('Filesystem'),SH=plug('Share'),repli=null;
+        try{
+          if(!FS)throw new Error('plugin introuvable (Filesystem)');
+          if(dossier){
+            /* Création du dossier dans « Documents » puis enregistrement du fichier dedans */
+            try{
+              try{var pm=await FS.checkPermissions();if(pm&&pm.publicStorage&&pm.publicStorage!=='granted')await FS.requestPermissions()}catch(e){}
+              var rel=dossier+'/'+name;
+              await FS.writeFile({path:rel,data:b64,directory:'DOCUMENTS',recursive:true});
+              var g=await FS.getUri({path:rel,directory:'DOCUMENTS'});
+              var ch=decodeURI(String(g.uri).replace(/^file:\/\//,''));
+              return {chemin:ch,dossier:dossier,dossierChemin:ch.slice(0,ch.lastIndexOf('/')),uri:g.uri};
+            }catch(e){repli=String((e&&e.message)||e)}
+          }
+          if(!SH)throw new Error('plugin introuvable (Share)');
+          var w=await FS.writeFile({path:name,data:b64,directory:'CACHE',recursive:true});
+          await SH.share({title:name,url:w.uri,dialogTitle:titre||'Enregistrer ou envoyer '+name});
+          return repli!==null?{repli:true,erreur:repli}:undefined;
+        }catch(e){
+          var m=String((e&&e.message)||e);
+          if(/cancel|dismiss/i.test(m))return {annule:true};
+          alert("Le fichier n'a pas pu être enregistré : "+m);
+          return {annule:true};
+        }
+      },
+      envoyerWhatsApp:async function(name,type,b64,texte){
+        /* écrit le fichier dans le cache puis ouvre WhatsApp directement sur la liste de ses contacts (plugin natif WaShare) */
+        try{
+          var FS=plug('Filesystem'),WA=plug('WaShare');
+          if(!FS||!WA)return {indispo:true,erreur:'plugin introuvable'};
+          var w=await FS.writeFile({path:name,data:b64,directory:'CACHE',recursive:true});
+          await WA.envoyer({path:w.uri,type:type,texte:texte||''});
+          return {ok:true};
+        }catch(e){return {indispo:true,erreur:String((e&&e.message)||e)}}
+      },
+      partager:async function(uri,name){
+        try{var SH=plug('Share');if(SH)await SH.share({title:name,url:uri,dialogTitle:'Envoyer '+name})}catch(e){}
       }
-    }};
+    };
   }
   init();
   document.addEventListener('DOMContentLoaded',init);
@@ -43,73 +72,121 @@
 })();
 </script>
 <style>
-:root{--gn:#15803d;--tb:#d4d8d5;--tt:#2c352f;--tat:#fff;--rd:#c1121f;--bg:#f5f6f2;--sf:#fff;--tx:#1b231e;--mu:#59655d;--ac:#1d5c3e;--ln:#c9d1ca;--hd:#e2ebe4;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--gn:#6fd08c;--tb:#2f3832;--tt:#d6ddd8;--tat:#0f1a14;--bg:#141916;--sf:#1d2420;--tx:#e8ede9;--mu:#9aa79e;--ac:#6fc596;--ln:#35403a;--hd:#27312b;--rd:#ff7b7b}}
-:root[data-theme="dark"]{--gn:#6fd08c;--tb:#2f3832;--tt:#d6ddd8;--tat:#0f1a14;--bg:#141916;--sf:#1d2420;--tx:#e8ede9;--mu:#9aa79e;--ac:#6fc596;--ln:#35403a;--hd:#27312b;--rd:#ff7b7b}
+:root{--ts:1;--gn:#15803d;--tb:#d4d8d5;--tt:#2c352f;--tat:#fff;--rd:#c1121f;--bg:#f5f6f2;--sf:#fff;--tx:#1b231e;--mu:#59655d;--ac:#1d5c3e;--ln:#c9d1ca;--bd:#5d6d62;--hd:#e2ebe4;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--gn:#6fd08c;--tb:#2f3832;--tt:#d6ddd8;--tat:#0f1a14;--bg:#141916;--sf:#1d2420;--tx:#e8ede9;--mu:#9aa79e;--ac:#6fc596;--ln:#35403a;--bd:#8a9a8f;--hd:#27312b;--rd:#ff7b7b}}
+:root[data-theme="dark"]{--gn:#6fd08c;--tb:#2f3832;--tt:#d6ddd8;--tat:#0f1a14;--bg:#141916;--sf:#1d2420;--tx:#e8ede9;--mu:#9aa79e;--ac:#6fc596;--ln:#35403a;--bd:#8a9a8f;--hd:#27312b;--rd:#ff7b7b}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+body{margin:0;background:var(--bg);color:var(--tx);font:calc(15px*var(--ts))/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
 header{padding:14px 16px 0;max-width:1100px;margin:auto}
-h1{font:700 22px Georgia,serif;margin:0}
-header p{margin:2px 0 10px;color:var(--mu);font-size:13px}
+h1{font:700 calc(22px*var(--ts)) Georgia,serif;margin:0}
+header p{margin:2px 0 10px;color:var(--mu);font-size:calc(13px*var(--ts))}
 nav{display:flex;gap:6px;flex-wrap:wrap;padding-bottom:10px;border-bottom:2px solid var(--ln)}
 nav button{border:0;background:var(--tb);color:var(--tt);padding:9px 14px;font:inherit;font-weight:600;cursor:pointer;border-radius:6px}
+nav.one{flex-wrap:nowrap;overflow-x:auto;gap:4px}
+nav.one button{flex:1 1 auto;min-width:0;padding:9px 6px;font-size:calc(clamp(9px,1.05vw,13px)*var(--ts));white-space:nowrap}
 nav button:not(.on):hover{filter:brightness(.94)}
 nav button.on{background:var(--ac);color:var(--tat)}
+/* Mobile : 2 lignes de 4 boutons, texte lisible (retour à la ligne dans le bouton) */
+@media(max-width:720px){
+nav,nav.one{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;overflow:visible;flex-wrap:initial}
+nav button,nav.one button{min-width:0;width:100%;min-height:42px;padding:5px 2px;font-size:calc(clamp(9px,2.7vw,12px)*var(--ts));line-height:1.15;white-space:normal;overflow-wrap:anywhere;text-align:center;display:flex;align-items:center;justify-content:center}}
+/* Portable : cases de saisie des résultats lisibles (le tableau défile horizontalement, la 1re colonne reste visible) */
+@media(max-width:720px){
+table.fx{table-layout:auto;min-width:640px}
+table.fx td input{width:56px;max-width:none}
+td input{width:56px;min-width:56px;font-size:calc(16px*var(--ts));padding:6px 2px}
+th.fg{width:auto;min-width:58px}
+th,td{padding:5px 4px}
+.w{-webkit-overflow-scrolling:touch}
+.w tbody tr>th:first-child{position:sticky;left:0;z-index:1;background:var(--sf);min-width:86px}}
+/* Portable : le tableau « Taux de réussite par discipline » tient dans la largeur de l'écran (sans défilement), cases de saisie incluses */
+@media(max-width:720px){
+table.fx.sx{table-layout:fixed;min-width:0;width:100%}
+table.sx col.c0{width:20%}table.sx col.cn{width:7.5%}table.sx col.ct{width:11.67%}
+table.sx th,table.sx td{padding:2px 1px;border-width:1px;font-size:calc(10px*var(--ts));line-height:1.15}
+table.sx th.fg{width:auto;min-width:0;padding:3px 0}
+table.sx thead th{overflow-wrap:anywhere}
+table.sx tbody th{position:static;min-width:0;padding:2px 3px;overflow-wrap:anywhere;font-size:calc(9.5px*var(--ts))}
+table.sx td input{box-sizing:border-box;width:100%;min-width:0;max-width:none;padding:5px 0;font-size:calc(12px*var(--ts));border-width:1px;border-radius:3px}
+table.sx td.c{overflow-wrap:normal}}
 nav button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible,.bt:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
 main{max-width:1100px;margin:auto;padding:16px}
 .card{background:var(--sf);border:1px solid var(--ln);border-radius:8px;padding:16px;margin-bottom:16px}
-h2{font:700 18px Georgia,serif;text-align:center;margin:8px 0 12px}
-h3{font:600 15px system-ui,sans-serif;margin:16px 0 8px}
+h2{font:700 calc(18px*var(--ts)) Georgia,serif;text-align:center;margin:8px 0 12px}
+h3{font:600 calc(15px*var(--ts)) system-ui,sans-serif;margin:16px 0 8px}
 .ctl{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+.ctl.l2{flex-wrap:nowrap;justify-content:flex-start;align-items:center;gap:14px}.ctl.l2 .schl{flex-wrap:nowrap}.ctl.l2 .schl .lt{max-width:210px;text-align:left;font-size:calc(12px*var(--ts))}.ctl.l2 select,.ctl.l2 input,.ctl.l2 .bt{height:38px;box-sizing:border-box;margin:0}.ctl.l2 .bt{white-space:nowrap;flex:none;padding-top:0;padding-bottom:0}.ctl.l2 .cb{margin:0}@media(max-width:1000px){.ctl.l2{flex-wrap:wrap}}
+p.stz{display:flex;justify-content:center;gap:56px;flex-wrap:wrap;font-weight:700;margin:0 0 6px}
 input[hidden]{display:none!important}
 .fmod{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:14px}.fmod>div{background:var(--sf);color:var(--tx);border:1px solid var(--ln);border-radius:10px;max-width:560px;width:100%;max-height:88vh;overflow:auto;padding:18px 20px;box-shadow:0 10px 30px rgba(0,0,0,.3)}.fmod li{margin:3px 0}
-.cb{position:relative;display:inline-block}.cb input{padding-right:30px}.cbb{position:absolute;right:2px;top:0;bottom:0;border:0;background:none;color:var(--mu);font-size:14px;cursor:pointer;padding:0 8px}
+.cb{position:relative;display:inline-block}.cb input{padding-right:30px}.cbb{position:absolute;right:2px;top:0;bottom:0;border:0;background:none;color:var(--mu);font-size:calc(14px*var(--ts));cursor:pointer;padding:0 8px}
 .cbl{position:absolute;left:0;min-width:100%;top:100%;margin-top:2px;z-index:60;max-height:260px;overflow:auto;background:var(--sf);border:1px solid var(--ln);border-radius:6px;box-shadow:0 6px 18px rgba(0,0,0,.18);text-align:left}
-.cbi,.cbe{padding:8px 12px;white-space:nowrap;font-size:14px;color:var(--tx);cursor:pointer}.cbe{color:var(--mu);cursor:default}.cbi:hover,.cbi.hl{background:var(--hd)}.cbi.on{font-weight:700;color:var(--ac)}
+.cbi,.cbe{padding:8px 12px;white-space:nowrap;font-size:calc(14px*var(--ts));color:var(--tx);cursor:pointer}.cbe{color:var(--mu);cursor:default}.cbi:hover,.cbi.hl{background:var(--hd)}.cbi.on{font-weight:700;color:var(--ac)}
 @media print{.cbb,.cbl,.fmod{display:none!important}}
-.schl{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.schl .lt{max-width:360px;line-height:1.3;color:var(--tx)}.schl .lt b{font-size:14px}.schl input,.schl select{display:inline-block;width:auto;margin-top:0}
-select,input,textarea{font:inherit;color:var(--tx);background:var(--sf);border:1px solid var(--ln);border-radius:5px;padding:6px 8px}
+.schl{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.schl .lt{max-width:360px;line-height:1.3;color:var(--tx);text-align:right}@media(max-width:720px){.schl .lt{text-align:left;max-width:none}}.schl .lt b{font-size:calc(14px*var(--ts))}.schl input,.schl select{display:inline-block;width:auto;margin-top:0}
+select,input,textarea{font:inherit;color:var(--tx);background:var(--sf);border:2px solid var(--bd);border-radius:5px;padding:6px 8px}
+.idr{display:grid;gap:12px;margin-bottom:12px}.idr label{white-space:nowrap}
+.idr.id4{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(70px,.3fr)}.idr.id4>label:nth-child(4){grid-column:1/-1}.idr.id4 input{text-overflow:ellipsis}
+.ctl.zrc{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(70px,.3fr);gap:8px 12px;align-items:start}.ctl.zrc>label:nth-child(4){grid-column:1/-1}.ctl.zrc input,.ctl.zrc select{width:100%;box-sizing:border-box}
+@media(max-width:720px){.ctl.zrc{grid-template-columns:minmax(0,1fr) 80px}.ctl.zrc>label:nth-child(1),.ctl.zrc>label:nth-child(2),.ctl.zrc>label:nth-child(4){grid-column:1/-1}}
+@media(max-width:720px){.idr{grid-template-columns:minmax(0,1fr)!important}.idr label{white-space:normal}}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
-label{display:block;font-size:13px;color:var(--mu)}
+label{display:block;font-size:calc(13px*var(--ts));color:var(--mu)}
 label input,label select,label textarea{display:block;width:100%;margin-top:3px;color:var(--tx)}
 textarea{min-height:130px}
 .bt{background:var(--ac);color:var(--sf);border:0;border-radius:5px;padding:8px 14px;font:inherit;font-weight:600;cursor:pointer}
+.bt.rdg{background:var(--rd);color:var(--tat)}.bt[disabled]{opacity:.45;cursor:not-allowed}.rst{border-color:var(--rd)}.rst h3{margin-top:0;color:var(--rd)}.fmod ul{padding-left:20px;margin:8px 0}
 .fr,.fr input{color:var(--rd)}
 td.ep,td.fr.ep{color:var(--gn)}td.en{color:var(--rd)}.cer{display:inline-block;border:2px solid var(--rd);border-radius:50%;padding:2px 9px;line-height:1.2}
 .w{overflow-x:auto}
-table{border-collapse:collapse;width:100%;font-size:14px}
-th,td{border:1px solid var(--ln);padding:5px 7px;text-align:center}
-thead th{background:var(--hd)}
-tbody th{text-align:left;font-weight:600;background:var(--hd)}
-td input{width:62px;text-align:center;padding:4px}
+table{border-collapse:collapse;width:100%;font-size:calc(14px*var(--ts))}
+th,td{border:2px solid var(--bd);padding:5px 7px;text-align:center}
+thead th{background:none}
+th.ve{border:0}
+th.fg{width:64px;min-width:64px}
+tbody th{text-align:left;font-weight:700;background:none}
+table.fx{table-layout:fixed}table.fx thead tr:first-child th:first-child{width:22%}table.fx td input{width:100%;max-width:72px}
+td input{width:62px;text-align:center;padding:4px;border-width:2px}
+td input[readonly]{background:none;cursor:default}
+/* Saisie des résultats : plus de cadre autour des chiffres, la saisie se fait directement dans la cellule du tableau */
+.card.por td input{border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;width:100%!important;min-width:0!important;max-width:none!important;box-sizing:border-box;padding:6px 2px;margin:0;text-align:center;font-weight:700}
+.card.por td input:focus{background:var(--hd)!important;outline:2px solid var(--ac);outline-offset:-2px}
+.card.por td input.bad{outline:2px solid var(--rd);outline-offset:-2px;background:transparent!important}
+.gb,.gb select,.gb input{font-weight:700;color:var(--tx)}
+.ctl>label.gb{display:flex;align-items:center;gap:8px;font-size:calc(14px*var(--ts))}.ctl>label.gb select,.ctl>label.gb .cb,.ctl>label.gb input{display:inline-block;width:auto;margin-top:0}
+.cb input[data-src="schools"]{font-weight:700;text-transform:uppercase}
+textarea.up{text-transform:uppercase}
 td.c{font-variant-numeric:tabular-nums}
 td.b{font-weight:700}
-tr.tot td,tr.tot th{font-weight:700;background:var(--hd)}
-.hd{font-size:13px;line-height:1.5;margin-bottom:6px}
+tr.tot td,tr.tot th{font-weight:700;background:none}
+.hd{font-size:calc(13px*var(--ts));line-height:1.5;margin-bottom:6px}
 .hdt{width:100%;border-collapse:collapse;font-size:inherit}.hdt td{border:0;padding:0;text-align:left;vertical-align:top}.hdt td.hr{text-align:center;white-space:nowrap;width:1%;padding-left:16px}
 .sig{margin-top:28px;break-inside:avoid}
 .sgt{width:100%;border-collapse:collapse;border:0;margin-top:8px;table-layout:fixed}
 .sgt td{border:0;padding:0 8px;text-align:center;vertical-align:top;width:50%}
 .sgt td.sgd{padding-bottom:10px}
+.sgx .sgt td{padding:0}
 .sgt i{display:block;height:54px}
 .sgt b{display:block;font-weight:700}.sgt b u{text-decoration:underline}
 .sgt em{display:block;font-style:italic!important;font-size:.85em;font-weight:400}
-.mu{color:var(--mu);font-size:13px}
+.mu{color:var(--mu);font-size:calc(13px*var(--ts))}
 @media print{
-:root{--bg:#fff;--sf:#fff;--tx:#000;--ln:#000;--hd:#eee;--mu:#000;--rd:#c00;--gn:#067a2e}
+:root{--bg:#fff;--sf:#fff;--tx:#000;--ln:#000;--bd:#000;--hd:#eee;--mu:#000;--rd:#c00;--gn:#067a2e}
 .np,header,nav{display:none!important}
 body{background:#fff}main{padding:0;max-width:none}
 .card{border:0;padding:0}
-table{font-size:10.5px}
+table{font-size:calc(10.5px*var(--ts))}
 @page{size:A4 landscape;margin:10mm}}
+@page por{size:A4 portrait;margin:10mm}.por{page:por}
 .bad{border-color:var(--rd)!important;outline:2px solid var(--rd)}
-#vmsg:not(:empty){border:1px solid var(--rd);color:var(--rd);border-radius:6px;padding:8px 12px;margin:10px 0;font-size:13px}
+.rqs{color:var(--rd);font-weight:700}
+#vmsg:not(:empty){border:1px solid var(--rd);color:var(--rd);border-radius:6px;padding:8px 12px;margin:10px 0;font-size:calc(13px*var(--ts))}
 .lock{max-width:520px;margin:4vh auto}.lid{font:700 1.25em ui-monospace,Consolas,monospace;user-select:all}
 .banner{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;background:#fff4d6;color:#4a3a00;border:1px solid #e0c36a;border-radius:6px;padding:10px 12px;margin-bottom:16px}.banner p{margin:0;flex:1 1 240px}
-.warn{color:var(--rd);font-size:14px}
-.credit{margin-top:12px;border:2px solid var(--ac);border-radius:10px;padding:12px;text-align:center}.credit p{margin:2px 0}.credit .ct{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--mu);font-weight:700}.credit .nm{font:700 20px Georgia,serif}
-#toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:#1b231e;color:#fff;padding:10px 16px;border-radius:8px;font-size:14px;max-width:90vw;z-index:50}
+.warn{color:var(--rd);font-size:calc(14px*var(--ts))}
+.credit{margin-top:12px;border:2px solid var(--ac);border-radius:10px;padding:12px;text-align:center}.credit p{margin:2px 0}.credit .ct{font-size:calc(12px*var(--ts));letter-spacing:.08em;text-transform:uppercase;color:var(--mu);font-weight:700}.credit .nm{font:700 calc(20px*var(--ts)) Georgia,serif}
+#toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:#1b231e;color:#fff;padding:10px 16px;border-radius:8px;font-size:calc(14px*var(--ts));max-width:90vw;z-index:50}
 #toast[hidden]{display:none}
 .lg{display:flex;align-items:center;gap:12px}#logo{cursor:pointer;border-radius:10px;width:fit-content}#logo:focus-visible{outline:2px solid var(--ac);outline-offset:3px}
 .home h2 i{font-style:normal}.home h2 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
@@ -120,13 +197,13 @@ table{font-size:10.5px}
 @keyframes subIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.home h2 .ch,.home h2 .sub{animation:none;opacity:1;transform:none}}
 @media print{.home h2 .ch,.home h2 .sub{animation:none;opacity:1;transform:none}}
-.home h2{font-size:20px;line-height:1.35}.home h2 span{display:block;font:600 15px system-ui,sans-serif;margin-top:6px;color:var(--mu)}
+.home h2{font-size:calc(20px*var(--ts));line-height:1.35}.home h2 span{display:block;font:600 calc(15px*var(--ts)) system-ui,sans-serif;margin-top:6px;color:var(--mu)}
 .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;margin-top:18px}
-.tile{display:flex;align-items:center;gap:10px;padding:14px 16px;font-size:15px;text-align:left;border-radius:8px}
-.tile b{display:inline-flex;width:26px;height:26px;border-radius:50%;background:var(--sf);color:var(--ac);align-items:center;justify-content:center;font-size:13px;flex:none}
+.tile{display:flex;align-items:center;gap:10px;padding:14px 16px;font-size:calc(15px*var(--ts));text-align:left;border-radius:8px}
+.tile b{display:inline-flex;width:26px;height:26px;border-radius:50%;background:var(--sf);color:var(--ac);align-items:center;justify-content:center;font-size:calc(13px*var(--ts));flex:none}
 td input[type=number]{-moz-appearance:textfield;appearance:textfield}
 td input[type=number]::-webkit-outer-spin-button,td input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
-.idp label{font-weight:600;color:var(--tx)}.idp input,.idp select{font-weight:600}.lg svg{width:62px;height:62px;flex:none}.lg p{margin:2px 0 0}.lgbig{text-align:center}.lgbig svg{width:84px;height:84px}
+.idp label{font-weight:400;color:var(--tx)}.idp select option{font-weight:700}.idp input,.idp select,.idp textarea{font-weight:700}.lg svg{width:62px;height:62px;flex:none}.lg p{margin:2px 0 0}.lgbig{text-align:center}.lgbig svg{width:84px;height:84px}
 </style></head>
 <body>
 <header><div class="lg" id="logo" role="button" tabindex="0" title="Retour à l’accueil" aria-label="Retour à l’accueil" onclick="go('ac')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();go('ac')}"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Logo LoCoREB"><rect width="64" height="64" rx="14" fill="#1d5c3e"/><rect x="14" y="26" width="9" height="11" rx="2" fill="#fff"/><rect x="27.5" y="19" width="9" height="18" rx="2" fill="#fff"/><rect x="41" y="11" width="9" height="26" rx="2" fill="#fff"/><rect x="11" y="40" width="42" height="3" rx="1.5" fill="#c1121f"/><text x="32" y="56" text-anchor="middle" textLength="52" lengthAdjust="spacingAndGlyphs" font-family="Arial,Helvetica,sans-serif" font-size="12.5" font-weight="700" fill="#fff">LoCoREB</text></svg><div><h1>LoCoREB</h1><p>Logiciel de Compilation des Résultats des Examens Blancs</p></div></div>
@@ -149,28 +226,77 @@ td input[type=number]::-webkit-outer-spin-button,td input[type=number]::-webkit-
 
 </script>
 <script>
-const KEY="locoreb",NV=["ÉCOLE","CEB","COMMUNAL","PROVINCIAL","RÉGIONAL"],K=["ef","co","mo"],LB=["Effectif","Ont composé","Ont eu la moyenne"];
+const KEY="locoreb",NV=["CEB","COMMUNAL","PROVINCIAL","RÉGIONAL"],K=["ef","co","mo"],LB=["Effectif","Ont composé","Ont eu la moyenne"];
 let S;
 try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){S=null}
 S=S||{};
-S.id=S.id||{};S.schools=S.schools||[];S.ex=S.ex||{};S.meta=S.meta||{};
+S.id=S.id||{};["dreppnf","dpeppnf","ceb"].forEach(k=>{if(S.id[k])S.id[k]=String(S.id[k]).toLocaleUpperCase("fr")});S.schools=S.schools||[];S.ex=S.ex||{};S.meta=S.meta||{};
 S.zeps=S.zeps||[];
 if(!S.zeps.length){const vu=new Set();Object.values(S.meta).forEach(m=>{const z=String(m&&m.zep||"").trim(),k=z.toLowerCase();if(z&&!vu.has(k)){vu.add(k);S.zeps.push(z)}});S.zeps.sort((a,b)=>a.localeCompare(b,"fr"))}
+normZeps();
 S.disc=S.disc||["Dictée","Questions de dictée","Rédaction","Mathématiques","Lecture"];
-S.ui=S.ui||{tab:"ac",n:1,school:"",a:1,b:2,scope:""};
+S.ui=S.ui||{tab:"ac",n:1,school:"",a:1,b:2,scope:"",zsc:""};
 const $=i=>document.getElementById(i);
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
 const esc=s=>String(s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const num=v=>+v||0;
+function discEnter(t){const NL=String.fromCharCode(10),pos=t.selectionStart,tr=t.value.slice(-1)===NL;sansDoublon(t,'disc');normDisc();const v=S.disc.join(NL)+(tr&&S.disc.length?NL:"");if(t.value!==v){t.value=v;const q=Math.min(pos,v.length);t.setSelectionRange(q,q)}save()}
+function capD(t){const S1=capD.a||(capD.a=new Set(["a","à","y","au","aux","ce","ces","de","des","du","en","et","la","le","les","ma","mes","mon","ni","ne","on","ou","où","par","pas","que","qui","sa","se","ses","son","sur","un","une","art","air","âge","eau","ère","feu","jeu","mer","mot","sol","vie","vue","loi","lui","non","oui","ton","ta","tes","nos"])),S2=capD.b||(capD.b=new Set(["eps","svt","ecm","edm","emc","tic","tice","ess","edhc","cps"]));
+ const LT="a-zàâäéèêëîïôöùûüçœ",SEP=/^(\s+|[\-–—\/\\,;:+&|._()]+)$/;
+ const isAb=w=>{const c=w.replace(new RegExp("^["+LT+"]{1,2}['’]"),"");if(!new RegExp("["+LT+"]").test(c))return false;if(S2.has(c))return true;if(S1.has(c))return false;if(!/[aeiouyàâäéèêëîïôöùûüœ]/.test(c))return true;return c.length<=3};
+ const up=x=>x.charAt(0).toLocaleUpperCase("fr")+x.slice(1);
+ let nx=true,o="";
+ String(t==null?"":t).trim().split(/(\s+|[\-–—\/\\,;:+&|._()]+)/).forEach(p=>{
+  if(p==="")return;
+  if(SEP.test(p)){if(/^\s+$/.test(p))o+=" ";else{o+=p;if(!/^[()]+$/.test(p))nx=true}return}
+  const lw=p.toLocaleLowerCase("fr");
+  if(isAb(lw)){const m=lw.match(new RegExp("^(["+LT+"]{1,2}['’])(.+)$"));o+=m?(nx?up(m[1]):m[1])+m[2].toLocaleUpperCase("fr"):lw.toLocaleUpperCase("fr")}
+  else o+=nx?up(lw):lw;
+  nx=false});
+ return o}
+function normDisc(){S.disc=S.disc||[];const cp=capD;
+ S.disc.forEach((d,i)=>{const nw=cp(d);if(!nw||nw===d)return;if(S.disc.some((x,j)=>j!==i&&String(x).toLowerCase()===nw.toLowerCase()))return;
+  Object.values(S.ex||{}).forEach(e=>Object.values((e&&e.d)||{}).forEach(x=>{if(!x)return;
+   if(x.p&&x.p[d]!==undefined&&x.p[nw]===undefined){x.p[nw]=x.p[d];delete x.p[d]}
+   if(x.m)Object.keys(x.m).forEach(k=>{if(k.indexOf(d+"|")===0){x.m[nw+k.slice(d.length)]=x.m[k];delete x.m[k]}})}));
+  S.disc[i]=nw})}
+function normZeps(){S.id=S.id||{};["dreppnf","dpeppnf","ceb"].forEach(k=>{if(S.id[k])S.id[k]=String(S.id[k]).toLocaleUpperCase("fr")});const U=z=>String(z==null?"":z).trim().toLocaleUpperCase("fr"),vu=new Set();S.zeps=(S.zeps||[]).map(U).filter(z=>{const k=z.toLowerCase();if(!z||vu.has(k))return false;vu.add(k);return true});S.zeps.sort((a,b)=>a.localeCompare(b,"fr"));Object.values(S.meta||{}).forEach(m=>{if(m&&m.zep)m.zep=U(m.zep)});normDisc()}
+const UPS=s=>String(s==null?"":s).toLocaleUpperCase("fr");
+/* Noms : NOM en majuscules, Prénom en « nom propre » ; signature = Prénom + NOM ; anciennes données « Nom et prénom » séparées automatiquement */
+/* Emploi ou Titre honorifique : les noms et les adjectifs commencent par une majuscule (Chevalier de l'Ordre du Mérite ou de l'Étalon),
+   seuls les prépositions, déterminants et conjonctions restent en minuscules, et tout mot inconnu est une abréviation en MAJUSCULES (IEPENF) */
+const TT_F="de du des d l la le les et ou ni à au aux en pour par sur sous dans chez avec sans vers entre contre selon après avant depuis pendant devant derrière hors parmi sauf jusqu un une ce cet cette ces son sa ses leur leurs notre nos votre vos mon ma mes ton ta tes qu",
+TT_A="pédagogique pédagogiques national nationale nationaux nationales primaire primaires préscolaire préscolaires secondaire formel formelle formels non régional régionale provincial provinciale communal communale général générale généraux adjoint adjointe principal principale honoraire titulaire supérieur supérieure chargé chargée chargés chargées scolaire scolaires éducatif éducative académique académiques civil civile militaire public publique privé privée technique spécial spéciale burkinabè ancien ancienne retraité retraitée intérimaire départemental départementale local locale central centrale sanitaire social sociale culturel culturelle administratif administrative professionnel professionnelle normal normale populaire démocratique fédéral fédérale international internationale africain africaine ivoirien burkinabé",
+TT_N="chevalier officier commandeur grand ordre mérite étalon honneur palme palmes inspecteur inspectrice inspection conseiller conseillère directeur directrice direction chef circonscription éducation base enseignement école écoles éducateur éducatrice instituteur institutrice enseignant enseignante secrétaire secrétariat président présidente coordonnateur coordonnatrice coordinateur coordination responsable zone encadrement pédagogie formation province région commune ministère ministre service bureau gouvernement république burkina faso nation patrie travail progrès justice gouverneur haut-commissaire préfet maire adjoint-maire professeur professeure maître maîtresse surveillant censeur proviseur principal-adjoint économe comptable agent attaché technicien ingénieur médecin infirmier infirmière officier-supérieur colonel capitaine lieutenant sergent commissaire médaille croix étoile distinction reconnaissance",
+nk=w=>w.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase(),
+mkTT=t=>{const o={};t.split(" ").forEach(w=>{o[nk(w)]=w});return o},TTF=mkTT(TT_F),TTA=mkTT(TT_A),TTN=mkTT(TT_N);
+function fmtTitre(s){
+ s=String(s==null?"":s).replace(/\s+/g," ").replace(/(['’])\s+/g,"$1").trim();if(!s)return"";
+ const cp=w=>w.charAt(0).toLocaleUpperCase("fr")+w.slice(1);let first=true;
+ const word=w=>{const k=nk(w);let r;
+  if(/\d/.test(w))r=w;
+  else if(TTF[k]!==undefined)r=TTF[k];
+  else if(TTA[k]!==undefined)r=cp(TTA[k]);
+  else if(TTN[k]!==undefined)r=cp(TTN[k]);
+  else if(w.length>=9&&/[aeiouy]/i.test(w))r=cp(w.toLocaleLowerCase("fr"));
+  else r=w.toLocaleUpperCase("fr");
+  if(first){r=cp(r);first=false}
+  return r};
+ return s.split(" ").map(t=>t.split(/(['’-])/).map(q=>/^['’-]$/.test(q)?q:(q?word(q):"")).join("")).join(" ")}
+const cap1=s=>String(s==null?"":s).trim().toLocaleLowerCase("fr").replace(/(^|[\s-])(\S)/g,(m,a,b)=>a+b.toLocaleUpperCase("fr"));
+const fullNm=(n,p)=>[cap1(p),UPS(String(n==null?"":n).trim())].filter(Boolean).join(" ");
+const migNm=(o,k,kn,kp)=>{if(!o||!o[k]||o[kn]!=null||o[kp]!=null)return;const t=String(o[k]).trim().split(/\s+/).filter(Boolean),isU=w=>w.length>1&&w===UPS(w)&&w!==w.toLocaleLowerCase("fr");let n=t.filter(isU),p=t.filter(w=>!isU(w));if(!n.length&&t.length){n=[t[t.length-1]];p=t.slice(0,-1)}o[kn]=UPS(n.join(" "));o[kp]=cap1(p.join(" "))};
 const today=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
-const E=n=>S.ex[n]||(S.ex[n]={niveau:"CEB",d:{}});
+const E=n=>{const e=S.ex[n]||(S.ex[n]={niveau:"CEB",d:{}});if(NV.indexOf(e.niveau)<0)e.niveau="CEB";return e};
 const D=(n,s)=>E(n).d[s]||(E(n).d[s]={g:{},p:{}});
 const Mt=s=>S.meta[s]||(S.meta[s]={});
-const pc=(m,c)=>c?(m/c*100).toFixed(2).replace(".",",")+" %":"—";
+const pc=(m,c)=>c?(m/c*100).toFixed(2).replace(".",","):"";
+/* F, G, T : si F et G sont vides (0), les trois cases restent vides */
+const hz=o=>!!(o.xf||o.xg||o.f||o.g),eF=o=>hz(o)?o.f:"",eG=o=>hz(o)?o.g:"",eT=o=>hz(o)?o.f+o.g:"";
 const tn=(o,j)=>{const c=j=="t"?o.co.f+o.co.g:o.co[j],m=j=="t"?o.mo.f+o.mo.g:o.mo[j];return c?m/c*100:null};
-const ec=(x,y)=>x==null||y==null?"—":((y-x>0?"+":"")+(y-x).toFixed(2).replace(".",",")+" pts");
+const ec=(x,y)=>x==null||y==null?"":((y-x>0?"+":"")+(y-x).toFixed(2).replace(".",","));
 const sg=v=>(v>0?"+":"")+v;
-const z=()=>({f:0,g:0});
+const z=()=>({f:0,g:0,xf:false,xg:false});
 const man=(x,d,j)=>{const k=d+"|co|"+j;if(x.m)return !!x.m[k];const v=x.p&&x.p[d]&&x.p[d].co&&x.p[d].co[j];return v!==undefined&&v!==""&&num(v)!==num(x.g&&x.g.co&&x.g.co[j])};
 const effco=(x,d,j)=>man(x,d,j)?num(x.p&&x.p[d]&&x.p[d].co&&x.p[d].co[j]):num(x.g&&x.g.co&&x.g.co[j]);
 let NOTE="";
@@ -179,33 +305,43 @@ function agg(n,list){
  const r={g:{ef:z(),co:z(),mo:z()},p:{}};
  S.disc.forEach(d=>r.p[d]={co:z(),mo:z()});
  list.forEach(s=>{const x=(S.ex[n]||{d:{}}).d[s];if(!x)return;
-  K.forEach(k=>["f","g"].forEach(j=>r.g[k][j]+=num(x.g&&x.g[k]&&x.g[k][j])));
-  S.disc.forEach(d=>["co","mo"].forEach(k=>["f","g"].forEach(j=>r.p[d][k][j]+=(k=="co"?effco(x,d,j):num(x.p&&x.p[d]&&x.p[d][k]&&x.p[d][k][j])))))});
+  const hs=v=>v!==undefined&&v!==null&&v!=="";
+  K.forEach(k=>["f","g"].forEach(j=>{const rv=x.g&&x.g[k]&&x.g[k][j];r.g[k][j]+=num(rv);if(hs(rv))r.g[k]["x"+j]=true}));
+  S.disc.forEach(d=>["co","mo"].forEach(k=>["f","g"].forEach(j=>{const rv=k=="co"?(man(x,d,j)?(x.p&&x.p[d]&&x.p[d].co&&x.p[d].co[j]):(x.g&&x.g.co&&x.g.co[j])):(x.p&&x.p[d]&&x.p[d][k]&&x.p[d][k][j]);r.p[d][k][j]+=num(rv);if(hs(rv))r.p[d][k]["x"+j]=true})))});
  return r}
 
 function val(r,q){
  const [t,a,b,c]=q.split(".");
  const o=t=="g"?r.g:r.p[S.disc[+a]],k=t=="g"?a:b,j=t=="g"?b:c;
  if(k=="tx")return j=="t"?pc(o.mo.f+o.mo.g,o.co.f+o.co.g):pc(o.mo[j],o.co[j]);
- return o[k].f+o[k].g}
+ return hz(o[k])?o[k].f+o[k].g:""}
 
 function tabs(r,edit){
- const cell=(p,v)=>{const c=p.endsWith(".f")?' class="fr"':"";return edit?`<td${c}><input type="number" min="0" data-p="${p}"${/^p\.\d+\.co\./.test(p)?' tabindex="-1"':' enterkeyhint="next"'} value="${v||""}" oninput="setv(this)" onchange="fix(this)" aria-label="${p}"></td>`:`<td${c}>${v}</td>`};
- const cm=q=>`<td class="c${q.endsWith(".f")?" fr":""}" data-q="${q}">${val(r,q)}</td>`;
- const g=K.map((k,i)=>`<tr><th>${LB[i]}</th>${cell("g."+k+".f",r.g[k].f)}${cell("g."+k+".g",r.g[k].g)}${cm("g."+k+".t")}</tr>`).join("")
+ const cell=(p,v,x,o)=>{const c=p.endsWith(".f")?' class="fr"':"";return edit?`<td${c}><input type="number" min="0" data-p="${p}"${/^p\.\d+\.co\./.test(p)?' tabindex="-1"':' enterkeyhint="next"'} value="${v||(x?"0":"")}" oninput="setv(this)" onchange="fix(this)" aria-label="${p}"></td>`:`<td${c}>${o&&!hz(o)?"":v}</td>`};
+ const cm=q=>edit&&q.endsWith(".t")&&!q.includes(".tx.")?`<td class="c"><input readonly tabindex="-1" data-q="${q}" value="${val(r,q)}" aria-label="${q}"></td>`:`<td class="c${q.endsWith(".f")?" fr":""}" data-q="${q}">${edit&&val(r,q)==="—"?"":val(r,q)}</td>`;
+ const g=K.map((k,i)=>`<tr><th>${LB[i]}</th>${cell("g."+k+".f",r.g[k].f,r.g[k].xf,r.g[k])}${cell("g."+k+".g",r.g[k].g,r.g[k].xg,r.g[k])}${cm("g."+k+".t")}</tr>`).join("")
   +`<tr class="tot"><th>Taux de réussite</th>${["f","g","t"].map(j=>cm("g.tx."+j)).join("")}</tr>`;
- const p=S.disc.map((d,i)=>`<tr><th>${esc(d)}</th>`+["co","mo"].map(k=>cell(`p.${i}.${k}.f`,r.p[d][k].f)+cell(`p.${i}.${k}.g`,r.p[d][k].g)+cm(`p.${i}.${k}.t`)).join("")+["f","g","t"].map(j=>cm(`p.${i}.tx.${j}`)).join("")+"</tr>").join("");
- const fgt='<th class="fr">F</th><th>G</th><th>T</th>';
- return `<h3>Résultats globaux</h3><div class="w"><table><thead><tr><th></th>${fgt}</tr></thead><tbody>${g}</tbody></table></div>
-<h3>Taux de réussite par discipline</h3><div class="w"><table><thead><tr><th rowspan="2">Disciplines</th><th colspan="3">Ont composé</th><th colspan="3">Ont eu la moyenne</th><th colspan="3">Taux de réussite</th></tr><tr>${fgt}${fgt}${fgt}</tr></thead><tbody>${p}</tbody></table></div>`}
+ const p=S.disc.map((d,i)=>`<tr><th>${esc(capD(d))}</th>`+["co","mo"].map(k=>cell(`p.${i}.${k}.f`,r.p[d][k].f,r.p[d][k].xf,r.p[d][k])+cell(`p.${i}.${k}.g`,r.p[d][k].g,r.p[d][k].xg,r.p[d][k])+cm(`p.${i}.${k}.t`)).join("")+["f","g","t"].map(j=>cm(`p.${i}.tx.${j}`)).join("")+"</tr>").join("");
+ const fgt='<th class="fr fg">F</th><th class="fg">G</th><th class="fg">T</th>';
+ return `<h3>RÉSULTATS GLOBAUX</h3><div class="w"><table><thead><tr><th class="ve"></th>${fgt}</tr></thead><tbody>${g}</tbody></table></div>
+${edit?'<div class="ctl np" style="justify-content:flex-start"><button class="bt" type="button" onclick="viderCo()">Vider les « Ont composé » par discipline</button><button class="bt" type="button" onclick="autoCo()">Rétablir le remplissage automatique</button></div><p class="mu np">Les « Ont composé » par discipline reprennent automatiquement les résultats globaux. Pour en effacer un, videz sa case.</p>':""}<h3>TAUX DE RÉUSSITE PAR DISCIPLINE</h3><div class="w"><table class="fx sx"><colgroup><col class="c0"><col class="cn" span="6"><col class="ct" span="3"></colgroup><thead><tr><th rowspan="2">Disciplines</th><th colspan="3">Ont composé</th><th colspan="3">Ont eu la moyenne</th><th colspan="3">Taux de réussite</th></tr><tr>${fgt}${fgt}${fgt}</tr></thead><tbody>${p}</tbody></table></div>`}
 
 function setv(el){
  const [t,a,b,c]=el.dataset.p.split("."),x=D(S.ui.n,S.ui.school);
  if(!x.m){x.m={};S.disc.forEach(d=>["f","g"].forEach(j=>{if(man(x,d,j))x.m[d+"|co|"+j]=1}))}
  if(t=="g"){(x.g[a]=x.g[a]||{})[b]=el.value}
  else{const d=S.disc[+a];x.p[d]=x.p[d]||{};(x.p[d][b]=x.p[d][b]||{})[c]=el.value;
-  if(b=="co"){if(el.value==="")delete x.m[d+"|co|"+c];else x.m[d+"|co|"+c]=1}}
+  if(b=="co"){x.m[d+"|co|"+c]=el.value===""?2:1}}
  save();refresh(false)}
+function viderCo(){
+ if(!confirm("Vider tous les « Ont composé » par discipline de cette école ?"))return;
+ const x=D(S.ui.n,S.ui.school);ensureM(x,S.disc);x.p=x.p||{};
+ S.disc.forEach(d=>{x.p[d]=x.p[d]||{};x.p[d].co=x.p[d].co||{};["f","g"].forEach(j=>{x.p[d].co[j]="";x.m[d+"|co|"+j]=2})});
+ save();refresh(true)}
+function autoCo(){
+ const x=D(S.ui.n,S.ui.school);ensureM(x,S.disc);
+ S.disc.forEach(d=>["f","g"].forEach(j=>{delete x.m[d+"|co|"+j];if(x.p&&x.p[d]&&x.p[d].co)delete x.p[d].co[j]}));
+ save();refresh(true)}
 function lim(x,p){
  const [t,a,b,c]=p.split(".");
  if(t=="g")return a=="co"?num(x.g.ef&&x.g.ef[b]):a=="mo"?num(x.g.co&&x.g.co[b]):Infinity;
@@ -218,10 +354,10 @@ function fix(el){
  setv(el);refresh(true)}
 function refresh(force){
  const n=S.ui.n,x=D(n,S.ui.school),r=agg(n,[S.ui.school]);
- document.querySelectorAll("[data-q]").forEach(e=>e.textContent=val(r,e.dataset.q));
+ document.querySelectorAll("[data-q]").forEach(e=>{let v=val(r,e.dataset.q);if(v==="—")v="";if(e.tagName==="INPUT")e.value=v;else e.textContent=v});
  document.querySelectorAll("input[data-p]").forEach(i=>{
   const [t,a,b,c]=i.dataset.p.split(".");
-  if(t=="p"&&b=="co"&&(force||document.activeElement!==i))i.value=r.p[S.disc[+a]].co[c]||""});
+  if(t=="p"&&b=="co"&&(force||document.activeElement!==i)){const o=r.p[S.disc[+a]].co;i.value=o[c]||(o["x"+c]?"0":"")}});
  validate(x)}
 function validate(x){
  const m=[],bad=new Set(),V=(p,t)=>{bad.add(p);m.push(t)};
@@ -239,22 +375,28 @@ function validate(x){
 
 const exSel=k=>`<select class="np" aria-label="Examen blanc" onchange="S.ui.${k}=+this.value;save();R()">${[1,2,3,4,5,6].map(i=>`<option value="${i}"${S.ui[k]==i?" selected":""}>Examen blanc n°${i}</option>`).join("")}</select>`;
 const title=n=>`<h2>RÉSULTATS DE L’EXAMEN BLANC N°${n} – NIVEAU ${esc(E(n).niveau)}</h2>`;
-const hd=()=>{const I=S.id;return `<div class="hd"><table class="hdt"><tr><td class="hl"><b>MEBAPLN</b><br>DREPPNF : ${esc(I.dreppnf)}<br>DPEPPNF : ${esc(I.dpeppnf)}<br>CEB : ${esc(I.ceb)}</td><td class="hr"><b>Burkina Faso</b><br>La Patrie ou la Mort, nous Vaincrons<br>Année scolaire : ${esc(I.annee)}</td></tr></table></div>`};
+const hd=()=>{const I=S.id;return `<div class="hd"><table class="hdt"><tr><td class="hl">MEBAPLN<br>SECRÉTARIAT GÉNÉRAL<br>DREPPNF : ${esc(String(I.dreppnf||"").toLocaleUpperCase("fr"))}<br>DPEPPNF : ${esc(String(I.dpeppnf||"").toLocaleUpperCase("fr"))}<br>CEB : ${esc(String(I.ceb||"").toLocaleUpperCase("fr"))}</td><td class="hr">BURKINA FASO<br>La Patrie ou la Mort, nous Vaincrons<br>Année scolaire : ${esc(I.annee)}</td></tr></table></div>`};
 const MOIS=["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
 const dateLong=v=>{const p=String(v).split("-").map(Number);if(p.length<3||!p[0]||!p[1]||!p[2]||p[1]>12)return String(v).split("-").reverse().join("/");return (p[2]===1?"1er":p[2])+" "+MOIS[p[1]-1]+" "+p[0]};
-const sig=()=>{const I=S.id,d=dateLong(I.date||today());
- const blk=(sx,tt,nm,jb)=>`${sx=="F"?"La":sx=="M"?"Le":"Le/la"} ${tt}<i></i>${nm?`<b><u>${esc(nm)}</u></b>`:""}${jb?`<em style="font-style:italic">${esc(jb)}</em>`:""}`;
- return `<div class="sig"><table class="sgt"><tr><td></td><td class="sgd">Fait à ${esc(I.lieu)||"……"}, le ${d}</td></tr><tr><td>${blk(I.rbs,"R/BEPrim",I.rb,I.rbt)}</td><td>${blk(I.ccebs,"CCEB",I.cceb,I.ccebt)}</td></tr></table></div>`};
+const sig=(a,b,ext)=>{const I=S.id;migNm(I,"cceb","ccebn","ccebp");migNm(I,"rb","rbn","rbp");const d=dateLong(I.date||today()),A=a||{sx:I.rbs,tt:"R/BEPrim",nm:fullNm(I.rbn,I.rbp),jb:I.rbt},B=b||{sx:I.ccebs,tt:"CCEB",nm:fullNm(I.ccebn,I.ccebp),jb:I.ccebt};
+ const blk=(sx,tt,nm,jb)=>`${sx=="F"?"La":sx=="M"?"Le":"Le/la"} ${tt}<i></i>${nm?`<b><u>${esc(nm)}</u></b>`:""}${jb?`<em style="font-style:italic">${esc(fmtTitre(jb))}</em>`:""}`;
+ return `<div class="sig${ext?" sgx":""}"><table class="sgt"><tr><td></td><td class="sgd">Fait à ${esc(cap1(I.lieu))||"……"}, le ${d}</td></tr><tr><td>${blk(A.sx,A.tt,A.nm,A.jb)}</td><td>${blk(B.sx,B.tt,B.nm,B.jb)}</td></tr></table></div>`};
 const pdf=`<button class="bt np" onclick="exportPdf()">Exporter en PDF</button>`;
+const xl=`<button class="bt np" onclick="exportXlsx()">Exporter en Excel</button>`;
 
 function pgId(){
- const f=(k,l)=>`<label>${l}<input value="${esc(S.id[k])}" oninput="S.id[k='${k}']=this.value;save()"></label>`;
- const sx=(k,l)=>`<label>${l}<select onchange="S.id.${k}=this.value;save()"><option value=""></option>${["F","M"].map(v=>`<option${S.id[k]==v?" selected":""}>${v}</option>`).join("")}</select></label>`;
- return `<div class="card idp"><h2>IDENTIFICATION</h2><p style="text-align:center;margin:0 0 14px"><b>MEBAPLN</b></p>
-<div class="grid">${f("annee","Année scolaire")}${f("dreppnf","DREPPNF")}${f("dpeppnf","DPEPPNF")}${f("ceb","CEB")}${f("cceb","Nom et prénom du CCEB")}${sx("ccebs","Sexe du CCEB")}${f("ccebt","Emploi ou titre honorifique du CCEB")}${f("rb","Nom et prénom du R/BEPrim")}${sx("rbs","Sexe du/de la R/BEPrim")}${f("rbt","Emploi ou titre honorifique du/de la R/BEPrim")}${f("lieu","Fait à")}<label>Le<input type="date" value="${esc(S.id.date||today())}" oninput="S.id.date=this.value;save()"></label></div></div>
-<div class="card"><button class="bt" onclick="go('ec')">Passer à la saisie des écoles</button></div>
-<div class="card"><h3>Sauvegarde des données</h3><p class="mu">Enregistrez un fichier de sauvegarde après chaque séance de saisie, et restaurez-le sur un autre appareil ou après un effacement du navigateur.</p>
-<div class="ctl"><button class="bt" onclick="sauver()">Sauvegarder (fichier)</button><label class="bt" style="margin:0">Restaurer un fichier<input type="file" accept=".json,application/json,text/plain,application/octet-stream" hidden onchange="restaurer(this)"></label></div></div>
+ migNm(S.id,"cceb","ccebn","ccebp");migNm(S.id,"rb","rbn","rbp");
+const rq='<span class="rqs" aria-hidden="true">*</span>',bd=k=>IDTRY&&!idVal(k)?"bad":"";
+ const UQ=["dreppnf","dpeppnf","ceb"],f=(k,l)=>`<label>${l} ${rq}<input data-id="${k}" required aria-required="true" class="${bd(k)}" enterkeyhint="next"${UQ.includes(k)?' style="text-transform:uppercase"':""} value="${esc(S.id[k])}" oninput="S.id['${k}']=${UQ.includes(k)?"this.value.toLocaleUpperCase('fr')":"this.value"};save();idChk()"></label>`;
+ const nn=(k,l)=>`<label>${l} ${rq}<input data-id="${k}" required aria-required="true" class="${bd(k)}" enterkeyhint="next" style="text-transform:uppercase" value="${esc(S.id[k])}" oninput="S.id['${k}']=UPS(this.value.trim());idChk()" onchange="this.value=S.id['${k}']=UPS(this.value.trim());save();idChk()"></label>`,pn=(k,l)=>`<label>${l} ${rq}<input data-id="${k}" required aria-required="true" class="${bd(k)}" enterkeyhint="next" value="${esc(S.id[k])}" oninput="S.id['${k}']=cap1(this.value);idChk()" onchange="this.value=S.id['${k}']=cap1(this.value);save();idChk()"></label>`;
+ const sx=(k,l)=>`<label>${l} ${rq}<select data-id="${k}" required aria-required="true" class="${bd(k)}" onchange="S.id.${k}=this.value;save();idChk()"><option value=""></option>${["F","M"].map(v=>`<option${S.id[k]==v?" selected":""}>${v}</option>`).join("")}</select></label>`;
+const tt=(k,l)=>`<label>${l} ${rq}<input data-id="${k}" required aria-required="true" class="${bd(k)}" enterkeyhint="next" value="${esc(fmtTitre(S.id[k]))}" oninput="S.id['${k}']=this.value;save();idChk()" onchange="this.value=S.id['${k}']=fmtTitre(this.value);save();idChk()"></label>`;
+ return `<div class="card idp"><h2>IDENTIFICATION</h2><p style="text-align:center;margin:0 0 14px">MEBAPLN<br>SECRÉTARIAT GÉNÉRAL</p>
+ <p class="mu" style="text-align:center;margin:-6px 0 12px">Tous les champs marqués d’un <b class="rqs">*</b> sont obligatoires pour passer à l’étape suivante.</p>
+<div class="idr" style="grid-template-columns:repeat(3,minmax(0,1fr))">${f("annee","Année scolaire")}</div><div class="idr" style="grid-template-columns:repeat(3,minmax(0,1fr))">${f("dreppnf","DREPPNF")}${f("dpeppnf","DPEPPNF")}${f("ceb","CEB")}</div><div class="idr id4">${nn("ccebn","Nom du CCEB")}${pn("ccebp","Prénom du CCEB")}${sx("ccebs","Sexe du CCEB")}${tt("ccebt","Emploi ou Titre honorifique du CCEB")}</div><div class="idr id4">${nn("rbn","Nom du R/BEPrim")}${pn("rbp","Prénom du R/BEPrim")}${sx("rbs","Sexe du R/BEPrim")}${tt("rbt","Emploi ou Titre honorifique du R/BEPrim")}</div><div class="idr" style="grid-template-columns:minmax(0,2fr) minmax(0,1fr)">${pn("lieu","Fait à")}<label>Le ${rq}<input data-id="date" required aria-required="true" type=\"date\" value=\"${esc(S.id.date||today())}\" oninput=\"S.id.date=this.value;save()\"></label></div></div>
+<div class="card"><div id="idmsg" class="np warn" role="alert" style="margin:0 0 10px"${IDTRY&&idMiss().length?"":" hidden"}>${IDTRY&&idMiss().length?esc(idMsgTxt(idMiss())):""}</div><button class="bt" onclick="go('ec')">Passer à la saisie des écoles</button></div>
+<div class="card"><h3>Sauvegarde des données</h3><p class="mu">Enregistrez un fichier de sauvegarde après chaque séance de saisie, et restaurez-le sur un autre appareil ou après un effacement du navigateur. Pour l’envoyer par Bluetooth, la liste de partage du téléphone s’ouvre : choisissez-y Bluetooth. Pour l’envoyer par WhatsApp, WhatsApp s’ouvre directement sur vos contacts (application Android).</p>
+<div class="ctl"><button class="bt" onclick="sauver()">Sauvegarder (fichier)</button><button class="bt" type="button" onclick="envoyerSauv('bt')">Envoyer une sauvegarde par Bluetooth</button><button class="bt" type="button" onclick="envoyerSauv('wa')">Envoyer une sauvegarde par WhatsApp (nécessite une connexion)</button><label class="bt" style="margin:0">Restaurer un fichier<input type="file" accept=".json,application/json,text/plain,application/octet-stream" hidden onchange="restaurer(this)"></label></div></div>
 <div class="card"><h3>Fusion de données</h3><p class="mu">Plusieurs personnes ont saisi des données sur leur appareil ? Chacune envoie son fichier de sauvegarde (bouton « Sauvegarder (fichier) »). La personne qui centralise sélectionne ici tous les fichiers reçus : les écoles, les ZEP, les disciplines et les résultats sont réunis, sans effacer ce qui est déjà saisi.</p>
 <div class="ctl"><label class="bt" style="margin:0">Fusionner des fichiers<input type="file" accept=".json,application/json,text/plain,application/octet-stream" multiple hidden onchange="fusionChoisir(this)"></label>${(()=>{try{return localStorage.getItem(KEY+"_avant_fusion")?'<button class="bt" onclick="annulerFusion()">Annuler la dernière fusion</button>':""}catch(e){return""}})()}</div></div>`}
 function pgAc(){
@@ -262,25 +404,64 @@ function pgAc(){
  const logo=document.querySelector("header .lg svg").outerHTML;
  let k=0;const ttl="BIENVENUE DANS LoCoREB,".split(" ").map(w=>`<i class="wl">${[...w].map(c=>`<i class="ch" style="--i:${k++}" aria-hidden="true">${c}</i>`).join("")}</i>`).join(" ");
  return `<div class="card home"><div class="lgbig">${logo}</div><h2><i class="sr">BIENVENUE DANS LoCoREB,</i>${ttl}<span class="sub" style="--n:${k}">le Logiciel de Compilation des Résultats des Examens Blancs.</span></h2>
-<div class="tiles">${B.map((x,i)=>`<button class="bt tile" onclick="go('${x[0]}')"><b>${i+1}</b>${x[1]}</button>`).join("")}</div></div>${licHtml()}<div class="card">${credit()}</div>`}
+<div class="tiles">${B.map((x,i)=>`<button class="bt tile" onclick="go('${x[0]}')"><b>${i+1}</b>${x[1]}</button>`).join("")}</div></div>${licHtml()}<div class="card rst np"><h3>Réinitialisation</h3><p class="mu">Efface les résultats saisis de tous les examens blancs. L’identification, les écoles, les ZEP, les disciplines et la licence sont conservés. Un message d’avertissement vous demandera de confirmer.</p><div class="ctl"><button class="bt rdg" type="button" onclick="reinitOuvrir()">Réinitialiser l’application</button></div></div><div class="card">${credit()}</div>`}
 function pgEc(){
  return `<div class="card"><h2>SAISIE DES ÉCOLES DE LA CEB</h2>
-<label>Une école par ligne<textarea style="min-height:220px" onchange="sansDoublon(this,'schools');S.schools.sort((a,b)=>a.localeCompare(b,'fr'));this.value=S.schools.join(String.fromCharCode(10));save()" onpaste="const t=this;setTimeout(()=>sansDoublon(t,'schools'),0)" oninput="S.schools=this.value.split(/\\n/).map(s=>s.trim()).filter(Boolean);save();if(event.inputType==='insertLineBreak')sansDoublon(this,'schools')">${esc(S.schools.join("\n"))}</textarea></label>
+<label>Une école par ligne<textarea class="up" style="min-height:220px" onchange="sansDoublon(this,'schools');S.schools.sort((a,b)=>a.localeCompare(b,'fr'));this.value=S.schools.join(String.fromCharCode(10));save()" onpaste="const t=this;setTimeout(()=>sansDoublon(t,'schools'),0)" oninput="S.schools=this.value.split(/\\n/).map(s=>s.trim()).filter(Boolean);save();if(this.value.slice(-1)===String.fromCharCode(10)||/^insert(LineBreak|Paragraph)$/.test(event.inputType||''))sansDoublon(this,'schools')" onkeyup="if(event.key==='Enter')sansDoublon(this,'schools')">${esc(S.schools.join("\n"))}</textarea></label>
 <p class="mu">Les écoles sont classées par ordre alphabétique. Saisissez-les avant les résultats : renommer une école après saisie en détache les chiffres. Les données restent sur cet appareil.</p>
 <div class="ctl"><button class="bt" onclick="go('id')">Précédent</button><button class="bt" onclick="go('zp')">Passer à la saisie des ZEP</button></div></div>`}
 function pgZp(){
  return `<div class="card"><h2>SAISIE DES ZEP DE LA CEB</h2>
-<label>Une ZEP par ligne<textarea style="min-height:220px" onchange="sansDoublon(this,'zeps');S.zeps.sort((a,b)=>a.localeCompare(b,'fr'));this.value=S.zeps.join(String.fromCharCode(10));save()" onpaste="const t=this;setTimeout(()=>sansDoublon(t,'zeps'),0)" oninput="S.zeps=this.value.split(/\\n/).map(s=>s.trim()).filter(Boolean);save();if(event.inputType==='insertLineBreak')sansDoublon(this,'zeps')">${esc(S.zeps.join("\n"))}</textarea></label>
+<label>Une ZEP par ligne<textarea style="min-height:220px;text-transform:uppercase" onchange="sansDoublon(this,'zeps');S.zeps.sort((a,b)=>a.localeCompare(b,'fr'));this.value=S.zeps.join(String.fromCharCode(10));save()" onpaste="const t=this;setTimeout(()=>sansDoublon(t,'zeps'),0)" oninput="S.zeps=this.value.split(/\\n/).map(s=>s.trim().toLocaleUpperCase("fr")).filter(Boolean);save();if(this.value.slice(-1)===String.fromCharCode(10)||/^insert(LineBreak|Paragraph)$/.test(event.inputType||''))sansDoublon(this,'zeps')" onkeyup="if(event.key==='Enter')sansDoublon(this,'zeps')">${esc(S.zeps.join("\n"))}</textarea></label>
 <p class="mu">Les ZEP sont classées par ordre alphabétique. Elles alimentent la liste déroulante de la case ZEP dans Saisie des résultats. Renommer une ZEP après l’avoir attribuée à une école ne modifie pas l’école : choisissez de nouveau la ZEP. Les données restent sur cet appareil.</p>
 <div class="ctl"><button class="bt" onclick="go('ec')">Précédent</button><button class="bt" onclick="go('di')">Passer à la saisie des disciplines</button></div></div>`}
 function pgDi(){
  return `<div class="card"><h2>SAISIE DES DISCIPLINES</h2>
-<label>Une discipline par ligne<textarea style="min-height:220px" onchange="sansDoublon(this,'disc')" onpaste="const t=this;setTimeout(()=>sansDoublon(t,'disc'),0)" oninput="S.disc=this.value.split(/\\n/).map(s=>s.trim()).filter(Boolean);save();if(event.inputType==='insertLineBreak')sansDoublon(this,'disc')">${esc(S.disc.join("\n"))}</textarea></label>
+<label>Une discipline par ligne<textarea style="min-height:220px" onchange="sansDoublon(this,'disc');normDisc();this.value=S.disc.join(String.fromCharCode(10));save()" onpaste="const t=this;setTimeout(()=>sansDoublon(t,'disc'),0)" oninput="S.disc=this.value.split(/\\n/).map(s=>s.trim()).filter(Boolean);save();if(this.value.slice(-1)===String.fromCharCode(10)||/^insert(LineBreak|Paragraph)$/.test(event.inputType||''))discEnter(this)" onkeyup="if(event.key==='Enter')discEnter(this)">${esc(S.disc.join("\n"))}</textarea></label>
 <p class="mu">Renommer une discipline après saisie en détache les chiffres. Les données restent sur cet appareil.</p>
 <div class="ctl"><button class="bt" onclick="go('zp')">Précédent</button><button class="bt" onclick="go('sa')">Passer à la saisie des résultats</button></div></div>`}
 
+/* ===== Réinitialisation de l'application (page d'accueil) : efface les données, conserve la licence ===== */
+function reinitFermer(){const d=$("rmod");if(d)d.remove()}
+function reinitCheck(){const v=String($("rmi").value||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim().toUpperCase();$("rmo").disabled=v!=="REINITIALISER"}
+function reinitOuvrir(){
+ if($("rmod"))return;
+ const d=document.createElement("div");d.id="rmod";d.className="fmod np";d.setAttribute("role","dialog");d.setAttribute("aria-modal","true");d.setAttribute("aria-labelledby","rmt");
+ d.onkeydown=e=>{if(e.key==="Escape")reinitFermer()};
+ d.innerHTML='<div><h3 id="rmt" style="margin-top:0;color:var(--rd)">&#9888; Réinitialiser l’application ?</h3>'
+ +'<p>Cette action efface les résultats saisis sur cet appareil. Lisez attentivement avant de continuer :</p>'
+ +'<ul><li><b>Seuls les résultats saisis de tous les examens blancs seront effacés définitivement</b> (effectifs, ont composé, ont eu la moyenne, par école et par discipline).</li><li>L’identification, la liste des écoles (avec leur statut et leur ZEP), la liste des ZEP, la liste des disciplines et le niveau de chaque examen sont <b>conservés</b>.</li>'
+ +'<li>Cette opération est <b>irréversible</b> : elle ne pourra pas être annulée.</li>'
+ +''
+ +'<li>Votre licence d’utilisation <b>n’est pas</b> supprimée.</li>'
+ +'<li>Recommandation : enregistrez d’abord un fichier de sauvegarde pour pouvoir restaurer vos résultats plus tard.</li></ul>'
+ +'<div class="ctl"><button class="bt" type="button" onclick="sauver()">Sauvegarder (fichier) d’abord</button></div>'
+ +'<label>Pour confirmer, tapez <b>REINITIALISER</b> ci-dessous<input id="rmi" autocomplete="off" autocapitalize="characters" spellcheck="false" oninput="reinitCheck()"></label>'
+ +'<div class="ctl" style="justify-content:flex-end;margin:14px 0 0"><button class="bt" type="button" onclick="reinitFermer()">Annuler</button><button class="bt rdg" id="rmo" type="button" disabled onclick="reinitFaire()">Réinitialiser</button></div></div>';
+ document.body.appendChild(d);$("rmi").focus()}
+function reinitFaire(){
+ try{localStorage.removeItem(KEY+"_avant_fusion")}catch(e){}
+ Object.keys(S.ex||{}).forEach(n=>{if(S.ex[n])S.ex[n].d={}});
+ S.ui=S.ui||{};S.ui.tab="ac";
+ reinitFermer();save();R();toast("Résultats effacés.")}
 function sauver(){saveBlob(new Blob([JSON.stringify(S)],{type:"application/json"}),"LoCoREB_sauvegarde_"+new Date().toISOString().slice(0,10)+".json")}
-function restaurer(el){const f=el.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!d.ex||!d.schools)throw 0;S=d;S.zeps=S.zeps||[];save();R()}catch(e){alert("Fichier de sauvegarde invalide.")}};r.readAsText(f)}
+/* Envoi de la sauvegarde par Bluetooth ou WhatsApp : ouvre la liste de partage du téléphone (Android) ; sans partage possible, le fichier est téléchargé */
+async function envoyerSauv(mode){
+ const wa=mode==="wa",cible=wa?"WhatsApp":"Bluetooth";
+ if(wa&&navigator.onLine===false){toast("WhatsApp nécessite une connexion Internet. Connectez-vous, ou utilisez Bluetooth.");return}
+ const name="LoCoREB_sauvegarde_"+new Date().toISOString().slice(0,10)+".json",blob=new Blob([JSON.stringify(S)],{type:"application/json"});
+ if(wa&&window.Pont&&window.Pont.envoyerWhatsApp){
+  const b64=await new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>{const t=String(fr.result);res(t.slice(t.indexOf(",")+1))};fr.onerror=rej;fr.readAsDataURL(blob)});
+  const r=await window.Pont.envoyerWhatsApp(name,"application/json",b64,"Sauvegarde LoCoREB");
+  if(r&&r.ok)return;
+  toast(/absent/i.test((r&&r.erreur)||"")?"WhatsApp n’est pas installé sur ce téléphone : choisissez une autre application dans la liste.":"WhatsApp n’a pas pu s’ouvrir directement : choisissez-le dans la liste de partage.")}
+ if(window.Pont&&window.Pont.enregistrer){await saveBlob(blob,name,false,"","Choisissez "+cible+" pour envoyer la sauvegarde");return}
+ try{
+  const file=new File([blob],name,{type:"application/json"});
+  if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:name,text:"Sauvegarde LoCoREB"});return}
+ }catch(e){if(e&&e.name==="AbortError")return}
+ saveBlob(blob,name);toast("Le partage n’est pas disponible ici : le fichier a été téléchargé. Envoyez-le ensuite par "+cible+".")}
+function restaurer(el){const f=el.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!d.ex||!d.schools)throw 0;S=d;S.zeps=S.zeps||[];normZeps();save();R()}catch(e){alert("Fichier de sauvegarde invalide.")}};r.readAsText(f)}
 
 /* ===== Fusion de données : plusieurs personnes saisissent, puis on réunit les fichiers ===== */
 const nkey=t=>nrm(t).replace(/[-_'\u2019.]/g," ").replace(/\s+/g," ").trim();
@@ -326,7 +507,7 @@ function fusionner(T,F,mode,rep){
 function fusionRun(files,mode){
  const T=JSON.parse(JSON.stringify(S)),rep={ecoles:0,zeps:0,disc:0,meta:0,filled:0,conf:0,confs:[]};
  files.forEach(f=>fusionner(T,f.d,mode,rep));
- T.schools.sort((a,b)=>a.localeCompare(b,"fr"));T.zeps.sort((a,b)=>a.localeCompare(b,"fr"));
+ T.schools.sort((a,b)=>a.localeCompare(b,"fr"));{const U=z=>String(z==null?"":z).trim().toLocaleUpperCase("fr"),vu=new Set();T.zeps=T.zeps.map(U).filter(z=>{const k=z.toLowerCase();if(!z||vu.has(k))return false;vu.add(k);return true});Object.values(T.meta||{}).forEach(m=>{if(m&&m.zep)m.zep=U(m.zep)})}T.zeps.sort((a,b)=>a.localeCompare(b,"fr"));
  return {T,rep}}
 let FUS=null;
 function fusionChoisir(el){
@@ -356,19 +537,26 @@ function fusionAppliquer(){
  if(!FUS)return;
  const m=document.querySelector("#fmod input[name=fmode]:checked"),mode=m?m.value:"garder",{T}=fusionRun(FUS.good,mode);
  try{localStorage.setItem(KEY+"_avant_fusion",JSON.stringify({t:Date.now(),s:S}))}catch(e){}
- const ui=S.ui;S=T;S.ui=ui||T.ui;save();fusionFermer();R();toast("Fusion appliquée.")}
+ const ui=S.ui;S=T;S.ui=ui||T.ui;normDisc();save();fusionFermer();R();toast("Fusion appliquée.")}
 function annulerFusion(){
  try{const b=JSON.parse(localStorage.getItem(KEY+"_avant_fusion"));if(!b||!b.s)throw 0;
   if(!confirm("Revenir aux données d'avant la dernière fusion ?"))return;
-  S=b.s;S.zeps=S.zeps||[];save();localStorage.removeItem(KEY+"_avant_fusion");R();toast("Fusion annulée.")}
+  S=b.s;S.zeps=S.zeps||[];normZeps();save();localStorage.removeItem(KEY+"_avant_fusion");R();toast("Fusion annulée.")}
  catch(e){alert("Aucune fusion à annuler.")}}
 
+const SRQ='<span class="rqs" aria-hidden="true">*</span>';
+/* Saisie des résultats : le Statut et la ZEP de l'école sont obligatoires avant de saisir les chiffres */
+function srMiss(){if(!S.schools.length)return[];const m=Mt(S.ui.school),r=[];if(!String(m.st||"").trim())r.push("Statut");if(!String(m.zep||"").trim())r.push("ZEP");return r}
+function srLock(){if(S.ui.tab!=="sa"||!srMiss().length)return;document.querySelectorAll("#app .card.por input[data-p]").forEach(i=>{i.readOnly=true;i.dataset.lock="1"});document.querySelectorAll("#app .card.por button").forEach(b=>{b.disabled=true})}
+function srFocus(){const m=srMiss();toast("Renseignez d’abord le "+m.join(" et la ")+" de l’école : champs obligatoires avant la saisie des résultats.");const el=m[0]==="Statut"?$("sr-st"):document.querySelector("#app .ctl.l2 .cb input");if(el)try{el.focus()}catch(x){}}
+document.addEventListener("focusin",e=>{const el=e.target;if(el&&el.matches&&el.matches("input[data-lock]")&&S.ui.tab==="sa"&&srMiss().length){el.blur();srFocus()}});
+document.addEventListener("click",e=>{const el=e.target;if(el&&el.closest&&el.closest("#app .card.por")&&S.ui.tab==="sa"&&srMiss().length&&el.closest("input[data-p],button")){srFocus()}});
 function pgSa(){
  const n=S.ui.n;
  if(!S.schools.length)return `<div class="card">Ajoutez d’abord les écoles dans l’onglet Saisie des écoles.</div>`;
- return `<div class="ctl np">${exSel("n")}<label class="schl np"><b style="font-size:14px;color:var(--tx)">NIVEAU :</b><select aria-label="Niveau" onchange="E(S.ui.n).niveau=this.value;save();R()">${NV.map(v=>`<option${v==E(n).niveau?" selected":""}>${v}</option>`).join("")}</select></label>
-<label class="schl np"><span class="lt"><b>École</b> (Sélectionnez votre école ici. Pour la retrouver facilement, tapez ses premières lettres.)</span>${schoolBox("school",S.ui.school,"École : tapez les premières lettres","lst-ec")}</label>${pdf}</div>
-<div class="card">${hd()}${title(n)}<h3 style="text-align:center">École : ${esc(S.ui.school)}</h3><div class="ctl" style="justify-content:center"><label>Statut<select onchange="Mt(S.ui.school).st=this.value;save()"><option value=""></option>${["Public","Privé"].map(v=>`<option${Mt(S.ui.school).st==v?" selected":""}>${v}</option>`).join("")}</select></label><label>ZEP${cbBox("zeps",Mt(S.ui.school).zep,S.zeps.length?"ZEP : tapez les premières lettres":"Saisissez d’abord les ZEP","pickZep(this)",220,0)}</label></div><div id="vmsg" class="np" role="alert"></div>${tabs(agg(n,[S.ui.school]),true)}${sig()}</div>`}
+ return `<div class="ctl np" style="justify-content:center;gap:56px">${exSel("n")}<label class="schl np"><b style="font-size:calc(14px*var(--ts));color:var(--tx)">NIVEAU :</b><select aria-label="Niveau" onchange="E(S.ui.n).niveau=this.value;save();R()">${NV.map(v=>`<option${v==E(n).niveau?" selected":""}>${v}</option>`).join("")}</select></label></div>
+<div class="ctl np l2"><label class="schl np"><span class="lt"><b>ÉCOLE</b> (Sélectionnez votre école ici. Pour la retrouver facilement, tapez ses premières lettres.)</span>${schoolBox("school",S.ui.school,"École : tapez les premières lettres","lst-ec")}</label><label class="gb"><b>Statut</b> ${SRQ}<select id="sr-st" class="${String(Mt(S.ui.school).st||"").trim()?"":"bad"}" onchange="Mt(S.ui.school).st=this.value;save();R()"><option value=""></option>${["Public","Privé"].map(v=>`<option${Mt(S.ui.school).st==v?" selected":""}>${v}</option>`).join("")}</select></label><label class="gb"><b>ZEP</b> ${SRQ}${cbBox("zeps",Mt(S.ui.school).zep,S.zeps.length?"ZEP : tapez les premières lettres":"Saisissez d’abord les ZEP","pickZep(this)",220,0)}</label>${pdf}</div>
+${srMiss().length?`<p class="warn np" role="alert" style="margin:0 0 10px">Renseignez d’abord le Statut et la ZEP de cette école (champs obligatoires <b class="rqs">*</b>) : la saisie des résultats est bloquée tant que ces deux champs sont vides.</p>`:""}<div class="card por">${hd()}${title(n)}<h3 style="text-align:center;font-weight:700">ÉCOLE : ${esc(UPS(S.ui.school))}</h3><p class="stz"><span>Statut : ${esc(Mt(S.ui.school).st||"........")}</span><span>ZEP : ${esc(Mt(S.ui.school).zep||"........")}</span></p><div id="vmsg" class="np" role="alert"></div>${tabs(agg(n,[S.ui.school]),true)}</div>`}
 
 const grpBy=(f,em,or=[])=>{const m=new Map();
  S.schools.forEach(s=>{const raw=(f(s)||"").trim(),k=raw.toLowerCase();if(!m.has(k))m.set(k,{name:raw||em,list:[],k});m.get(k).list.push(s)});
@@ -377,17 +565,38 @@ const grpBy=(f,em,or=[])=>{const m=new Map();
 const gZ=()=>grpBy(s=>Mt(s).zep,"ZEP non renseignée");
 const gS=()=>grpBy(s=>Mt(s).st,"Statut non renseigné",["public","privé"]);
 function tGrp(n,t,G){
- const fgt='<th class="fr">F</th><th>G</th><th>T</th>';
- const row=(nm,c,r,cl)=>`<tr class="${cl||""}"><th>${esc(nm)}</th><td>${c}</td>`+K.map(k=>`<td class="fr">${r.g[k].f}</td><td>${r.g[k].g}</td><td${k=="ef"?' class="b"':""}>${r.g[k].f+r.g[k].g}</td>`).join("")+["f","g","t"].map(j=>`<td${j=="f"?' class="fr"':""}>${val(r,"g.tx."+j)}</td>`).join("")+"</tr>";
- return `<h3 style="text-align:center">RÉSULTATS PAR ${t.toUpperCase()}</h3><div class="w"><table><thead><tr><th rowspan="2">${t}</th><th rowspan="2">Écoles</th><th colspan="3">Effectif</th><th colspan="3">Ont composé</th><th colspan="3">Ont eu la moyenne</th><th colspan="3">Taux de réussite</th></tr><tr>${fgt}${fgt}${fgt}${fgt}</tr></thead><tbody>${G.map(g=>row(g.name,g.list.length,agg(n,g.list))).join("")}${row("TOTAL CEB",S.schools.length,agg(n,S.schools),"tot")}</tbody></table></div>`}
+ const fgt='<th class="fr fg">F</th><th class="fg">G</th><th class="fg">T</th>';
+ const row=(nm,c,r,cl)=>`<tr class="${cl||""}"><th>${esc(nm)}</th><td>${c}</td>`+K.map(k=>`<td class="fr">${eF(r.g[k])}</td><td>${eG(r.g[k])}</td><td${k=="ef"?' class="b"':""}>${eT(r.g[k])}</td>`).join("")+["f","g","t"].map(j=>`<td${j=="f"?' class="fr"':""}>${val(r,"g.tx."+j)}</td>`).join("")+"</tr>";
+ return `<h3 style="text-align:center">RÉSULTATS PAR ${t.toUpperCase()}</h3><div class="w"><table><thead><tr><th rowspan="2">${t}</th><th rowspan="2">Nombre<br>d’écoles</th><th colspan="3">Effectif</th><th colspan="3">Ont composé</th><th colspan="3">Ont eu la moyenne</th><th colspan="3">Taux de réussite</th></tr><tr>${fgt}${fgt}${fgt}${fgt}</tr></thead><tbody>${G.map(g=>row(g.name,g.list.length,agg(n,g.list))).join("")}${row("TOTAL CEB",S.schools.length,agg(n,S.schools),"tot")}</tbody></table></div>`}
 
+/* Groupe choisi sur la page Résultats : une zone (ZEP) ou un statut ; null = TOTAL CEB */
+function reScope(){
+ const u=S.ui,key=g=>g.k||"~",z=gZ().find(g=>key(g)===u.rz),t=gS().find(g=>key(g)===u.rs);
+ return z?{lab:"Zone",g:z,id:"z:"+key(z)}:t?{lab:"Statut",g:t,id:"s:"+key(t)}:null}
+/* Signataires des pages « zone » et « statut » : Le/la R/ZEP (à gauche) et Le/la R/BEPrim (à droite) */
+function sigZ(sc,ext){
+ const I=S.id,z=(S.zr&&S.zr[sc.id])||{};migNm(z,"nom","n","p");migNm(I,"rb","rbn","rbp");
+ return sig({sx:z.sx,tt:"R/ZEP",nm:fullNm(z.n,z.p),jb:fmtTitre(z.tt)},{sx:I.rbs,tt:"R/BEPrim",nm:fullNm(I.rbn,I.rbp),jb:I.rbt},ext)}
+function setZr(k,v){const sc=reScope();if(!sc)return;S.zr=S.zr||{};const o=(S.zr[sc.id]=S.zr[sc.id]||{});if(o[k]===v||(v===""&&o[k]==null))return;o[k]=v;save();R()}
 function pgRe(){
- const n=S.ui.n,L=S.schools,T=agg(n,L);
- const row=(nm,r,c,i)=>`<tr class="${c||""}"><td>${i||""}</td><th>${esc(nm)}</th><td>${i?esc(Mt(nm).st):""}</td><td>${i?esc(Mt(nm).zep):""}</td>`+K.map(k=>`<td class="fr">${r.g[k].f}</td><td>${r.g[k].g}</td><td${k=="ef"?' class="b"':""}>${r.g[k].f+r.g[k].g}</td>`).join("")+["f","g","t"].map(j=>`<td${j=="f"?' class="fr"':""}>${val(r,"g.tx."+j)}</td>`).join("")+"</tr>";
- const fgt='<th class="fr">F</th><th>G</th><th>T</th>';
- return `<div class="ctl np">${exSel("n")}${pdf}</div>
-<div class="card">${hd()}${title(n)}<h3 style="text-align:center">TOTAL CEB</h3>${tabs(T,false)}${sig()}</div>
-<div class="card" data-rep="1">${hd()}${title(n)}<h3 style="text-align:center">RÉCAPITULATIF PAR ÉCOLE</h3><div class="w"><table><thead><tr><th rowspan="2">N°</th><th rowspan="2">École</th><th rowspan="2">Statut</th><th rowspan="2">ZEP</th><th colspan="3">Effectif</th><th colspan="3">Ont composé</th><th colspan="3">Ont eu la moyenne</th><th colspan="3">Taux de réussite</th></tr><tr>${fgt}${fgt}${fgt}${fgt}</tr></thead><tbody>${L.map((s,i)=>row(s,agg(n,[s]),"",i+1)).join("")}${row("TOTAL CEB",T,"tot")}</tbody></table></div>${sig()}</div>
+ const n=S.ui.n,L=S.schools,T=agg(n,L),sc=reScope(),key=g=>g.k||"~";
+ const pick=(lab,G,cur,other)=>`<label class="gb">${lab}<select aria-label="${lab}" onchange="S.ui.${cur}=this.value;S.ui.${other}='';save();R()"><option value="">${lab==="Zone"?"Toutes les zones":"Tous les statuts"}</option>${G.map(g=>`<option value="${esc(key(g))}"${S.ui[cur]===key(g)?" selected":""}>${esc(g.name)}</option>`).join("")}</select></label>`;
+ let ctl=`<div class="ctl np">${exSel("n")}${pick("Zone",gZ(),"rz","rs")}${pick("Statut",gS(),"rs","rz")}${pdf}${xl}</div>`;
+ if(sc){const z=(S.zr&&S.zr[sc.id])||{};migNm(z,"nom","n","p");
+  const zb=k=>ZRTRY&&!String(z[k]||"").trim()?"bad":"",rq='<span class="rqs" aria-hidden="true">*</span>';
+   ctl+=`<div class="ctl np zrc"><label>Nom du R/ZEP ${rq}<input data-k="n" required aria-required="true" class="${zb('n')}" enterkeyhint="next" style="text-transform:uppercase" value="${esc(z.n||"")}" onchange="setZr('n',UPS(this.value.trim()))"></label><label>Prénom du R/ZEP ${rq}<input data-k="p" required aria-required="true" class="${zb('p')}" enterkeyhint="next" value="${esc(z.p||"")}" onchange="setZr('p',cap1(this.value))"></label><label>Sexe ${rq}<select data-k="sx" required aria-required="true" class="${zb('sx')}" onchange="setZr('sx',this.value)"><option value=""></option>${["F","M"].map(v=>`<option${z.sx===v?" selected":""}>${v}</option>`).join("")}</select></label><label>Emploi ou Titre honorifique ${rq}<input data-k="tt" required aria-required="true" class="${zb('tt')}" enterkeyhint="done" value="${esc(fmtTitre(z.tt))}" onchange="setZr('tt',fmtTitre(this.value))"></label></div>`;
+   const zm=zrMiss();if(ZRTRY&&!zm.length)ZRTRY=false;
+   ctl+=`<p class="mu np" style="margin:2px 0 6px">Les champs marqués d’un <b class="rqs">*</b> sont obligatoires pour passer à l’étape suivante ou exporter en PDF.</p>`+(ZRTRY&&zm.length?`<div class="np warn" role="alert" style="margin:0 0 8px">${esc(zrMsgTxt(zm))}</div>`:"")}
+ const row=(nm,r,c,i,lite)=>`<tr class="${c||""}"><td>${i||""}</td><th>${esc(UPS(nm))}</th>${lite?"":`<td class="b">${i?esc(Mt(nm).st):""}</td><td class="b">${i?esc(Mt(nm).zep):""}</td>`}`+K.map(k=>`<td class="fr">${eF(r.g[k])}</td><td>${eG(r.g[k])}</td><td${k=="ef"?' class="b"':""}>${eT(r.g[k])}</td>`).join("")+["f","g","t"].map(j=>`<td${j=="f"?' class="fr"':""}>${val(r,"g.tx."+j)}</td>`).join("")+"</tr>";
+ const fgt='<th class="fr fg">F</th><th class="fg">G</th><th class="fg">T</th>';
+ const rec=(list,TT,lab,ttl,lite)=>`<h3 style="text-align:center">${ttl}</h3><div class="w"><table><thead><tr><th rowspan="2">N°</th><th rowspan="2">École</th>${lite?"":`<th rowspan="2">Statut</th><th rowspan="2">ZEP</th>`}<th colspan="3">Effectif</th><th colspan="3">Ont composé</th><th colspan="3">Ont eu la moyenne</th><th colspan="3">Taux de réussite</th></tr><tr>${fgt}${fgt}${fgt}${fgt}</tr></thead><tbody>${list.map((s,i)=>row(s,agg(n,[s]),"",i+1,lite)).join("")}${row(lab,TT,"tot",0,lite)}</tbody></table></div>`;
+ if(sc){const G=sc.g,nm=sc.lab.toUpperCase()+" : "+esc(G.name.toLocaleUpperCase("fr")),TG=agg(n,G.list);
+  return `${ctl}
+<div class="card por">${hd()}${title(n)}<h3 style="text-align:center">${nm}</h3>${tabs(TG,false)}${sigZ(sc)}</div>
+<div class="card por" data-rep="1">${hd()}${title(n)}${rec(G.list,TG,"TOTAL "+sc.lab.toUpperCase(),"RÉCAPITULATIF PAR ÉCOLE – "+nm,true)}${sigZ(sc,true)}</div>`}
+ return `${ctl}
+<div class="card por">${hd()}${title(n)}<h3 style="text-align:center">TOTAL CEB</h3>${tabs(T,false)}${sig()}</div>
+<div class="card por" data-rep="1">${hd()}${title(n)}${rec(L,T,"TOTAL CEB","RÉCAPITULATIF PAR ÉCOLE",true)}${sig(null,null,true)}</div>
 <div class="card">${hd()}${title(n)}${tGrp(n,"ZEP",gZ())}${tGrp(n,"Statut",gS())}${sig()}</div>`}
 
 function pgMe(){
@@ -397,30 +606,42 @@ function pgMe(){
  rows.sort((a,b)=>((a.t==null)-(b.t==null))||((b.t==null?0:b.t)-(a.t==null?0:a.t))||a.s.localeCompare(b.s,"fr"));
  const rk=x=>{if(x.t==null)return "—";const k=1+rows.filter(y=>y.t!=null&&y.t>x.t).length;return k==1?"1er":k+"e"};
  const rt=(o,j)=>j=="t"?pc(o.mo.f+o.mo.g,o.co.f+o.co.g):pc(o.mo[j],o.co[j]);
- const cells=o=>["co","mo"].map(k=>`<td class="fr">${o[k].f}</td><td>${o[k].g}</td><td>${o[k].f+o[k].g}</td>`).join("")+["f","g","t"].map(j=>`<td${j=="f"?' class="fr"':""}>${rt(o,j)}</td>`).join("");
- const fgt='<th class="fr">F</th><th>G</th><th>T</th>';
- const body=rows.map(x=>`<tr><td>${rk(x)}</td><th>${esc(x.s)}</th><td>${esc(Mt(x.s).st)}</td><td>${esc(Mt(x.s).zep)}</td>${cells(x.o)}</tr>`).join("")+`<tr class="tot"><td></td><th>TOTAL CEB</th><td></td><td></td>${cells(pick(agg(n,S.schools)))}</tr>`;
- return `<div class="ctl np">${exSel("n")}<select aria-label="Classement selon" onchange="S.ui.crit=this.value;save();R()"><option value="">Résultats globaux</option>${S.disc.map((d,i)=>`<option value="${i}"${i==di?" selected":""}>${esc(d)}</option>`).join("")}</select>${pdf}</div>
-<div class="card">${hd()}<h2>ORDRE DE MÉRITE DES ÉCOLES – EXAMEN BLANC N°${n} – NIVEAU ${esc(E(n).niveau)}</h2><p style="text-align:center;margin:0">${di<0?"Résultats globaux":esc(S.disc[di])}</p>
-<div class="w"><table><thead><tr><th rowspan="2">Rang</th><th rowspan="2">École</th><th rowspan="2">Statut</th><th rowspan="2">ZEP</th><th colspan="3">Ont composé</th><th colspan="3">Ont eu la moyenne</th><th colspan="3">Taux de réussite</th></tr><tr>${fgt}${fgt}${fgt}</tr></thead><tbody>${body}</tbody></table></div>
+ const cells=o=>["co","mo"].map(k=>`<td class="fr">${eF(o[k])}</td><td>${eG(o[k])}</td><td>${eT(o[k])}</td>`).join("")+["f","g","t"].map(j=>`<td${j=="f"?' class="fr"':""}>${rt(o,j)}</td>`).join("");
+ const fgt='<th class="fr fg">F</th><th class="fg">G</th><th class="fg">T</th>';
+ const body=rows.map(x=>`<tr><td>${rk(x)}</td><th>${esc(UPS(x.s))}</th>${cells(x.o)}</tr>`).join("")+`<tr class="tot"><td></td><th>TOTAL CEB</th>${cells(pick(agg(n,S.schools)))}</tr>`;
+ return `<div class="ctl np">${exSel("n")}<select aria-label="Classement selon" onchange="S.ui.crit=this.value;save();R()"><option value="">RÉSULTATS GLOBAUX</option>${S.disc.map((d,i)=>`<option value="${i}"${i==di?" selected":""}>${esc(capD(d))}</option>`).join("")}</select>${pdf}${xl}</div>
+<div class="card por" data-rep="1">${hd()}<h2>ORDRE DE MÉRITE DES ÉCOLES – EXAMEN BLANC N°${n} – NIVEAU ${esc(E(n).niveau)}</h2><p style="text-align:center;margin:0">${di<0?"RÉSULTATS GLOBAUX":esc(capD(S.disc[di]))}</p>
+<div class="w"><table class="f12"><thead><tr><th rowspan="2">Rang</th><th rowspan="2">École</th><th colspan="3">Ont composé</th><th colspan="3">Ont eu la moyenne</th><th colspan="3">Taux de réussite</th></tr><tr>${fgt}${fgt}${fgt}</tr></thead><tbody>${body}</tbody></table></div>
 <p class="mu">Classement selon le taux de réussite (T). Les écoles à égalité ont le même rang.</p>${sig()}</div>`}
 
 function pgCp(){
- const u=S.ui,L=u.scope&&S.schools.includes(u.scope)?[u.scope]:S.schools,A=agg(u.a,L),B=agg(u.b,L);
- const fgt='<th class="fr">F</th><th>G</th><th>T</th>';
+ const u=S.ui,cv=u.cv==="zep"||u.cv==="ec"?u.cv:"",sc=cv==="ec"&&!!(u.scope&&S.schools.includes(u.scope)),L=sc?[u.scope]:S.schools,A=agg(u.a,L),B=agg(u.b,L);
+ const fgt='<th class="fr fg">F</th><th class="fg">G</th><th class="fg">T</th>';
  const cEc=(v,txt,j)=>{const r=v==null?0:Math.round(v*100)/100,c=[j=="f"?"fr":"",r>0?"ep":r<0?"en":""].filter(Boolean).join(" ");return `<td${c?` class="${c}"`:""}>${r<0&&j=="f"?`<span class="cer">${txt}</span>`:txt}</td>`};
  const ecs=(a,b)=>["f","g","t"].map(j=>{const x=tn(a,j),y=tn(b,j);return cEc(x==null||y==null?null:y-x,ec(x,y),j)}).join("");
- const g=K.map((k,i)=>`<tr><th>${LB[i]}</th>`+[A,B].map(r=>`<td class="fr">${r.g[k].f}</td><td>${r.g[k].g}</td><td>${r.g[k].f+r.g[k].g}</td>`).join("")+[["f",B.g[k].f-A.g[k].f],["g",B.g[k].g-A.g[k].g],["t",B.g[k].f+B.g[k].g-A.g[k].f-A.g[k].g]].map(x=>cEc(x[1],sg(x[1]),x[0])).join("")+"</tr>").join("")
+ const gdf=(A,B)=>{ const g=K.map((k,i)=>`<tr><th>${LB[i]}</th>`+[A,B].map(r=>`<td class="fr">${eF(r.g[k])}</td><td>${eG(r.g[k])}</td><td>${eT(r.g[k])}</td>`).join("")+[["f",B.g[k].f-A.g[k].f],["g",B.g[k].g-A.g[k].g],["t",B.g[k].f+B.g[k].g-A.g[k].f-A.g[k].g]].map(x=>cEc(x[1],(hz(A.g[k])||hz(B.g[k]))?sg(x[1]):"",x[0])).join("")+"</tr>").join("")
   +`<tr class="tot"><th>Taux de réussite</th>`+[A,B].map(r=>["f","g","t"].map(j=>`<td${j=="f"?' class="fr"':""}>${val(r,"g.tx."+j)}</td>`).join("")).join("")+ecs(A.g,B.g)+"</tr>";
- const p=S.disc.map((d,i)=>`<tr><th>${esc(d)}</th>`+[A,B].map(r=>["f","g","t"].map(j=>`<td${j=="f"?' class="fr"':""}>${val(r,`p.${i}.tx.${j}`)}</td>`).join("")).join("")+ecs(A.p[d],B.p[d])+"</tr>").join("");
- const cr=(nm,list,c)=>{const a=agg(u.a,list),b=agg(u.b,list);return `<tr class="${c||""}"><th>${esc(nm)}</th>`+[a,b].map(r=>["f","g","t"].map(j=>`<td${j=="f"?' class="fr"':""}>${val(r,"g.tx."+j)}</td>`).join("")).join("")+ecs(a.g,b.g)+"</tr>"};
- const ct=(t,items)=>`<h3>Taux de réussite par ${t.toLowerCase()}</h3><div class="w"><table>${head(t)}<tbody>${items.map(i=>cr(i.name,i.list)).join("")}${cr("TOTAL CEB",S.schools,"tot")}</tbody></table></div>`;
- const extra=()=>u.scope&&S.schools.includes(u.scope)?"":ct("École",S.schools.map(s=>({name:s,list:[s]})))+ct("ZEP",gZ())+ct("Statut",gS());
- const head=(a,b)=>`<thead><tr><th rowspan="2">${a}</th><th colspan="3">Examen blanc n°${u.a}</th><th colspan="3">Examen blanc n°${u.b}</th><th colspan="3">Écart</th></tr><tr>${fgt}${fgt}${fgt}</tr></thead>`;
- return `<div class="ctl np">${exSel("a")}${exSel("b")}<label class="schl np"><span class="lt"><b>École</b> (Sélectionnez votre école ici. Pour la retrouver facilement, tapez ses premières lettres.)</span>${schoolBox("scope",u.scope||"","Total CEB (ou tapez une école)","lst-cp")}</label>${pdf}</div>
-<div class="card">${hd()}<h2>COMPARAISON ENTRE LES EXAMENS BLANCS N°${u.a} ET N°${u.b}</h2><p style="text-align:center;margin:0">${esc(L.length==1?L[0]:"TOTAL CEB")}</p>
-<h3>Résultats globaux</h3><div class="w"><table>${head("")}<tbody>${g}</tbody></table></div>
-<h3>Taux de réussite par discipline</h3><div class="w"><table>${head("Disciplines")}<tbody>${p}</tbody></table></div>${extra()}${sig()}</div>`}
+ const p=S.disc.map((d,i)=>`<tr><th>${esc(capD(d))}</th>`+[A,B].map(r=>["f","g","t"].map(j=>`<td${j=="f"?' class="fr"':""}>${val(r,`p.${i}.tx.${j}`)}</td>`).join("")).join("")+ecs(A.p[d],B.p[d])+"</tr>").join("");
+ return {g,p}};
+ const {g,p}=gdf(A,B);
+ const cr=(nm,list,c,i,num)=>{const a=agg(u.a,list),b=agg(u.b,list);return `<tr class="${c||""}">${num?`<td>${i||""}</td>`:""}<th>${esc(nm)}</th>`+[a,b].map(r=>["f","g","t"].map(j=>`<td${j=="f"?' class="fr"':""}>${val(r,"g.tx."+j)}</td>`).join("")).join("")+ecs(a.g,b.g)+"</tr>"};
+ const ct=(t,items,num)=>`<h3>TAUX DE RÉUSSITE PAR ${t.toUpperCase()}</h3><div class="w"><table>${head(t,0,num)}<tbody>${items.map((i,k)=>cr(i.name,i.list,"",k+1,num)).join("")}${cr("TOTAL CEB",S.schools,"tot",0,num)}</tbody></table></div>`;
+ const head=(a,b,num)=>`<thead><tr>${num?'<th rowspan="2">N°</th>':""}<th rowspan="2"${a?' style="text-align:left"':' class="ve"'}>${esc(String(a==="École"?"Écoles":a).toUpperCase())}</th><th colspan="3" style="text-align:center">EXAMEN BLANC N°${u.a}<br>(NIVEAU ${esc(String(E(u.a).niveau).toUpperCase())})</th><th colspan="3" style="text-align:center">EXAMEN BLANC N°${u.b}<br>(NIVEAU ${esc(String(E(u.b).niveau).toUpperCase())})</th><th colspan="3" style="text-align:center">ÉCART</th></tr><tr>${fgt}${fgt}${fgt}</tr></thead>`;
+ const ttp=n=>`<p style="text-align:center;margin:0">${esc(n)}</p>`,ttlH=`<h2>COMPARAISON ENTRE LES EXAMENS BLANCS <span style="white-space:nowrap">N°${u.a} (NIVEAU ${esc(String(E(u.a).niveau).toUpperCase())}) ET N°${u.b} (NIVEAU ${esc(String(E(u.b).niveau).toUpperCase())})</span></h2>`,ttl=ttlH+ttp(L.length==1?UPS(L[0]):"TOTAL CEB");
+ const cardGD=(gg,pp,tt,sg)=>`<div class="card por">${hd()}${tt}<h3>RÉSULTATS GLOBAUX</h3><div class="w"><table>${head("")}<tbody>${gg}</tbody></table></div>
+<h3>TAUX DE RÉUSSITE PAR DISCIPLINE</h3><div class="w"><table class="fx">${head("Disciplines")}<tbody>${pp}</tbody></table></div>${sg||sig()}</div>`;
+ const cardEc=z=>`<div class="card por" data-rep="1">${hd()}${ttlH}<h3>TAUX DE RÉUSSITE PAR ÉCOLE – ZEP : ${esc(z.name)}</h3><div class="w"><table>${head("École",0,true)}<tbody>${z.list.map((x,k)=>cr(UPS(x),[x],"",k+1,true)).join("")}${cr("TOTAL ZEP",z.list,"tot",0,true)}</tbody></table></div>${sigZ({id:"z:"+(z.k||"~")})}</div>`;
+ const vsel=`<select aria-label="Affichage" onchange="S.ui.cv=this.value;S.ui.scope='';S.ui.zsc='';save();R()"><option value=""${cv===""?" selected":""}>TOTAL CEB</option><option value="zep"${cv==="zep"?" selected":""}>PAR ZEP</option><option value="ec"${cv==="ec"?" selected":""}>ÉCOLES</option></select>`;
+ const zall=gZ().filter(z=>z.list&&z.list.length),zsel=cv==="zep"&&zall.some(z=>(z.k||"~")===u.zsc)?u.zsc:"";
+ const zselH=cv==="zep"?`<label class="schl np"><span class="lt"><b>ZEP</b> (Sélectionnez une ZEP, ou toutes les ZEP.)</span><select aria-label="ZEP" onchange="S.ui.zsc=this.value;save();R()"><option value=""${zsel===""?" selected":""}>TOUTES LES ZEP</option>${zall.map(z=>`<option value="${esc(z.k||"~")}"${(z.k||"~")===zsel?" selected":""}>${esc(UPS(z.name))}</option>`).join("")}</select></label>`:"";
+ let body;
+ if(sc||cv==="")body=cardGD(g,p,ttl)+(sc?"":`<div class="card por">${hd()}${ttl}${ct("ZEP",gZ())}${ct("Statut",gS())}${sig()}</div>`);
+ else if(cv==="ec")body=`<div class="card por" data-rep="1">${hd()}${ttl}${ct("École",S.schools.map(s=>({name:UPS(s),list:[s]})),true)}${sig()}</div>`;
+ else body=gZ().filter(z=>z.list&&z.list.length).filter(z=>!zsel||(z.k||"~")===zsel).map(z=>{const a2=agg(u.a,z.list),b2=agg(u.b,z.list),r=gdf(a2,b2);return cardGD(r.g,r.p,ttlH+ttp("ZEP : "+z.name),sigZ({id:"z:"+(z.k||"~")}))+cardEc(z)}).join("");
+ const zmiss=cv==="zep"?zall.filter(z=>!zsel||(z.k||"~")===zsel).filter(z=>{const o=(S.zr&&S.zr["z:"+(z.k||"~")])||{};migNm(o,"nom","n","p");return ZR_REQ.some(x=>!String(o[x[0]]==null?"":o[x[0]]).trim())}).map(z=>z.name):[];
+ const zwarn=zmiss.length?`<p class="warn np" role="alert" style="margin:0 0 10px">Signataire R/ZEP à compléter pour : ${esc(zmiss.join(", "))}. Renseignez-le dans la page Résultats (choisissez la zone), puis revenez ici.</p>`:"";
+ return `<div class="ctl np">${exSel("a")}${exSel("b")}${vsel}${zselH}${cv==="ec"?`<label class="schl np"><span class="lt"><b>ÉCOLE</b> (Sélectionnez votre école ici. Pour la retrouver facilement, tapez ses premières lettres.)</span>${schoolBox("scope",u.scope||"","Total CEB (ou tapez une école)","lst-cp")}</label>`:""}${pdf}${xl}</div>
+${zwarn}${body}`}
 
 /* ===== Licence (même principe que LoGeNo : identifiant propre à l'appareil + code signé Ed25519 avec date d'expiration) ===== */
 const LIC_KEY="locoreb-lic-v1",LPUB="86abec07e30211fd8bee4cdc7a548600b6ec823b3e7575f0ad202a8fec6f86c5",B32A="ABCDEFGHIJKLMNOPQRSTUVWXYZ234567",WA_NUM="22678214250";
@@ -505,7 +726,7 @@ function mpEnc(s){var o=[];for(var i=0;i<s.length;i++){var c=s.charCodeAt(i),b;i
 function mpEsc(s){return mpEnc(s).map(function(b){if(b===92||b===40||b===41)return '\\'+String.fromCharCode(b);if(b<32||b>126){var o=b.toString(8);return '\\'+('000'+o).slice(-3)}return String.fromCharCode(b)}).join('')}
 function mpC(r,g,b){if(g===undefined){g=r;b=r}return [r/255,g/255,b/255]}
 function mpCol(c){return c.map(function(v){return v.toFixed(3)}).join(' ')}
-function MiniPDF(o){o=o||{};var land=o.orientation==='landscape';this.k=72/25.4;this.pw=(land?297:210)*this.k;this.ph=(land?210:297)*this.k;this.pages=[[]];this.font=1;this.fs=12;this.tc=[0,0,0];this.dc=[0,0,0];this.fc=[1,1,1];this.lw=0.2*this.k}
+function MiniPDF(o){o=o||{};var land=o.orientation==='landscape';this.k=72/25.4;this.pw=(land?297:210)*this.k;this.ph=(land?210:297)*this.k;this.pages=[[]];this.sz=[[this.pw,this.ph]];this.font=1;this.fs=12;this.tc=[0,0,0];this.dc=[0,0,0];this.fc=[1,1,1];this.lw=0.2*this.k}
 MiniPDF.prototype={
   setFont:function(n,s){this.font=s==='bold'?2:(s==='italic'?3:1);return this},
   setFontSize:function(s){this.fs=s;return this},
@@ -513,7 +734,7 @@ MiniPDF.prototype={
   setDrawColor:function(r,g,b){this.dc=mpC(r,g,b);return this},
   setFillColor:function(r,g,b){this.fc=mpC(r,g,b);return this},
   setLineWidth:function(w){this.lw=w*this.k;return this},
-  addPage:function(){this.pages.push([]);return this},
+  addPage:function(land){this.pages.push([]);if(land!==undefined){this.pw=(land?297:210)*this.k;this.ph=(land?210:297)*this.k}this.sz.push([this.pw,this.ph]);return this},
   getTextWidth:function(t){var W=this.font===2?MP_W2:MP_W1,e=mpEnc(String(t)),s=0;for(var i=0;i<e.length;i++)s+=(W[e[i]-32]||0);return s/1000*this.fs/this.k},
   text:function(t,x,y,o){t=String(t);var w=this.getTextWidth(t);if(o&&o.align==='center')x-=w/2;else if(o&&o.align==='right')x-=w;
     this.pages[this.pages.length-1].push('BT /F'+this.font+' '+this.fs.toFixed(2)+' Tf '+mpCol(this.tc)+' rg '+(x*this.k).toFixed(2)+' '+(this.ph-y*this.k).toFixed(2)+' Td ('+mpEsc(t)+') Tj ET');return this},
@@ -535,7 +756,7 @@ MiniPDF.prototype={
     objs[4]='<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>';
     for(i=0;i<n;i++){
       var c=this.pages[i].join('\n');
-      objs[5+2*i]='<< /Type /Page /Parent 2 0 R /MediaBox [0 0 '+this.pw.toFixed(2)+' '+this.ph.toFixed(2)+'] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 '+(5+2*n)+' 0 R >> >> /Contents '+(6+2*i)+' 0 R >>';
+      objs[5+2*i]='<< /Type /Page /Parent 2 0 R /MediaBox [0 0 '+this.sz[i][0].toFixed(2)+' '+this.sz[i][1].toFixed(2)+'] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 '+(5+2*n)+' 0 R >> >> /Contents '+(6+2*i)+' 0 R >>';
       objs[6+2*i]='<< /Length '+c.length+' >>\nstream\n'+c+'\nendstream';
     }
     objs[5+2*n]='<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique /Encoding /WinAnsiEncoding >>';
@@ -549,20 +770,24 @@ MiniPDF.prototype={
 };
 
 function fit(doc,t,w){t=String(t);if(doc.getTextWidth(t)<=w) return t;while(t.length>1&&doc.getTextWidth(t+'.')>w) t=t.slice(0,-1);return t+'.'}
+function balT(doc,t,w){var a=wrapT(doc,t,w),n=a.length;if(n<2)return a;var lo=0,hi=w;for(var i=0;i<30;i++){var m=(lo+hi)/2;if(wrapT(doc,t,m).length<=n)hi=m;else lo=m}return wrapT(doc,t,hi)}
 function wrapT(doc,t,w){var out=[],cur='';t.split(' ').forEach(function(wd){var n=cur?cur+' '+wd:wd;if(cur&&doc.getTextWidth(n)>w){out.push(cur);cur=wd}else cur=n});if(cur)out.push(cur);return out}
 
 /* ===== Export PDF : le document affiché est converti en vrai fichier PDF (A4 paysage) ===== */
 const pdfT=s=>String(s).replace(/\u00a0/g," ").replace(/[\u2192\u2794]/g,"->").replace(/\s+/g," ").trim();
 const safeName=s=>String(s).replace(/[\\\/:*?"<>|]/g," ").replace(/\s+/g," ").trim();
-const cellTxt=c=>{const i=c.querySelector("input");return pdfT(i?i.value:c.textContent)};
-const RED=[193,18,31],GREEN=[21,128,61],INK=[20,20,20],GRID=[110,110,110],HEADFILL=[226,235,228];
+const cellTxt=c=>{const i=c.querySelector("input");if(i)return pdfT(i.value);if(c.querySelector("br"))return c.innerHTML.split(/<br\s*\/?>/i).map(h=>{const d=document.createElement("div");d.innerHTML=h;return pdfT(d.textContent)}).join("\n");return pdfT(c.textContent)};
+const RED=[193,18,31],GREEN=[21,128,61],INK=[20,20,20],GRID=[110,110,110],HEADFILL=[255,255,255];
 
-function buildPdf(cards){
- const doc=new MiniPDF({orientation:"landscape"}),W=297,H=210,M=10,BOT=H-M-4,AV=W-2*M;
- let y=M,pg=1;
+function buildPdf(cards,cnt){
+ cnt=cnt||{};const cnt2={},isPor=c=>c.classList.contains("por");
+ const doc=new MiniPDF({orientation:cards.length&&isPor(cards[0])?"portrait":"landscape"});
+ let W=cards.length&&isPor(cards[0])?210:297,H=cards.length&&isPor(cards[0])?297:210;const M=10;let BOT=H-M-4,AV=W-2*M;
+ let y=M,pg=1,cur=0,part=1,perPart=cards.some(c=>c.dataset.rep);
+ const setO=land=>{W=land?297:210;H=land?210:297;BOT=H-M-4;AV=W-2*M};
  const dn=new Date(),STAMP=p2(dn.getDate())+"/"+p2(dn.getMonth()+1)+"/"+dn.getFullYear()+" à "+p2(dn.getHours())+":"+p2(dn.getMinutes())+":"+p2(dn.getSeconds());
- const foot=()=>{doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(110,110,110);doc.text("Généré par LoCoREB",M,H-6);doc.text("Page "+pg,W/2,H-6,{align:"center"});doc.text(STAMP,W-M,H-6,{align:"right"});doc.setTextColor(...INK)};
- const np=()=>{foot();doc.addPage();pg++;y=M};
+ const foot=()=>{doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(110,110,110);doc.text("Généré par LoCoREB",M,H-6);doc.text(perPart?"Page "+(pg-part+1)+(cnt[cur]?"/"+cnt[cur]:""):"Page "+pg,W/2,H-6,{align:"center"});doc.text(STAMP,W-M,H-6,{align:"right"});doc.setTextColor(...INK)};
+ const np=land=>{foot();if(land===undefined)land=W>H;setO(land);doc.addPage(land);pg++;y=M};
  const need=h=>{if(y+h>BOT)np()};
  doc.setTextColor(...INK);
  const para=(t,fs,bold,align,col,gap)=>{
@@ -579,28 +804,36 @@ function buildPdf(cards){
    [...tr.cells].forEach(c=>{
     while(grid[ri][ci])ci++;
     const cs=c.colSpan||1,rs=c.rowSpan||1,inHead=tr.parentNode.tagName==="THEAD",tot=tr.classList.contains("tot"),th=c.tagName==="TH";
-    const o={r:ri,c:ci,cs,rs,txt:cellTxt(c),bold:th||tot||c.classList.contains("b"),red:c.classList.contains("fr")||c.classList.contains("en"),green:c.classList.contains("ep"),circ:!!c.querySelector(".cer"),fill:inHead||th||tot,left:th&&!inHead};
+    const o={ve:c.classList.contains("ve"),r:ri,c:ci,cs,rs,txt:cellTxt(c),bold:th||tot||c.classList.contains("b"),red:c.classList.contains("fr")||c.classList.contains("en"),green:c.classList.contains("ep"),circ:!!c.querySelector(".cer"),fill:inHead||th||tot,left:th&&!inHead};
     for(let a=0;a<rs;a++){grid[ri+a]=grid[ri+a]||[];for(let b=0;b<cs;b++)grid[ri+a][ci+b]=o}
     cells.push(o);ci+=cs;ncol=Math.max(ncol,ci)})});
   if(!ncol)return;
-  const mw=(o,fs)=>{doc.setFont("helvetica",o.bold?"bold":"normal");doc.setFontSize(fs);return doc.getTextWidth(o.txt)};
-  const longest=(o,fs)=>{doc.setFont("helvetica",o.bold?"bold":"normal");doc.setFontSize(fs);return Math.max(0,...o.txt.split(" ").map(w=>doc.getTextWidth(w)))};
+  const mw=(o,fs)=>{doc.setFont("helvetica",o.bold?"bold":"normal");doc.setFontSize(fs);return Math.max(...o.txt.split("\n").map(t=>doc.getTextWidth(t)))};
+  const longest=(o,fs)=>{doc.setFont("helvetica",o.bold?"bold":"normal");doc.setFontSize(fs);return Math.max(0,...o.txt.split(/[ \n]/).map(w=>doc.getTextWidth(w)))};
+  const fgc=[],fgk={};{const hr=grid[headRows-1]||[],gr=headRows>1?grid[headRows-2]||[]:[];for(let c=0;c<ncol;c++){const h=hr[c];if(h&&h.cs===1&&/^[FGT]$/.test(h.txt.trim())){fgc.push(c);fgk[c]=!!(gr[c]&&/compos|moyenne|effectif/i.test(gr[c].txt))}}}
   const measure=fs=>{
-   const nat=Array(ncol).fill(6),min=Array(ncol).fill(6);
+   const nat=Array(ncol).fill(6),min=Array(ncol).fill(6),f12=tbl.classList.contains("f12");
+   /* Colonnes F / G / T : largeur fixe selon la nature de la colonne (effectifs : « 000 », taux : « 100,00 »), quelles que soient les valeurs saisies → mise en page identique d'un tableau à l'autre */
+   const eq=()=>{if(fgc.length<2)return;doc.setFont("helvetica","bold");doc.setFontSize(fs);
+    const wc=doc.getTextWidth("000")+3.5,wt=doc.getTextWidth("100,00")+3.5,cn=fgc.filter(c=>fgk[c]),ct=fgc.filter(c=>!fgk[c]);
+    [[cn,wc],[ct,wt]].forEach(([cl,ref])=>{if(cl.length){const w=Math.max(ref,...cl.map(c=>nat[c]));cl.forEach(c=>{nat[c]=w;min[c]=w})}})};
    cells.filter(o=>o.cs===1).forEach(o=>{nat[o.c]=Math.max(nat[o.c],mw(o,fs)+3.5);min[o.c]=Math.max(min[o.c],longest(o,fs)+3.5)});
+   eq();
    cells.filter(o=>o.cs>1).forEach(o=>{
     const sum=a=>{let s=0;for(let k=0;k<o.cs;k++)s+=a[o.c+k];return s},add=(a,need)=>{const d=need-sum(a);if(d>0)for(let k=0;k<o.cs;k++)a[o.c+k]+=d/o.cs};
-    add(nat,mw(o,fs)+3.5);add(min,longest(o,fs)+3.5)});
+    add(nat,(f12?longest(o,fs):mw(o,fs))+3.5);add(min,longest(o,fs)+3.5)});
+   eq();
    return {nat,min}};
-  let fs=9.5,L=measure(fs);
+  let fs=tbl.classList.contains("f12")?12:9.5,L=measure(fs);
   while(L.nat.reduce((a,b)=>a+b,0)>AV&&fs>6.5){fs-=0.5;L=measure(fs)}
   const sNat=L.nat.reduce((a,b)=>a+b,0),sMin=L.min.reduce((a,b)=>a+b,0);
   let cw;
   if(sNat>AV){cw=sMin<AV?L.nat.map((n,i)=>L.min[i]+(n-L.min[i])*(AV-sMin)/(sNat-sMin)):L.nat.map(n=>n*AV/sNat)}
   else{const target=ncol<=4?Math.min(AV,Math.max(sNat,150)):AV;cw=L.nat.map(n=>n*target/sNat)}
+  if(tbl.classList.contains("fx")&&ncol>2){const m=Math.max(...cw.slice(1)),k=Math.min(1,(AV-cw[0])/(m*(ncol-1)));cw=cw.map((w,i)=>i?m*k:w)}
   const tw=cw.reduce((a,b)=>a+b,0),x0=M+(AV-tw)/2,cx=[];let ax=x0;cw.forEach(w=>{cx.push(ax);ax+=w});
   const lh=fs*0.3528*1.25,pad=1.8;
-  const lines=o=>{doc.setFont("helvetica",o.bold?"bold":"normal");doc.setFontSize(fs);let w=0;for(let k=0;k<o.cs;k++)w+=cw[o.c+k];return wrapT(doc,o.txt,w-2.5)};
+  const lines=o=>{doc.setFont("helvetica",o.bold?"bold":"normal");doc.setFontSize(fs);let w=0;for(let k=0;k<o.cs;k++)w+=cw[o.c+k];return o.txt.split("\n").flatMap(t=>wrapT(doc,t,w-2.5))};
   cells.forEach(o=>o.ls=lines(o));
   const rh=Array(rows.length).fill(Math.max(5.6,lh+pad));
   cells.filter(o=>o.rs===1).forEach(o=>{rh[o.r]=Math.max(rh[o.r],Math.max(1,o.ls.length)*lh+pad)});
@@ -609,6 +842,7 @@ function buildPdf(cards){
    cells.filter(o=>o.r===ri).forEach(o=>{
     let w=0,h=0;for(let k=0;k<o.cs;k++)w+=cw[o.c+k];for(let k=0;k<o.rs;k++)h+=rh[ri+k];
     const x=cx[o.c];
+    if(o.ve)return;
     doc.setLineWidth(0.2);doc.setDrawColor(...GRID);doc.setFillColor(...(o.fill?HEADFILL:[255,255,255]));doc.rect(x,yy,w,h,"FD");
     doc.setFont("helvetica",o.bold?"bold":"normal");doc.setFontSize(fs);doc.setTextColor(...(o.green?GREEN:o.red?RED:INK));
     const n=o.ls.length,top=yy+(h-n*lh)/2;
@@ -619,9 +853,9 @@ function buildPdf(cards){
   const drawHead=()=>{let yy=y;for(let r=0;r<headRows;r++){drawRow(r,yy);yy+=rh[r]}y=yy};
   need(headH+(rh[headRows]||0)+2);
   drawHead();
-  const lim=rep?BOT-46:BOT;
   for(let r=headRows;r<rows.length;r++){
-   if(y+rh[r]>lim){if(rep){sign(rep.sig);np();rep.top.forEach(proc)}else np();drawHead()}
+   const lim=rep&&r===rows.length-1?BOT-46:BOT;
+   if(y+rh[r]>lim){np();drawHead()}
    drawRow(r,y);y+=rh[r]}
   y+=3}
 
@@ -633,31 +867,35 @@ function buildPdf(cards){
    const after=ix<0?[]:ns.slice(ix+1);
    const nm=after.find(n=>n.nodeName==="B"),jb=after.find(n=>n.nodeName==="EM");
    return {title,name:nm?pdfT(nm.textContent):"",job:jb?pdfT(jb.textContent):""}});
-  need(44);y+=5;
-  if(dEl){doc.setFont("helvetica","normal");doc.setFontSize(10.5);doc.setTextColor(...INK);doc.text(pdfT(dEl.textContent),W-M-55,y,{align:"center"})}
+  const ext=true;
+  doc.setFont("helvetica","italic");doc.setFontSize(8.5);
+  const cxs=[M+AV/4,W-M-AV/4],sp=cxs[1]-cxs[0];doc.setFont("helvetica","bold");doc.setFontSize(10.5);const nat=blocks.map(b=>b.name?doc.getTextWidth(b.name):0),fit=blocks.every((b,i)=>cxs[i]-nat[i]/2>=6&&cxs[i]+nat[i]/2<=W-6)&&(blocks.length<2||cxs[0]+nat[0]/2+6<=cxs[1]-nat[1]/2),nl=blocks.map(b=>b.name?(fit?[b.name]:balT(doc,b.name,sp-6)):[]);doc.setFont("helvetica","italic");doc.setFontSize(8.5);const jl=blocks.map(b=>b.job?balT(doc,b.job,sp-6):[]),xl=Math.max(0,...blocks.map((b,i)=>Math.max(0,nl[i].length-1)*5+Math.max(0,jl[i].length-1)*3.7));
+  need(44+xl);y+=5;
+  if(dEl){doc.setFont("helvetica","normal");doc.setFontSize(10.5);doc.setTextColor(...INK);doc.text(pdfT(dEl.textContent),ext?W-M-AV/4:W-M-55,y,{align:"center"})}
   y+=8;
   blocks.forEach((b,i)=>{
-   const cx=i===0?M+55:W-M-55;
-   doc.setFont("helvetica","bold");doc.setFontSize(10.5);doc.text(b.title,cx,y,{align:"center"});
+   const cx=ext?(i===0?M+AV/4:W-M-AV/4):(i===0?M+55:W-M-55),al="center";
+   doc.setFont("helvetica","bold");doc.setFontSize(10.5);doc.text(b.title,cx,y,{align:al});
    let yy=y+17;
-   if(b.name){doc.setFont("helvetica","bold");doc.setFontSize(10.5);doc.text(b.name,cx,yy,{align:"center"});
-    const tw=doc.getTextWidth(b.name);doc.setDrawColor(...INK);doc.setLineWidth(0.25);doc.line(cx-tw/2,yy+0.9,cx+tw/2,yy+0.9);yy+=5}
-   if(b.job){doc.setFont("helvetica","italic");doc.setFontSize(8.5);doc.text(b.job,cx,yy,{align:"center"})}
+   if(b.name){doc.setFont("helvetica","bold");doc.setFontSize(10.5);nl[i].forEach(ln=>{doc.text(ln,cx,yy,{align:al});
+    const tw=doc.getTextWidth(ln),x1=cx-tw/2;doc.setDrawColor(...INK);doc.setLineWidth(0.25);doc.line(x1,yy+0.9,x1+tw,yy+0.9);yy+=5})}
+   if(b.job){doc.setFont("helvetica","italic");doc.setFontSize(8.5);jl[i].forEach((ln,k)=>doc.text(ln,cx,yy+k*3.7,{align:al}))}
    doc.setFont("helvetica","normal");doc.setFontSize(10.5)});
-  y+=17+14}
+  y+=17+14+xl}
 
  const proc=el=>{
   if(el.classList.contains("np")||el.id==="vmsg")return;
   const tag=el.tagName,ctr=el.style.textAlign==="center";
   if(el.classList.contains("hd")){
    const y0=y,lh0=10*0.3528*1.35,spl=n=>n.innerHTML.split(/<br\s*\/?>/i).map(h=>{const t=document.createElement("div");t.innerHTML=h;return pdfT(t.textContent)});
-   spl(el.querySelector(".hl")).forEach((t,i)=>para(t,10,i===0,"left",INK,0.3));
+   spl(el.querySelector(".hl")).forEach((t,i)=>para(t,10,false,"left",INK,0.3));
    const R=spl(el.querySelector(".hr"));let wm=0;
-   R.forEach((t,i)=>{doc.setFont("helvetica",i===0?"bold":"normal");doc.setFontSize(10);wm=Math.max(wm,doc.getTextWidth(t))});
-   R.forEach((t,i)=>{doc.setFont("helvetica",i===0?"bold":"normal");doc.setFontSize(10);doc.setTextColor(...INK);doc.text(t,W-M-wm/2,y0+lh0*(i+1)-lh0*0.25+0.3*i,{align:"center"})});
+   R.forEach((t,i)=>{doc.setFont("helvetica","normal");doc.setFontSize(10);wm=Math.max(wm,doc.getTextWidth(t))});
+   R.forEach((t,i)=>{doc.setFont("helvetica","normal");doc.setFontSize(10);doc.setTextColor(...INK);doc.text(t,W-M-wm/2,y0+lh0*(i+1)-lh0*0.25+0.3*i,{align:"center"})});
    y+=3}
-  else if(tag==="H2"){y+=1;para(el.textContent,13,true,"center",INK,2.5)}
+  else if(tag==="H2"){y+=1;const sp=el.querySelector("span"),nw=sp&&sp.style.whiteSpace==="nowrap";if(nw){const a=pdfT(el.textContent.replace(sp.textContent,"")),b=pdfT(sp.textContent);doc.setFont("helvetica","bold");doc.setFontSize(13);if(doc.getTextWidth(a+" "+b)<=AV)para(a+" "+b,13,true,"center",INK,2.5);else{para(a,13,true,"center",INK,0);para(b,13,true,"center",INK,2.5)}}else para(el.textContent,13,true,"center",INK,2.5)}
   else if(tag==="H3"){need(26);y+=1;para(el.textContent,11,true,ctr?"center":"left",INK,1.5)}
+  else if(tag==="P"&&el.classList.contains("stz")){const pt=[...el.children].map(c=>pdfT(c.textContent));doc.setFont("helvetica","bold");doc.setFontSize(10);doc.setTextColor(...INK);const lh=10*0.3528*1.35,gp=16,ws=pt.map(t=>doc.getTextWidth(t)),tt=ws.reduce((m,n)=>m+n,0)+gp*(pt.length-1);need(lh);y+=lh;let xx=W/2-tt/2;pt.forEach((t,k)=>{doc.text(t,xx,y-lh*0.25);xx+=ws[k]+gp});y+=1}
   else if(tag==="P"){el.classList.contains("mu")?para(el.textContent,8.5,false,"left",[70,70,70],1):para(el.textContent,10,false,ctr?"center":"left",INK,1)}
   else if(el.classList.contains("ctl")){
    const t=[...el.querySelectorAll("label")].map(l=>{const c=l.querySelector("select,input"),v=c?(c.tagName==="SELECT"?(c.options[c.selectedIndex]||{}).text||"":c.value):"";return pdfT(l.firstChild.textContent)+" : "+(v||"........")}).join("          ");
@@ -665,37 +903,247 @@ function buildPdf(cards){
   else if(el.classList.contains("w")){const t=el.querySelector("table");if(t)table(t)}
   else if(el.classList.contains("sig"))sign(el)};
  cards.forEach((card,ci)=>{
-  if(ci)np();
+  if(ci){cnt2[cur]=pg-part+1;np(!isPor(card))}
+  cur=ci;part=pg;
   const kids=[...card.children],fw=kids.findIndex(k=>k.classList.contains("w"));
   const rep=card.dataset.rep&&fw>=0?{sig:card.querySelector(".sig"),top:kids.slice(0,fw)}:null;
   kids.forEach(el=>{if(rep&&el.classList.contains("w"))table(el.querySelector("table"),rep);else proc(el)})});
+ cnt2[cur]=pg-part+1;
  foot();
+ doc._cnt=cnt2;
  return doc}
+
+/* ===== Export Excel (.xlsx) : classeur construit directement dans l'application, une feuille par document ===== */
+const XL_CRC=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
+function xlCrc(b){let c=0xFFFFFFFF;for(let i=0;i<b.length;i++)c=XL_CRC[(c^b[i])&255]^(c>>>8);return(c^0xFFFFFFFF)>>>0}
+function xlZip(files){
+ const enc=new TextEncoder(),parts=[],cen=[],u16=v=>[v&255,(v>>8)&255],u32=v=>[v&255,(v>>8)&255,(v>>16)&255,(v>>24)&255];let off=0;
+ files.forEach(f=>{const nm=enc.encode(f.name),d=enc.encode(f.data),crc=xlCrc(d);
+  const lh=Uint8Array.from([0x50,0x4b,3,4,...u16(20),...u16(0x0800),...u16(0),...u16(0),...u16(0x21),...u32(crc),...u32(d.length),...u32(d.length),...u16(nm.length),...u16(0)]);
+  parts.push(lh,nm,d);
+  cen.push(Uint8Array.from([0x50,0x4b,1,2,...u16(20),...u16(20),...u16(0x0800),...u16(0),...u16(0),...u16(0x21),...u32(crc),...u32(d.length),...u32(d.length),...u16(nm.length),...u16(0),...u16(0),...u16(0),...u16(0),...u32(0),...u32(off)]),nm);
+  off+=lh.length+nm.length+d.length});
+ const cs=cen.reduce((a,b)=>a+b.length,0),end=Uint8Array.from([0x50,0x4b,5,6,0,0,0,0,...u16(files.length),...u16(files.length),...u32(cs),...u32(off),0,0]);
+ return new Blob([...parts,...cen,end],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"})}
+const xlEsc=t=>String(t==null?"":t).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const xlCol=i=>{let s="";for(i++;i>0;i=Math.floor((i-1)/26))s=String.fromCharCode(65+(i-1)%26)+s;return s};
+/* Styles : chaque combinaison (police, remplissage, bordure, alignement, format) reçoit un numéro */
+function xlStyles(){
+ const fonts=[],fills=['<fill><patternFill patternType="none"/></fill>','<fill><patternFill patternType="gray125"/></fill>'],borders=['<border><left/><right/><top/><bottom/><diagonal/></border>'],xfs=[],map=new Map();
+ const idx=(a,x)=>{let i=a.indexOf(x);if(i<0){a.push(x);i=a.length-1}return i};
+ const bd='<border>'+["left","right","top","bottom"].map(s=>`<${s} style="thin"><color rgb="FF6E6E6E"/></${s}>`).join("")+'<diagonal/></border>';
+ const get=o=>{o=o||{};const k=JSON.stringify(o);if(map.has(k))return map.get(k);
+  const f=`<font>${o.b?"<b/>":""}${o.i?"<i/>":""}${o.u?"<u/>":""}<sz val="${o.sz||11}"/><color rgb="FF${o.col||"141414"}"/><name val="Calibri"/><family val="2"/></font>`,
+   fl=o.fill?`<fill><patternFill patternType="solid"><fgColor rgb="FF${o.fill}"/><bgColor indexed="64"/></patternFill></fill>`:null,
+   fi=idx(fonts,f),fli=fl?idx(fills,fl):0,bi=o.bd?idx(borders,bd):0;
+  xfs.push(`<xf numFmtId="${o.nf||0}" fontId="${fi}" fillId="${fli}" borderId="${bi}" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1" applyProtection="1"><alignment horizontal="${o.al||"general"}" vertical="${o.va||"center"}"${o.wrap?' wrapText="1"':""}/><protection locked="${o.lk?1:0}"/></xf>`);
+  map.set(k,xfs.length-1);return xfs.length-1};
+ get({});
+ const xml=()=>`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="2"><numFmt numFmtId="164" formatCode="+0.00;-0.00;0.00"/><numFmt numFmtId="165" formatCode="+0;-0;0"/></numFmts><fonts count="${fonts.length}">${fonts.join("")}</fonts><fills count="${fills.length}">${fills.join("")}</fills><borders count="${borders.length}">${borders.join("")}</borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="${xfs.length}">${xfs.join("")}</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles><dxfs count="2"><dxf><font><color rgb="FF15803D"/></font></dxf><dxf><font><color rgb="FFC1121F"/></font></dxf></dxfs></styleSheet>`;
+ return {get,xml}}
+function xlGrid(tbl){
+ const rows=[...tbl.rows],grid=[],cells=[];let ncol=0,headRows=0;
+ rows.forEach((tr,ri)=>{
+  if(tr.parentNode.tagName==="THEAD")headRows=ri+1;
+  grid[ri]=grid[ri]||[];let ci=0;
+  [...tr.cells].forEach(c=>{
+   while(grid[ri][ci])ci++;
+   const cs=c.colSpan||1,rs=c.rowSpan||1,inHead=tr.parentNode.tagName==="THEAD",tot=tr.classList.contains("tot"),th=c.tagName==="TH";
+   const o={ve:c.classList.contains("ve"),tot,r:ri,c:ci,cs,rs,txt:cellTxt(c),bold:th||tot||c.classList.contains("b"),red:c.classList.contains("fr")||c.classList.contains("en"),green:c.classList.contains("ep"),fill:inHead||th||tot,left:th&&!inHead,head:inHead};
+   for(let a=0;a<rs;a++){grid[ri+a]=grid[ri+a]||[];for(let b=0;b<cs;b++)grid[ri+a][ci+b]=o}
+   cells.push(o);ci+=cs;ncol=Math.max(ncol,ci)})});
+ return {cells,ncol,nrows:rows.length,headRows}}
+function xlVal(t){const s=String(t).trim();
+ if(/^-?(0|[1-9]\d{0,14})$/.test(s))return {n:+s};
+ if(/^-?(0|[1-9]\d{0,9}),\d{1,6}$/.test(s))return {n:+s.replace(",","."),nf:2};
+ return {s:String(t)}}
+/* Formules Excel : T = F+G ; totaux = SOMME des lignes ; taux = Ont eu la moyenne / Ont composé ; écart = B − A ; rang */
+function xlCache(t){const s=String(t).trim();return /^[+-]?\d+(,\d+)?$/.test(s)?{n:+s.replace(",",".")}:{s:s}}
+function xlFormulas(g,base){
+ const out={},cells=g.cells.filter(o=>!o.ve),H=g.headRows,N=g.nrows;
+ if(!H||N<=H)return out;
+ const ref=(r,c)=>xlCol(c)+(base+r+1),abs=(r,c)=>"$"+xlCol(c)+"$"+(base+r+1),hdr=cells.filter(o=>o.r<H),role={},col={};
+ hdr.filter(o=>o.r===H-1&&o.cs===1&&/^[FGT]$/.test(o.txt.trim())).forEach(o=>{role[o.c]={j:o.txt.trim().toLowerCase(),grp:""}});
+ if(H>1){let nb=0;
+  hdr.filter(o=>o.r===0&&o.cs>1).sort((a,b)=>a.c-b.c).forEach(o=>{const t=o.txt.trim(),gp=/^Effectif/i.test(t)?"ef":/^Ont compos/i.test(t)?"co":/moyenne/i.test(t)?"mo":/^Taux/i.test(t)?"tx":/^Examen blanc/i.test(t)?(nb++?"B":"A"):/^[ÉE]cart/i.test(t)?"ec":"";for(let k=0;k<o.cs;k++)if(role[o.c+k])role[o.c+k].grp=gp})}
+ Object.keys(role).forEach(c=>{const q=role[c];(col[q.grp]=col[q.grp]||{})[q.j]=+c});
+ const rows=[];for(let r=H;r<N;r++){const rc=cells.filter(o=>o.r===r);if(rc.length)rows.push({r,tot:rc.some(o=>o.tot),lab:((rc.find(o=>o.left)||{}).txt||"").trim()})}
+ const set=(r,c,f,nf,x)=>{out[r+","+c]=Object.assign({f,nf},x||{})},
+  tcnt=(gp,r)=>{const q=col[gp];if(!q||q.f==null||q.g==null||q.t==null)return;const a=ref(r,q.f),b=ref(r,q.g);set(r,q.t,`IF(COUNT(${a},${b})=0,"",SUM(${a},${b}))`,0)},
+  taux=(r,c,co,mo)=>{if(c==null)return;set(r,c,`IF(N(${co})=0,"",N(${mo})/${co}*100)`,2)},
+  ix=re=>(rows.find(w=>re.test(w.lab))||{}).r,
+  rEf=ix(/^Effectif/i),rCo=ix(/^Ont compos/i),rMo=ix(/moyenne/i),rTx=ix(/^Taux/i),
+  glob=rEf!=null&&rCo!=null&&rMo!=null&&rTx!=null,isC=w=>glob&&/^(Effectif|Ont compos|Ont eu)/i.test(w.lab);
+ /* tableau « Résultats globaux » (lignes Effectif / Ont composé / Ont eu la moyenne / Taux) */
+ if(col[""]&&H===1){
+  const q=col[""];
+  if(glob){[rEf,rCo,rMo].forEach(r=>tcnt("",r));["f","g","t"].forEach(j=>taux(rTx,q[j],ref(rCo,q[j]),ref(rMo,q[j])))}
+  return out}
+ /* tableaux comparatifs : colonnes A, B et Écart */
+ if(col.A&&col.B&&col.ec){
+  if(glob)["A","B"].forEach(gp=>{[rEf,rCo,rMo].forEach(r=>tcnt(gp,r));["f","g","t"].forEach(j=>taux(rTx,col[gp][j],ref(rCo,col[gp][j]),ref(rMo,col[gp][j])))});
+  rows.forEach(w=>["f","g","t"].forEach(j=>{
+   const a=col.A[j],b=col.B[j],e=col.ec[j];if(a==null||b==null||e==null)return;
+   if(isC(w))set(w.r,e,`IF(COUNT(${ref(w.r,col.A.f)},${ref(w.r,col.A.g)},${ref(w.r,col.B.f)},${ref(w.r,col.B.g)})=0,"",N(${ref(w.r,b)})-N(${ref(w.r,a)}))`,165,{ec:1,j});
+   else set(w.r,e,`IF(AND(ISNUMBER(${ref(w.r,a)}),ISNUMBER(${ref(w.r,b)})),${ref(w.r,b)}-${ref(w.r,a)},"")`,164,{ec:1,j})}));
+  return out}
+ /* tableaux par discipline / zone / statut / école / ordre de mérite */
+ const nb=hdr.find(o=>/^Nombre/i.test(o.txt.trim())),nbc=nb?nb.c:null,hasTx=col.tx&&col.co&&col.mo;
+ rows.forEach(w=>{
+  if(w.tot&&w.r-1>=H){
+   ["ef","co","mo"].forEach(gp=>{const q=col[gp];if(!q||q.f==null||q.g==null)return;
+    const rf=ref(H,q.f)+":"+ref(w.r-1,q.f),rg=ref(H,q.g)+":"+ref(w.r-1,q.g);
+    set(w.r,q.f,`IF(COUNT(${rf},${rg})=0,"",SUM(${rf}))`,0);set(w.r,q.g,`IF(COUNT(${rf},${rg})=0,"",SUM(${rg}))`,0)});
+   if(nbc!=null)set(w.r,nbc,`SUM(${ref(H,nbc)}:${ref(w.r-1,nbc)})`,0)}
+  ["ef","co","mo"].forEach(gp=>tcnt(gp,w.r));
+  if(hasTx)["f","g","t"].forEach(j=>taux(w.r,col.tx[j],ref(w.r,col.co[j]),ref(w.r,col.mo[j])))});
+ /* ordre de mérite : colonne Rang */
+ const rk=hdr.find(o=>/^Rang/i.test(o.txt.trim()));
+ if(rk&&col.tx&&col.tx.t!=null){const ds=rows.filter(w=>!w.tot).map(w=>w.r);
+  if(ds.length){const rng=abs(ds[0],col.tx.t)+":"+abs(ds[ds.length-1],col.tx.t);
+   ds.forEach(r=>{const x=ref(r,col.tx.t);set(r,rk.c,`IF(ISNUMBER(${x}),IF(RANK(${x},${rng})=1,"1er",RANK(${x},${rng})&"e"),"—")`,0)})}}
+ return out}
+function buildXlsx(cards){
+ const ST=xlStyles(),sheets=[],used=new Set(),isPor=c=>c.classList.contains("por"),dn=new Date(),
+  STAMP=p2(dn.getDate())+"/"+p2(dn.getMonth()+1)+"/"+dn.getFullYear()+" à "+p2(dn.getHours())+":"+p2(dn.getMinutes());
+ cards.forEach((card,ci)=>{
+  const tabs=[...card.querySelectorAll(".w table")].map(xlGrid),NC=Math.max(3,...tabs.map(t=>t.ncol)),cw=Array(NC).fill(9),R=[],merges=[],ht={},cfRefs=[];let r=0;
+  cw[0]=14;
+  tabs.forEach(t=>{
+   t.cells.filter(o=>!o.ve&&o.cs===1).forEach(o=>{const L=Math.min(45,String(o.txt).length*(o.bold?1.25:1.1)+3);cw[o.c]=Math.max(cw[o.c],o.c===0?Math.max(L,14):Math.max(L,9))});
+   t.cells.filter(o=>!o.ve&&o.cs>1).forEach(o=>{const need=String(o.txt).length*1.2+3;let s=0;for(let k=0;k<o.cs;k++)s+=cw[o.c+k];if(need>s)for(let k=0;k<o.cs;k++)cw[o.c+k]+=(need-s)/o.cs})});
+  const TW=cw.reduce((a,b)=>a+b,0);
+  const put=(rr,c,o)=>{(R[rr]=R[rr]||{})[c]=o};
+  const span=(rr,c0,c1,v,sty,h)=>{const s=ST.get(sty);put(rr,c0,{v,s});for(let c=c0+1;c<=c1;c++)put(rr,c,{s});if(c1>c0)merges.push(xlCol(c0)+(rr+1)+":"+xlCol(c1)+(rr+1));if(h)ht[rr]=Math.max(ht[rr]||0,h)};
+  const lines=(t,w)=>Math.max(1,Math.ceil(String(t).length*1.15/Math.max(8,w)));
+  const textRow=(t,sty,w)=>{const wd=w||TW,n=lines(t,wd);span(r,0,NC-1,t,Object.assign({wrap:true,va:"center"},sty),n>1?n*(sty.sz?sty.sz*1.4:15):0);r++};
+  const sig=el=>{
+   const dEl=el.querySelector(".sgd"),tds=[...el.querySelectorAll("tr:last-child > td")];
+   const bl=tds.map(d=>{const ns=[...d.childNodes],ix=ns.findIndex(n=>n.nodeName==="I"),after=ix<0?[]:ns.slice(ix+1),nm=after.find(n=>n.nodeName==="B"),jb=after.find(n=>n.nodeName==="EM");
+    return {title:pdfT(ns.slice(0,ix<0?ns.length:ix).map(n=>n.textContent).join(" ")),name:nm?pdfT(nm.textContent):"",job:jb?pdfT(jb.textContent):""}});
+   const h=Math.max(1,Math.floor(NC/2)),rng=i=>i===0?[0,h-1]:[h,NC-1],wd=i=>{const [a,b]=rng(i);let s=0;for(let k=a;k<=b;k++)s+=cw[k];return s};
+   r++;
+   if(dEl)span(r,h,NC-1,pdfT(dEl.textContent),{al:"center"});
+   r++;
+   bl.slice(0,2).forEach((b,i)=>{const [a,z]=rng(i);span(r,a,z,b.title,{b:true,al:"center"})});r++;
+   ht[r]=30;ht[r+1]=30;r+=2;
+   bl.slice(0,2).forEach((b,i)=>{const [a,z]=rng(i),n=lines(b.name,wd(i));span(r,a,z,b.name,{b:true,u:true,al:"center",wrap:true},n*16)});r++;
+   bl.slice(0,2).forEach((b,i)=>{const [a,z]=rng(i),n=lines(b.job,wd(i)*1.1);span(r,a,z,b.job,{i:true,sz:9,al:"center",wrap:true,va:"top"},n*13)});r++};
+  const proc=el=>{
+   if(el.classList.contains("np")||el.id==="vmsg")return;
+   const tag=el.tagName,ctr=el.style.textAlign==="center";
+   if(el.classList.contains("hd")){
+    const spl=n=>n.innerHTML.split(/<br\s*\/?>/i).map(h=>{const t=document.createElement("div");t.innerHTML=h;return pdfT(t.textContent)}),
+     L=spl(el.querySelector(".hl")),Rr=spl(el.querySelector(".hr")),n=Math.max(L.length,Rr.length);
+    for(let i=0;i<n;i++){if(L[i])put(r,0,{v:L[i],s:ST.get({})});if(Rr[i])put(r,NC-1,{v:Rr[i],s:ST.get({al:"right"})});r++}
+    r++}
+   else if(tag==="H2"){textRow(el.textContent.trim(),{b:true,sz:14,al:"center"});r++}
+   else if(tag==="H3"){textRow(el.textContent.trim(),{b:true,sz:12,al:ctr?"center":"left"})}
+   else if(tag==="P"&&el.classList.contains("stz")){textRow([...el.children].map(c=>pdfT(c.textContent)).join("          "),{b:true,al:"center"})}
+   else if(tag==="P"){textRow(el.textContent.trim(),el.classList.contains("mu")?{sz:9,col:"464646",al:ctr?"center":"left"}:{al:ctr?"center":"left"})}
+   else if(el.classList.contains("ctl")){
+    const t=[...el.querySelectorAll("label")].map(l=>{const c=l.querySelector("select,input"),v=c?(c.tagName==="SELECT"?(c.options[c.selectedIndex]||{}).text||"":c.value):"";return pdfT(l.firstChild.textContent)+" : "+(v||"........")}).join("          ");
+    if(t)textRow(t,{al:"center"})}
+   else if(el.classList.contains("w")){
+    const tb=el.querySelector("table");if(!tb)return;const g=xlGrid(tb),f=g.cells,fm=xlFormulas(g,r);
+    const hr=(f.filter(o=>o.r===g.headRows-1&&o.cs===1&&/^[FGT]$/.test(o.txt.trim()))).length;
+    f.forEach(o=>{if(o.ve)return;
+     const FM=fm[o.r+","+o.c],
+      v=o.left||o.head||o.fill&&o.bold&&!/\d/.test(o.txt)?{s:o.txt}:xlVal(o.txt),
+      sty={b:o.bold,col:FM&&FM.ec?(FM.j==="f"?"C1121F":"141414"):o.green?"15803D":o.red?"C1121F":"141414",fill:o.fill?"E7ECE8":null,bd:true,al:o.left?"left":"center",wrap:true,nf:FM?FM.nf:(v.nf||0),lk:!!FM};
+     const s=ST.get(sty),r0=r+o.r;
+     if(FM){const cv=xlCache(o.txt);put(r0,o.c,{f:FM.f,v:cv.n!==undefined?cv.n:cv.s,num:cv.n!==undefined,s});if(FM.ec)cfRefs.push(xlCol(o.c)+(r0+1))}
+     else put(r0,o.c,{v:v.n!==undefined?v.n:v.s,num:v.n!==undefined,s});
+     for(let a=0;a<o.rs;a++)for(let b=0;b<o.cs;b++)if(a||b)put(r0+a,o.c+b,{s});
+     if(o.cs>1||o.rs>1)merges.push(xlCol(o.c)+(r0+1)+":"+xlCol(o.c+o.cs-1)+(r0+o.rs))});
+    r+=g.nrows+1}
+   else if(el.classList.contains("sig"))sig(el)};
+  [...card.children].forEach(proc);
+  r++;span(r,0,NC-1,"Généré par LoCoREB – "+STAMP,{i:true,sz:8,col:"6E6E6E",al:"left"});
+  /* nom de feuille : titre de la zone / de l'école, sans caractères interdits, unique, 31 caractères au plus */
+  const h3=[...card.querySelectorAll("h3")].map(h=>h.textContent.trim()),h2=[...card.querySelectorAll("h2")].map(h=>h.textContent.trim());
+  const pz=[...card.querySelectorAll("p")].map(t=>t.textContent.trim()).find(t=>/^ZEP : /.test(t));
+  let nm=h3.find(t=>/ZONE|STATUT|RÉCAP|PAR ÉCOLE|PAR ZEP/i.test(t))||(pz&&h3.some(t=>/GLOBAUX/i.test(t))?pz:h3.some(t=>/GLOBAUX/i.test(t))?"Résultats globaux":h2.some(t=>/MÉRITE/i.test(t))?"Ordre de mérite":h2[0]||h3[h3.length-1]||"Feuille "+(ci+1));
+  nm=nm.replace(/^TAUX DE RÉUSSITE PAR ÉCOLE – ZEP : /i,"Écoles ZEP ").replace(/^ZEP : /,"ZEP ").replace(/RÉCAPITULATIF/i,"Récap.").replace(/\s*:\s*/g," ").replace(/[\[\]:*?\/\\]/g," ").replace(/\s+/g," ").trim().slice(0,31)||"Feuille";let nn=nm,k=2;while(used.has(nn.toLowerCase())){nn=nm.slice(0,27)+" ("+k+")";k++}used.add(nn.toLowerCase());
+  const rowsXml=R.map((row,i)=>{if(!row)return"";const cs=Object.keys(row).map(Number).sort((a,b)=>a-b).map(c=>{const o=row[c],ref=xlCol(c)+(i+1);
+    if(o.f){const fx=`<f>${xlEsc(o.f)}</f>`;return o.num?`<c r="${ref}" s="${o.s}">${fx}<v>${o.v}</v></c>`:`<c r="${ref}" s="${o.s}" t="str">${fx}<v>${xlEsc(o.v)}</v></c>`}
+    if(o.v===undefined||o.v==="")return`<c r="${ref}" s="${o.s}"/>`;
+    return o.num?`<c r="${ref}" s="${o.s}"><v>${o.v}</v></c>`:`<c r="${ref}" s="${o.s}" t="inlineStr"><is><t xml:space="preserve">${xlEsc(o.v)}</t></is></c>`}).join("");
+    return`<row r="${i+1}"${ht[i]?` ht="${ht[i]}" customHeight="1"`:""}>${cs}</row>`}).join("");
+  const cfXml=cfRefs.length?`<conditionalFormatting sqref="${cfRefs.join(" ")}"><cfRule type="cellIs" dxfId="0" priority="1" operator="greaterThan"><formula>0</formula></cfRule><cfRule type="cellIs" dxfId="1" priority="2" operator="lessThan"><formula>0</formula></cfRule></conditionalFormatting>`:"";
+  sheets.push({name:nn,xml:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><sheetViews><sheetView showGridLines="0" workbookViewId="0"/></sheetViews><sheetFormatPr defaultRowHeight="15"/><cols>${cw.map((w,i)=>`<col min="${i+1}" max="${i+1}" width="${w.toFixed(1)}" customWidth="1"/>`).join("")}</cols><sheetData>${rowsXml}</sheetData><sheetProtection sheet="1" objects="1" scenarios="1" formatColumns="0" formatRows="0"/>${merges.length?`<mergeCells count="${merges.length}">${merges.map(m=>`<mergeCell ref="${m}"/>`).join("")}</mergeCells>`:""}${cfXml}<pageMargins left="0.4" right="0.4" top="0.5" bottom="0.5" header="0.3" footer="0.3"/><pageSetup paperSize="9" orientation="${isPor(card)?"portrait":"landscape"}" fitToWidth="1" fitToHeight="0"/></worksheet>`})});
+ const N=sheets.length,H='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>',NS='xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"',RN='http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+ const files=[
+  {name:"[Content_Types].xml",data:H+'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'+sheets.map((s,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join("")+'</Types>'},
+  {name:"_rels/.rels",data:H+`<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${RN}/officeDocument" Target="xl/workbook.xml"/></Relationships>`},
+  {name:"xl/workbook.xml",data:H+`<workbook ${NS} xmlns:r="${RN}"><sheets>${sheets.map((s,i)=>`<sheet name="${xlEsc(s.name)}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join("")}</sheets><calcPr calcId="191029" fullCalcOnLoad="1"/></workbook>`},
+  {name:"xl/_rels/workbook.xml.rels",data:H+`<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${sheets.map((s,i)=>`<Relationship Id="rId${i+1}" Type="${RN}/worksheet" Target="worksheets/sheet${i+1}.xml"/>`).join("")}<Relationship Id="rId${N+1}" Type="${RN}/styles" Target="styles.xml"/></Relationships>`},
+  {name:"xl/styles.xml",data:ST.xml()}].concat(sheets.map((s,i)=>({name:`xl/worksheets/sheet${i+1}.xml`,data:s.xml})));
+ return xlZip(files)}
+const xlFileName=()=>pdfFileName().replace(/\.pdf$/i,".xlsx"),xlDossier=()=>dossierPdf().replace(/^FICHIERS PDF/,"FICHIERS EXCEL");
+function exportXlsx(){
+ if(zrBlock())return;
+ const cards=[...new Set([...document.querySelectorAll("#app .hd")].map(h=>h.closest(".card")))];
+ if(!cards.length){toast("Aucun document à exporter sur cette page.");return}
+ try{saveBlob(buildXlsx(cards),xlFileName(),false,xlDossier())}catch(e){toast("Le fichier Excel n’a pas pu être créé : "+(e&&e.message||e))}}
 
 function pdfFileName(){
  const u=S.ui,t=u.tab,n=u.n,ex=i=>"Examen blanc n"+i+"_Niveau "+E(i).niveau,cb=String(S.id.ceb||"").trim(),P=safeName(!cb?"CEB":/^ceb\b/i.test(cb)?cb:"CEB "+cb);
  if(t==="sa")return safeName(P+"_"+u.school+"_"+ex(n))+".pdf";
- if(t==="re")return safeName(P+"_Résultats CEB_"+ex(n))+".pdf";
+ if(t==="re"){const sc=reScope();return safeName(P+"_Résultats "+(sc?sc.lab+" "+sc.g.name:"CEB")+"_"+ex(n))+".pdf"}
  if(t==="me"){const c=u.crit===""||u.crit===undefined||!S.disc[+u.crit]?"global":S.disc[+u.crit];return safeName(P+"_Ordre de mérite_"+ex(n)+"_"+c)+".pdf"}
- if(t==="cp")return safeName(P+"_Comparatif_EB"+u.a+"_EB"+u.b+"_Niveau "+(E(u.a).niveau==E(u.b).niveau?E(u.a).niveau:E(u.a).niveau+"-"+E(u.b).niveau)+(u.scope?"_"+u.scope:""))+".pdf";
+ if(t==="cp")return safeName(P+"_Comparatif_EB"+u.a+"_EB"+u.b+"_Niveau "+(E(u.a).niveau==E(u.b).niveau?E(u.a).niveau:E(u.a).niveau+"-"+E(u.b).niveau)+(u.cv==="ec"?(u.scope?"_"+u.scope:"_Écoles"):u.cv==="zep"?(u.zsc&&u.zsc!=="~"?"_ZEP "+u.zsc.toUpperCase():"_Par ZEP"):""))+".pdf";
  return P+".pdf"}
+/* Dossier créé pour les PDF : « FICHIERS PDF_EB N°<n>_<NIVEAU> » (comparatif : « EB N°1-2 », niveaux séparés par « - » s'ils diffèrent) */
+function dossierPdf(){
+ const u=S.ui;let n,nv;
+ if(u.tab==="cp"){n=u.a===u.b?String(u.a):u.a+"-"+u.b;nv=E(u.a).niveau===E(u.b).niveau?E(u.a).niveau:E(u.a).niveau+"-"+E(u.b).niveau}
+ else{n=String(u.n);nv=E(u.n).niveau}
+ return safeName("FICHIERS PDF_EB N°"+n+"_"+nv)}
 function exportPdf(){
+ if(zrBlock())return;
+ if(S.ui.tab==="sa"&&srMiss().length){srFocus();return}
  const cards=[...new Set([...document.querySelectorAll("#app .hd")].map(h=>h.closest(".card")))];
  if(!cards.length){toast("Aucun document à exporter sur cette page.");return}
- try{saveBlob(buildPdf(cards).output(),pdfFileName(),true)}catch(e){toast("Le PDF n’a pas pu être créé : "+(e&&e.message||e))}}
+ try{saveBlob(buildPdf(cards,buildPdf(cards)._cnt).output(),pdfFileName(),true,dossierPdf())}catch(e){toast("Le PDF n’a pas pu être créé : "+(e&&e.message||e))}}
+
+/* Fenêtre qui indique l'emplacement exact du dossier des PDF */
+function infoDossier(r,name,dossier){
+ const old=$("pmod");if(old)old.remove();
+ const ch=String(r.chemin||""),sep=ch.indexOf("\\")>=0?"\\":"/",i=ch.lastIndexOf(sep),dir=r.dossierChemin||(i>0?ch.slice(0,i):""),
+  cree=!!ch&&dir.split(/[\\/]/).pop()===dossier;
+ const loc=t=>`<p style="margin:6px 0;padding:8px 10px;border:1px solid var(--ln);border-radius:6px;background:var(--hd);font-family:ui-monospace,Consolas,monospace;font-size:calc(13px*var(--ts));overflow-wrap:anywhere;user-select:all">${esc(t)}</p>`;
+ let h;
+ if(cree){
+  const an=/^\/storage\/emulated\/0\//.test(dir)?`<p class="mu">Dans l’application « Fichiers » : ${esc(dir.replace(/^\/storage\/emulated\/0\//,"Stockage interne › ").split("/").join(" › "))}</p>`:"";
+  h=`<h3 style="margin-top:0;color:var(--ac)">Dossier créé</h3><p>Le dossier <b>${esc(dossier)}</b> a été créé et le fichier <b>${esc(name)}</b> y a été enregistré.</p><p style="margin-bottom:0">Emplacement exact du dossier :</p>${loc(dir)}${an}`}
+ else if(ch){
+  h=`<h3 style="margin-top:0">Fichier enregistré</h3><p>Le fichier <b>${esc(name)}</b> a été enregistré à l’emplacement exact suivant :</p>${loc(ch)}<p class="warn">Le dossier « ${esc(dossier)} » n’a pas été créé par cet environnement.</p>`}
+ else if(r.navigateur){
+  h=`<h3 style="margin-top:0">Fichier téléchargé</h3><p>Le fichier <b>${esc(name)}</b> a été téléchargé dans le dossier de téléchargement de votre navigateur.</p><p class="warn">Un navigateur ne permet pas à une page de créer le dossier « ${esc(dossier)} » : pour cela, utilisez l’application installée (Windows ou Android).</p>`}
+ else if(r.repli){
+  h=`<h3 style="margin-top:0;color:var(--rd)">Dossier non créé</h3><p>Le dossier « ${esc(dossier)} » n’a pas pu être créé sur cet appareil${r.erreur?" ("+esc(r.erreur)+")":""}. Vérifiez que l’application a l’autorisation d’accéder au stockage.</p><p>Le fichier <b>${esc(name)}</b> a été proposé au partage : choisissez l’emplacement où l’enregistrer.</p>`}
+ else{
+  h=`<h3 style="margin-top:0">Fichier prêt</h3><p>Le fichier <b>${esc(name)}</b> est prêt, mais cet environnement n’a pas communiqué l’emplacement exact ni créé le dossier « ${esc(dossier)} ».</p>`}
+ const d=document.createElement("div");d.id="pmod";d.className="fmod np";d.setAttribute("role","dialog");d.setAttribute("aria-modal","true");
+ d.onkeydown=e=>{if(e.key==="Escape")d.remove()};
+ const sh=r.uri&&window.Pont&&window.Pont.partager?`<button class="bt" type="button" onclick="window.Pont.partager('${esc(r.uri)}',${esc(JSON.stringify(name))})">Partager le fichier</button>`:"";
+ d.innerHTML=`<div>${h}<div class="ctl" style="justify-content:flex-end;margin:14px 0 0">${sh}<button class="bt" type="button" id="pok" onclick="this.closest('.fmod').remove()">OK</button></div></div>`;
+ document.body.appendChild(d);$("pok").focus()}
 
 /* Enregistrement d'un fichier : application Windows (boîte « Enregistrer sous »), APK (partage Android) ou navigateur (téléchargement) */
-async function saveBlob(blob,name,ouvrir){
+async function saveBlob(blob,name,ouvrir,dossier,titre){
  try{
   if(window.Pont&&window.Pont.enregistrer){
    const b64=await new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>{const s=String(fr.result);res(s.slice(s.indexOf(",")+1))};fr.onerror=rej;fr.readAsDataURL(blob)});
-   const r=await window.Pont.enregistrer(name,blob.type||"application/octet-stream",b64);
+   const r=await window.Pont.enregistrer(name,blob.type||"application/octet-stream",b64,dossier||"",titre);
    if(r&&r.annule)return;
    if(ouvrir&&r&&r.chemin&&window.Pont.ouvrir){try{await window.Pont.ouvrir(r.chemin)}catch(e){}}
-   toast(r&&r.chemin?"Fichier enregistré : "+r.chemin:"Fichier prêt : "+name);return}
+   if(dossier){infoDossier(r||{},name,dossier);return}
+    toast(r&&r.chemin?"Fichier enregistré : "+r.chemin:"Fichier prêt : "+name);return}
   const u=URL.createObjectURL(blob),a=document.createElement("a");a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();
   if(ouvrir)try{window.open(u,"_blank")}catch(e){}
-  setTimeout(()=>URL.revokeObjectURL(u),60000);toast("Fichier téléchargé : "+name)
+  setTimeout(()=>URL.revokeObjectURL(u),60000);if(dossier)infoDossier({navigateur:true},name,dossier);else toast("Fichier téléchargé : "+name)
  }catch(e){toast("Le fichier n’a pas pu être enregistré.")}}
 
 /* ===== Recherche d'une école en tapant ses premières lettres ===== */
@@ -704,25 +1152,25 @@ const nrm=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLow
 function sansDoublon(el,key){
  const NL=String.fromCharCode(10),kk=t=>nrm(t).replace(/[-_'\u2019.]/g," ").replace(/\s+/g," ").trim();
  const brut=el.value,vu=new Map(),res=[],noms=[];let dbl=false;
- brut.split(NL).forEach(l=>{const t=l.trim();if(!t)return;const k=kk(t);if(vu.has(k)){dbl=true;if(!noms.includes(vu.get(k)))noms.push(vu.get(k));return}vu.set(k,t);res.push(t)});
+ brut.split(NL).forEach(l=>{const t=l.trim();if(!t)return;const k=kk(t);if(vu.has(k)){dbl=true;if(!noms.includes(vu.get(k)))noms.push(vu.get(k));return}const tt=key==="zeps"?t.toLocaleUpperCase("fr"):t;vu.set(k,tt);res.push(tt)});
  S[key]=res;save();
  if(dbl){
   const lab=el.closest("label")||el.parentNode;
   const ancien=lab.parentNode.querySelector(".dblbox");if(ancien)ancien.remove();
   el.value=res.join(NL)+(brut.endsWith(NL)?NL:"");
-  const msg=noms.map(n=>(key==="schools"?"L'école ":key==="zeps"?"La ZEP ":"La discipline ")+esc(n)+" a déjà été saisie.").join("<br>");
+  const msg=noms.map(n=>(key==="schools"?"L'école ":key==="zeps"?"La ZEP ":"La discipline ")+esc(key==="schools"?UPS(n):n)+" a déjà été saisie.").join("<br>");
   const d=document.createElement("div");d.className="dblbox";d.setAttribute("role","alert");
   d.style.cssText="margin:10px 0;padding:10px 14px;border:2px solid #d00000;border-radius:8px;background:#fdecec;color:#c00000;font-weight:600;position:relative";
-  d.innerHTML='<div style="font-size:1.05em;margin-bottom:4px">Doublons détectés</div><div>'+msg+'</div><button type="button" aria-label="Fermer" style="position:absolute;top:6px;right:8px;border:0;background:none;color:#c00000;font-size:18px;cursor:pointer" onclick="this.parentNode.remove()">×</button>';
+  d.innerHTML='<div style="font-size:1.05em;margin-bottom:4px">Doublons détectés</div><div>'+msg+'</div><button type="button" aria-label="Fermer" style="position:absolute;top:6px;right:8px;border:0;background:none;color:#c00000;font-size:calc(18px*var(--ts));cursor:pointer" onclick="this.parentNode.remove()">×</button>';
   lab.parentNode.insertBefore(d,lab.nextSibling);
   setTimeout(()=>{if(d.parentNode)d.remove()},8000);
  }
 }
 const cbBox=(src,val,ph,pick,w,tot)=>`<span class="cb${tot?"":""}"><input style="min-width:${w}px" data-src="${src}"${tot?' data-tot="1"':""} role="combobox" aria-expanded="false" value="${esc(val)}" placeholder="${ph}" aria-label="${ph}" autocomplete="off" onfocus="this.select();cbRender(this,0)" onclick="this.select();cbRender(this,0)" oninput="cbRender(this,1)" onkeydown="cbKey(event,this)" onblur="cbClose(this)" onchange="${pick}"><button type="button" class="cbb" tabindex="-1" aria-label="Afficher la liste" onmousedown="event.preventDefault();cbToggle(this)">&#9662;</button><div class="cbl" role="listbox" hidden></div></span>`;
-const schoolBox=(key,val,ph,id)=>`<span class="np">${cbBox("schools",val,ph,"pickSchool(this,'"+key+"')",260,key==="scope")}</span>`;
+const schoolBox=(key,val,ph,id)=>`<span class="np">${cbBox("schools",UPS(val),ph,"pickSchool(this,'"+key+"')",260,key==="scope")}</span>`;
 function cbRender(el,filter){
  const box=el.parentNode.querySelector(".cbl"),q=filter?nrm(el.value):"",cur=nrm(el.value);
- let L=(S[el.dataset.src]||[]).map(x=>[x,x]);
+ let L=(S[el.dataset.src]||[]).map(x=>[el.dataset.src==="schools"?UPS(x):x,x]);
  if(q){const a=L.filter(x=>nrm(x[0]).startsWith(q)),b=L.filter(x=>!nrm(x[0]).startsWith(q)&&nrm(x[0]).includes(q));L=a.concat(b)}
  else if(el.dataset.tot)L.unshift(["Total CEB",""]);
  box.innerHTML=L.length?L.map(x=>`<div class="cbi${x[1]&&nrm(x[1])===cur?" on":""}" role="option" data-v="${esc(x[1])}" onmousedown="event.preventDefault();cbPick(this)">${esc(x[0])}</div>`).join(""):`<div class="cbe">Aucun résultat</div>`;
@@ -762,24 +1210,51 @@ function pickSchool(el,key){
  S.ui[key]=r;save();R()}
 
 
-/* Saisie des résultats : flèches et Entrée pour passer d'une case à l'autre (colonne « Ont eu la moyenne » uniquement) */
-const MOQ="#app input[data-p^='p.'][data-p*='.mo.']";
+/* Saisie des résultats : flèches et Entrée pour passer d'une case à l'autre (toutes les cases de saisie) */
+const MOA="#app table input[data-p]",MOQ=MOA+":not([tabindex='-1'])";
 document.addEventListener("keydown",e=>{
  const el=e.target;
- if(!el||!el.matches||!el.matches(MOQ)||e.ctrlKey||e.altKey||e.metaKey)return;
- const k=e.key,ent=(k==="Enter"||e.keyCode===13);
+ if(!el||!el.matches||!el.matches(MOA)||e.ctrlKey||e.altKey||e.metaKey)return;
+ const k=e.key,ent=(k==="Enter"||k==="NumpadEnter"||e.keyCode===13);
  if(!ent&&k!=="ArrowLeft"&&k!=="ArrowRight"&&k!=="ArrowUp"&&k!=="ArrowDown")return;
- const rows=[...document.querySelectorAll("#app tr")].map(tr=>[...tr.querySelectorAll(MOQ)]).filter(r=>r.length);
- const all=rows.flat(),i=all.indexOf(el),ri=rows.findIndex(r=>r.includes(el));
- if(i<0)return;
+ const rows=[...document.querySelectorAll("#app tr")].map(tr=>[...tr.querySelectorAll(MOA)]).filter(r=>r.length);
+ const ri=rows.findIndex(r=>r.includes(el));
+ if(ri<0)return;
  const ci=rows[ri].indexOf(el);let to=null;
- if(ent)to=all[i+(e.shiftKey?-1:1)];
+ if(ent){const all=[...document.querySelectorAll(MOQ)];
+  to=e.shiftKey?all.filter(x=>el.compareDocumentPosition(x)&Node.DOCUMENT_POSITION_PRECEDING).pop()
+               :all.find(x=>el.compareDocumentPosition(x)&Node.DOCUMENT_POSITION_FOLLOWING)}
  else if(k==="ArrowRight")to=rows[ri][ci+1];
  else if(k==="ArrowLeft")to=rows[ri][ci-1];
  else{const r=rows[ri+(k==="ArrowDown"?1:-1)];if(r)to=r[Math.min(ci,r.length-1)]}
  e.preventDefault();
  if(to){to.focus();if(to.select)to.select()}
  else if(ent)el.blur()});
+/* Page Identification : la touche Entrée passe à la case suivante (Maj+Entrée : à la précédente) */
+document.addEventListener("keydown",e=>{
+ const el=e.target;
+ if(!el||!el.closest||e.ctrlKey||e.altKey||e.metaKey||e.isComposing)return;
+ if(!(e.key==="Enter"||e.key==="NumpadEnter"))return;
+ const card=el.closest(".idp");
+ if(!card||!el.matches("input,select"))return;
+ const all=[...card.querySelectorAll("input,select")].filter(x=>!x.readOnly&&!x.disabled&&x.type!=="hidden");
+ const i=all.indexOf(el);if(i<0)return;
+ e.preventDefault();
+ const to=all[i+(e.shiftKey?-1:1)];
+ if(to){to.focus();if(to.select&&to.type!=="date")try{to.select()}catch(x){}}else el.blur()});
+/* Résultats : la touche Entrée passe d'une case du R/ZEP à la suivante (Maj+Entrée : à la précédente) */
+document.addEventListener("keydown",e=>{
+ const el=e.target;
+ if(!el||!el.closest||e.ctrlKey||e.altKey||e.metaKey||e.isComposing)return;
+ if(!(e.key==="Enter"||e.key==="NumpadEnter"))return;
+ const box=el.closest(".zrc");
+ if(!box||!el.matches("input,select")||!el.dataset.k)return;
+ const all=[...box.querySelectorAll("input,select")],i=all.indexOf(el);if(i<0)return;
+ e.preventDefault();
+ const k=el.dataset.k,raw=el.value,v=k==="n"?UPS(raw.trim()):k==="p"?cap1(raw):k==="tt"?fmtTitre(raw):raw,j=i+(e.shiftKey?-1:1);
+ setZr(k,v);
+ const to=document.querySelectorAll(".zrc input,.zrc select")[j];
+ if(to){to.focus();if(to.tagName==="INPUT")try{to.select()}catch(x){}}else if(document.activeElement)document.activeElement.blur()});
 /* Colonne « T » toujours en gras, dans tous les tableaux F / G / T */
 function boldT(){document.querySelectorAll("#app table").forEach(t=>{
  const hr=t.tHead?[...t.tHead.rows]:[];if(!hr.length)return;
@@ -789,17 +1264,37 @@ function boldT(){document.querySelectorAll("#app table").forEach(t=>{
    for(let a=0;a<rs;a++){occ[ri+a]=occ[ri+a]||[];for(let b=0;b<cs;b++)occ[ri+a][ci+b]=1}
    if(cs===1&&c.textContent.trim()==="T")tc.push(ci);ci+=cs})});
  [...t.tBodies].forEach(tb=>[...tb.rows].forEach(tr=>tc.forEach(i=>{const c=tr.cells[i];if(c&&c.tagName==="TD")c.classList.add("b")})))})}
-function go(t){S.ui.tab=t;save();R()}
+/* Identification : tous les champs sont obligatoires avant de passer à une autre étape */
+let IDTRY=false;
+const ID_REQ=[["annee","Année scolaire"],["dreppnf","DREPPNF"],["dpeppnf","DPEPPNF"],["ceb","CEB"],["ccebn","Nom du CCEB"],["ccebp","Prénom du CCEB"],["ccebs","Sexe du CCEB"],["ccebt","Emploi ou Titre honorifique du CCEB"],["rbn","Nom du R/BEPrim"],["rbp","Prénom du R/BEPrim"],["rbs","Sexe du R/BEPrim"],["rbt","Emploi ou Titre honorifique du R/BEPrim"],["lieu","Fait à"],["date","Le (date)"]];
+/* valeur d'un champ ; la date non encore modifiée vaut la date du jour (valeur pré-remplie) */
+const idVal=k=>{const v=S.id[k];return String(k==="date"&&v===undefined?today():(v==null?"":v)).trim()};
+function idMiss(){const I=S.id=S.id||{};migNm(I,"cceb","ccebn","ccebp");migNm(I,"rb","rbn","rbp");return ID_REQ.filter(x=>!idVal(x[0])).map(x=>x[1])}
+function idMsgTxt(m){return "Complétez d’abord l’identification avant de passer à l’étape suivante. Champs à renseigner : "+m.join(", ")+"."}
+function idChk(){if(!IDTRY)return;const m=idMiss();document.querySelectorAll("[data-id]").forEach(e=>e.classList.toggle("bad",!idVal(e.dataset.id)));const b=$("idmsg");if(b){if(m.length){b.textContent=idMsgTxt(m);b.hidden=false}else{b.hidden=true;IDTRY=false}}}
+/* Résultats : les champs du R/ZEP sont obligatoires pour passer aux étapes suivantes ou exporter en PDF */
+let ZRTRY=false;
+const ZR_REQ=[["n","Nom du R/ZEP"],["p","Prénom du R/ZEP"],["sx","Sexe du R/ZEP"],["tt","Emploi ou Titre honorifique du R/ZEP"]];
+function zrMiss(){const sc=reScope();if(!sc)return[];const z=(S.zr&&S.zr[sc.id])||{};migNm(z,"nom","n","p");return ZR_REQ.filter(x=>!String(z[x[0]]==null?"":z[x[0]]).trim()).map(x=>x[1])}
+function zrMsgTxt(m){return "Complétez d’abord les informations du R/ZEP. Champs à renseigner : "+m.join(", ")+"."}
+function zrBlock(){if(S.ui.tab!=="re"||!zrMiss().length)return false;ZRTRY=true;R();toast("Complétez d’abord les informations du R/ZEP : tous les champs sont obligatoires.");return true}
+/* Agrandissement du texte du système (WebView Android) : on mesure le facteur appliqué et on le compense pour garder la même mise en page que dans Chrome */
+function tsFit(){try{const d=document,r=d.documentElement;if(!d.body)return;const p=d.createElement("div");p.setAttribute("aria-hidden","true");p.style.cssText="position:absolute;left:0;top:0;width:100%;opacity:0;pointer-events:none;overflow:hidden;font:14px sans-serif";p.innerHTML='<span style="font:100px sans-serif;white-space:nowrap">MMMMMMMM</span> '+"Mesure du texte pour adapter l’affichage. ".repeat(20);d.body.appendChild(p);const w=p.firstChild.getBoundingClientRect().width;p.remove();const c=d.createElement("canvas").getContext("2d");c.font="100px sans-serif";const b=c.measureText("MMMMMMMM").width;if(!(w>0&&b>0))return;let k=w/b;k=k>1.08?Math.min(k,2.2):1;r.style.setProperty("--ts",(1/k).toFixed(3))}catch(e){}}
+addEventListener("resize",tsFit);addEventListener("orientationchange",tsFit);document.addEventListener("visibilitychange",tsFit);
+function go(t){
+ if((t==="me"||t==="cp")&&zrBlock())return;
+ if(t!=="id"&&t!=="ac"&&idMiss().length){IDTRY=true;S.ui.tab="id";save();R();toast("Complétez d’abord l’identification : tous les champs sont obligatoires.");return}
+ S.ui.tab=t;save();R()}
 function R(){
  const u=S.ui,nav=document.querySelector("nav"),L=licInfo();
  if(L.bloque){nav.style.display="none";$("app").innerHTML=lockHtml(L);window.scrollTo(0,0);return}
- nav.style.display=u.tab=="ac"?"none":"";
+ nav.style.display=u.tab=="ac"?"none":"";nav.classList.add("one");
  S.schools.sort((a,b)=>a.localeCompare(b,"fr"));
  if(!S.schools.includes(u.school))u.school=S.schools[0]||"";
  $("app").innerHTML=licBanner()+{ac:pgAc,id:pgId,ec:pgEc,zp:pgZp,di:pgDi,sa:pgSa,re:pgRe,me:pgMe,cp:pgCp}[u.tab]();
- boldT();
+ boldT();srLock();
  document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.t==u.tab));
  if(u.tab=="sa")refresh(true);window.scrollTo(0,0)}
 S.ui.tab="ac";
-R();
+tsFit();R();
 </script></body></html>
