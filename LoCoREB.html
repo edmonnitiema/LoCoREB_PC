@@ -1,0 +1,1300 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>LoCoREB</title>
+<meta name="theme-color" content="#1d5c3e">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20viewBox=%220%200%2064%2064%22%20xmlns=%22http://www.w3.org/2000/svg%22%20role=%22img%22%20aria-label=%22Logo%20LoCoREB%22%3E%3Crect%20width=%2264%22%20height=%2264%22%20rx=%2214%22%20fill=%22%231d5c3e%22/%3E%3Crect%20x=%2214%22%20y=%2226%22%20width=%229%22%20height=%2211%22%20rx=%222%22%20fill=%22%23fff%22/%3E%3Crect%20x=%2227.5%22%20y=%2219%22%20width=%229%22%20height=%2218%22%20rx=%222%22%20fill=%22%23fff%22/%3E%3Crect%20x=%2241%22%20y=%2211%22%20width=%229%22%20height=%2226%22%20rx=%222%22%20fill=%22%23fff%22/%3E%3Crect%20x=%2211%22%20y=%2240%22%20width=%2242%22%20height=%223%22%20rx=%221.5%22%20fill=%22%23c1121f%22/%3E%3Ctext%20x=%2232%22%20y=%2256%22%20text-anchor=%22middle%22%20textLength=%2252%22%20lengthAdjust=%22spacingAndGlyphs%22%20font-family=%22Arial%2CHelvetica%2Csans-serif%22%20font-size=%2212.5%22%20font-weight=%22700%22%20fill=%22%23fff%22%3ELoCoREB%3C/text%3E%3C/svg%3E">
+<script>
+/* Enregistrement des fichiers dans l'APK (Capacitor) : écrit dans le cache puis ouvre le partage Android */
+(function(){
+  function plug(n){
+    var C=window.Capacitor;if(!C)return null;
+    if(C.Plugins&&C.Plugins[n])return C.Plugins[n];
+    if(typeof C.registerPlugin==='function'){try{return C.registerPlugin(n)}catch(e){}}
+    return null;
+  }
+  function isNative(){
+    var C=window.Capacitor;if(!C)return false;
+    try{
+      if(typeof C.isNativePlatform==='function')return !!C.isNativePlatform();
+      if(typeof C.getPlatform==='function')return C.getPlatform()!=='web';
+    }catch(e){}
+    return /; wv\)/.test(navigator.userAgent);
+  }
+  function init(){
+    if(window.Pont||!isNative())return;
+    window.Pont={
+      enregistrer:async function(name,type,b64,dossier,titre){
+        var FS=plug('Filesystem'),SH=plug('Share'),repli=null;
+        try{
+          if(!FS)throw new Error('plugin introuvable (Filesystem)');
+          if(dossier){
+            /* Création du dossier dans « Documents » puis enregistrement du fichier dedans */
+            try{
+              try{var pm=await FS.checkPermissions();if(pm&&pm.publicStorage&&pm.publicStorage!=='granted')await FS.requestPermissions()}catch(e){}
+              var rel=dossier+'/'+name;
+              await FS.writeFile({path:rel,data:b64,directory:'DOCUMENTS',recursive:true});
+              var g=await FS.getUri({path:rel,directory:'DOCUMENTS'});
+              var ch=decodeURI(String(g.uri).replace(/^file:\/\//,''));
+              return {chemin:ch,dossier:dossier,dossierChemin:ch.slice(0,ch.lastIndexOf('/')),uri:g.uri};
+            }catch(e){repli=String((e&&e.message)||e)}
+          }
+          if(!SH)throw new Error('plugin introuvable (Share)');
+          var w=await FS.writeFile({path:name,data:b64,directory:'CACHE',recursive:true});
+          await SH.share({title:name,url:w.uri,dialogTitle:titre||'Enregistrer ou envoyer '+name});
+          return repli!==null?{repli:true,erreur:repli}:undefined;
+        }catch(e){
+          var m=String((e&&e.message)||e);
+          if(/cancel|dismiss/i.test(m))return {annule:true};
+          alert("Le fichier n'a pas pu être enregistré : "+m);
+          return {annule:true};
+        }
+      },
+      envoyerWhatsApp:async function(name,type,b64,texte){
+        /* écrit le fichier dans le cache puis ouvre WhatsApp directement sur la liste de ses contacts (plugin natif WaShare) */
+        try{
+          var FS=plug('Filesystem'),WA=plug('WaShare');
+          if(!FS||!WA)return {indispo:true,erreur:'plugin introuvable'};
+          var w=await FS.writeFile({path:name,data:b64,directory:'CACHE',recursive:true});
+          await WA.envoyer({path:w.uri,type:type,texte:texte||''});
+          return {ok:true};
+        }catch(e){return {indispo:true,erreur:String((e&&e.message)||e)}}
+      },
+      partager:async function(uri,name){
+        try{var SH=plug('Share');if(SH)await SH.share({title:name,url:uri,dialogTitle:'Envoyer '+name})}catch(e){}
+      }
+    };
+  }
+  init();
+  document.addEventListener('DOMContentLoaded',init);
+  window.addEventListener('load',init);
+  setTimeout(init,500);
+})();
+</script>
+<style>
+:root{--ts:1;--gn:#15803d;--tb:#d4d8d5;--tt:#2c352f;--tat:#fff;--rd:#c1121f;--bg:#f5f6f2;--sf:#fff;--tx:#1b231e;--mu:#59655d;--ac:#1d5c3e;--ln:#c9d1ca;--bd:#5d6d62;--hd:#e2ebe4;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--gn:#6fd08c;--tb:#2f3832;--tt:#d6ddd8;--tat:#0f1a14;--bg:#141916;--sf:#1d2420;--tx:#e8ede9;--mu:#9aa79e;--ac:#6fc596;--ln:#35403a;--bd:#8a9a8f;--hd:#27312b;--rd:#ff7b7b}}
+:root[data-theme="dark"]{--gn:#6fd08c;--tb:#2f3832;--tt:#d6ddd8;--tat:#0f1a14;--bg:#141916;--sf:#1d2420;--tx:#e8ede9;--mu:#9aa79e;--ac:#6fc596;--ln:#35403a;--bd:#8a9a8f;--hd:#27312b;--rd:#ff7b7b}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:calc(15px*var(--ts))/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+header{padding:14px 16px 0;max-width:1100px;margin:auto}
+h1{font:700 calc(22px*var(--ts)) Georgia,serif;margin:0}
+header p{margin:2px 0 10px;color:var(--mu);font-size:calc(13px*var(--ts))}
+nav{display:flex;gap:6px;flex-wrap:wrap;padding-bottom:10px;border-bottom:2px solid var(--ln)}
+nav button{border:0;background:var(--tb);color:var(--tt);padding:9px 14px;font:inherit;font-weight:600;cursor:pointer;border-radius:6px}
+nav.one{flex-wrap:nowrap;overflow-x:auto;gap:4px}
+nav.one button{flex:1 1 auto;min-width:0;padding:9px 6px;font-size:calc(clamp(9px,1.05vw,13px)*var(--ts));white-space:nowrap}
+nav button:not(.on):hover{filter:brightness(.94)}
+nav button.on{background:var(--ac);color:var(--tat)}
+/* Mobile : 2 lignes de 4 boutons, texte lisible (retour à la ligne dans le bouton) */
+@media(max-width:720px){
+nav,nav.one{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;overflow:visible;flex-wrap:initial}
+nav button,nav.one button{min-width:0;width:100%;min-height:42px;padding:5px 2px;font-size:calc(clamp(9px,2.7vw,12px)*var(--ts));line-height:1.15;white-space:normal;overflow-wrap:anywhere;text-align:center;display:flex;align-items:center;justify-content:center}}
+/* Portable : cases de saisie des résultats lisibles (le tableau défile horizontalement, la 1re colonne reste visible) */
+@media(max-width:720px){
+table.fx{table-layout:auto;min-width:640px}
+table.fx td input{width:56px;max-width:none}
+td input{width:56px;min-width:56px;font-size:calc(16px*var(--ts));padding:6px 2px}
+th.fg{width:auto;min-width:58px}
+th,td{padding:5px 4px}
+.w{-webkit-overflow-scrolling:touch}
+.w tbody tr>th:first-child{position:sticky;left:0;z-index:1;background:var(--sf);min-width:86px}}
+/* Portable : le tableau « Taux de réussite par discipline » tient dans la largeur de l'écran (sans défilement), cases de saisie incluses */
+@media(max-width:720px){
+table.fx.sx{table-layout:fixed;min-width:0;width:100%}
+table.sx col.c0{width:20%}table.sx col.cn{width:7.5%}table.sx col.ct{width:11.67%}
+table.sx th,table.sx td{padding:2px 1px;border-width:1px;font-size:calc(10px*var(--ts));line-height:1.15}
+table.sx th.fg{width:auto;min-width:0;padding:3px 0}
+table.sx thead th{overflow-wrap:anywhere}
+table.sx tbody th{position:static;min-width:0;padding:2px 3px;overflow-wrap:anywhere;font-size:calc(9.5px*var(--ts))}
+table.sx td input{box-sizing:border-box;width:100%;min-width:0;max-width:none;padding:5px 0;font-size:calc(12px*var(--ts));border-width:1px;border-radius:3px}
+table.sx td.c{overflow-wrap:normal}}
+nav button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible,.bt:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+main{max-width:1100px;margin:auto;padding:16px}
+.card{background:var(--sf);border:1px solid var(--ln);border-radius:8px;padding:16px;margin-bottom:16px}
+h2{font:700 calc(18px*var(--ts)) Georgia,serif;text-align:center;margin:8px 0 12px}
+h3{font:600 calc(15px*var(--ts)) system-ui,sans-serif;margin:16px 0 8px}
+.ctl{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+.ctl.l2{flex-wrap:nowrap;justify-content:flex-start;align-items:center;gap:14px}.ctl.l2 .schl{flex-wrap:nowrap}.ctl.l2 .schl .lt{max-width:210px;text-align:left;font-size:calc(12px*var(--ts))}.ctl.l2 select,.ctl.l2 input,.ctl.l2 .bt{height:38px;box-sizing:border-box;margin:0}.ctl.l2 .bt{white-space:nowrap;flex:none;padding-top:0;padding-bottom:0}.ctl.l2 .cb{margin:0}@media(max-width:1000px){.ctl.l2{flex-wrap:wrap}}
+p.stz{display:flex;justify-content:center;gap:56px;flex-wrap:wrap;font-weight:700;margin:0 0 6px}
+input[hidden]{display:none!important}
+.fmod{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:14px}.fmod>div{background:var(--sf);color:var(--tx);border:1px solid var(--ln);border-radius:10px;max-width:560px;width:100%;max-height:88vh;overflow:auto;padding:18px 20px;box-shadow:0 10px 30px rgba(0,0,0,.3)}.fmod li{margin:3px 0}
+.cb{position:relative;display:inline-block}.cb input{padding-right:30px}.cbb{position:absolute;right:2px;top:0;bottom:0;border:0;background:none;color:var(--mu);font-size:calc(14px*var(--ts));cursor:pointer;padding:0 8px}
+.cbl{position:absolute;left:0;min-width:100%;top:100%;margin-top:2px;z-index:60;max-height:260px;overflow:auto;background:var(--sf);border:1px solid var(--ln);border-radius:6px;box-shadow:0 6px 18px rgba(0,0,0,.18);text-align:left}
+.cbi,.cbe{padding:8px 12px;white-space:nowrap;font-size:calc(14px*var(--ts));color:var(--tx);cursor:pointer}.cbe{color:var(--mu);cursor:default}.cbi:hover,.cbi.hl{background:var(--hd)}.cbi.on{font-weight:700;color:var(--ac)}
+@media print{.cbb,.cbl,.fmod{display:none!important}}
+.schl{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.schl .lt{max-width:360px;line-height:1.3;color:var(--tx);text-align:right}@media(max-width:720px){.schl .lt{text-align:left;max-width:none}}.schl .lt b{font-size:calc(14px*var(--ts))}.schl input,.schl select{display:inline-block;width:auto;margin-top:0}
+select,input,textarea{font:inherit;color:var(--tx);background:var(--sf);border:2px solid var(--bd);border-radius:5px;padding:6px 8px}
+.idr{display:grid;gap:12px;margin-bottom:12px}.idr label{white-space:nowrap}
+.idr.id4{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(70px,.3fr)}.idr.id4>label:nth-child(4){grid-column:1/-1}.idr.id4 input{text-overflow:ellipsis}
+.ctl.zrc{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(70px,.3fr);gap:8px 12px;align-items:start}.ctl.zrc>label:nth-child(4){grid-column:1/-1}.ctl.zrc input,.ctl.zrc select{width:100%;box-sizing:border-box}
+@media(max-width:720px){.ctl.zrc{grid-template-columns:minmax(0,1fr) 80px}.ctl.zrc>label:nth-child(1),.ctl.zrc>label:nth-child(2),.ctl.zrc>label:nth-child(4){grid-column:1/-1}}
+@media(max-width:720px){.idr{grid-template-columns:minmax(0,1fr)!important}.idr label{white-space:normal}}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+label{display:block;font-size:calc(13px*var(--ts));color:var(--mu)}
+label input,label select,label textarea{display:block;width:100%;margin-top:3px;color:var(--tx)}
+textarea{min-height:130px}
+.bt{background:var(--ac);color:var(--sf);border:0;border-radius:5px;padding:8px 14px;font:inherit;font-weight:600;cursor:pointer}
+.bt.rdg{background:var(--rd);color:var(--tat)}.bt[disabled]{opacity:.45;cursor:not-allowed}.rst{border-color:var(--rd)}.rst h3{margin-top:0;color:var(--rd)}.fmod ul{padding-left:20px;margin:8px 0}
+.fr,.fr input{color:var(--rd)}
+td.ep,td.fr.ep{color:var(--gn)}td.en{color:var(--rd)}.cer{display:inline-block;border:2px solid var(--rd);border-radius:50%;padding:2px 9px;line-height:1.2}
+.w{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:calc(14px*var(--ts))}
+th,td{border:2px solid var(--bd);padding:5px 7px;text-align:center}
+thead th{background:none}
+th.ve{border:0}
+th.fg{width:64px;min-width:64px}
+tbody th{text-align:left;font-weight:700;background:none}
+table.fx{table-layout:fixed}table.fx thead tr:first-child th:first-child{width:22%}table.fx td input{width:100%;max-width:72px}
+td input{width:62px;text-align:center;padding:4px;border-width:2px}
+td input[readonly]{background:none;cursor:default}
+/* Saisie des résultats : plus de cadre autour des chiffres, la saisie se fait directement dans la cellule du tableau */
+.card.por td input{border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;width:100%!important;min-width:0!important;max-width:none!important;box-sizing:border-box;padding:6px 2px;margin:0;text-align:center;font-weight:700}
+.card.por td input:focus{background:var(--hd)!important;outline:2px solid var(--ac);outline-offset:-2px}
+.card.por td input.bad{outline:2px solid var(--rd);outline-offset:-2px;background:transparent!important}
+.gb,.gb select,.gb input{font-weight:700;color:var(--tx)}
+.ctl>label.gb{display:flex;align-items:center;gap:8px;font-size:calc(14px*var(--ts))}.ctl>label.gb select,.ctl>label.gb .cb,.ctl>label.gb input{display:inline-block;width:auto;margin-top:0}
+.cb input[data-src="schools"]{font-weight:700;text-transform:uppercase}
+textarea.up{text-transform:uppercase}
+td.c{font-variant-numeric:tabular-nums}
+td.b{font-weight:700}
+tr.tot td,tr.tot th{font-weight:700;background:none}
+.hd{font-size:calc(13px*var(--ts));line-height:1.5;margin-bottom:6px}
+.hdt{width:100%;border-collapse:collapse;font-size:inherit}.hdt td{border:0;padding:0;text-align:left;vertical-align:top}.hdt td.hr{text-align:center;white-space:nowrap;width:1%;padding-left:16px}
+.sig{margin-top:28px;break-inside:avoid}
+.sgt{width:100%;border-collapse:collapse;border:0;margin-top:8px;table-layout:fixed}
+.sgt td{border:0;padding:0 8px;text-align:center;vertical-align:top;width:50%}
+.sgt td.sgd{padding-bottom:10px}
+.sgx .sgt td{padding:0}
+.sgt i{display:block;height:54px}
+.sgt b{display:block;font-weight:700}.sgt b u{text-decoration:underline}
+.sgt em{display:block;font-style:italic!important;font-size:.85em;font-weight:400}
+.mu{color:var(--mu);font-size:calc(13px*var(--ts))}
+@media print{
+:root{--bg:#fff;--sf:#fff;--tx:#000;--ln:#000;--bd:#000;--hd:#eee;--mu:#000;--rd:#c00;--gn:#067a2e}
+.np,header,nav{display:none!important}
+body{background:#fff}main{padding:0;max-width:none}
+.card{border:0;padding:0}
+table{font-size:calc(10.5px*var(--ts))}
+@page{size:A4 landscape;margin:10mm}}
+@page por{size:A4 portrait;margin:10mm}.por{page:por}
+.bad{border-color:var(--rd)!important;outline:2px solid var(--rd)}
+.rqs{color:var(--rd);font-weight:700}
+#vmsg:not(:empty){border:1px solid var(--rd);color:var(--rd);border-radius:6px;padding:8px 12px;margin:10px 0;font-size:calc(13px*var(--ts))}
+.lock{max-width:520px;margin:4vh auto}.lid{font:700 1.25em ui-monospace,Consolas,monospace;user-select:all}
+.banner{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;background:#fff4d6;color:#4a3a00;border:1px solid #e0c36a;border-radius:6px;padding:10px 12px;margin-bottom:16px}.banner p{margin:0;flex:1 1 240px}
+.warn{color:var(--rd);font-size:calc(14px*var(--ts))}
+.credit{margin-top:12px;border:2px solid var(--ac);border-radius:10px;padding:12px;text-align:center}.credit p{margin:2px 0}.credit .ct{font-size:calc(12px*var(--ts));letter-spacing:.08em;text-transform:uppercase;color:var(--mu);font-weight:700}.credit .nm{font:700 calc(20px*var(--ts)) Georgia,serif}
+#toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:#1b231e;color:#fff;padding:10px 16px;border-radius:8px;font-size:calc(14px*var(--ts));max-width:90vw;z-index:50}
+#toast[hidden]{display:none}
+.lg{display:flex;align-items:center;gap:12px}#logo{cursor:pointer;border-radius:10px;width:fit-content}#logo:focus-visible{outline:2px solid var(--ac);outline-offset:3px}
+.home h2 i{font-style:normal}.home h2 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.home h2 .wl{display:inline-block;white-space:nowrap}
+.home h2 .ch{display:inline-block;opacity:0;transform:translateY(16px) scale(.7);animation:chIn .55s cubic-bezier(.2,.9,.25,1.2) forwards;animation-delay:calc(var(--i)*55ms)}
+.home h2 .sub{opacity:0;animation:subIn .9s ease forwards;animation-delay:calc(var(--n)*55ms + 250ms)}
+@keyframes chIn{to{opacity:1;transform:none}}
+@keyframes subIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.home h2 .ch,.home h2 .sub{animation:none;opacity:1;transform:none}}
+@media print{.home h2 .ch,.home h2 .sub{animation:none;opacity:1;transform:none}}
+.home h2{font-size:calc(20px*var(--ts));line-height:1.35}.home h2 span{display:block;font:600 calc(15px*var(--ts)) system-ui,sans-serif;margin-top:6px;color:var(--mu)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;margin-top:18px}
+.tile{display:flex;align-items:center;gap:10px;padding:14px 16px;font-size:calc(15px*var(--ts));text-align:left;border-radius:8px}
+.tile b{display:inline-flex;width:26px;height:26px;border-radius:50%;background:var(--sf);color:var(--ac);align-items:center;justify-content:center;font-size:calc(13px*var(--ts));flex:none}
+td input[type=number]{-moz-appearance:textfield;appearance:textfield}
+td input[type=number]::-webkit-outer-spin-button,td input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.idp label{font-weight:400;color:var(--tx)}.idp select option{font-weight:700}.idp input,.idp select,.idp textarea{font-weight:700}.lg svg{width:62px;height:62px;flex:none}.lg p{margin:2px 0 0}.lgbig{text-align:center}.lgbig svg{width:84px;height:84px}
+</style></head>
+<body>
+<header><div class="lg" id="logo" role="button" tabindex="0" title="Retour à l’accueil" aria-label="Retour à l’accueil" onclick="go('ac')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();go('ac')}"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Logo LoCoREB"><rect width="64" height="64" rx="14" fill="#1d5c3e"/><rect x="14" y="26" width="9" height="11" rx="2" fill="#fff"/><rect x="27.5" y="19" width="9" height="18" rx="2" fill="#fff"/><rect x="41" y="11" width="9" height="26" rx="2" fill="#fff"/><rect x="11" y="40" width="42" height="3" rx="1.5" fill="#c1121f"/><text x="32" y="56" text-anchor="middle" textLength="52" lengthAdjust="spacingAndGlyphs" font-family="Arial,Helvetica,sans-serif" font-size="12.5" font-weight="700" fill="#fff">LoCoREB</text></svg><div><h1>LoCoREB</h1><p>Logiciel de Compilation des Résultats des Examens Blancs</p></div></div>
+<nav>
+<button data-t="id" onclick="go('id')">Identification</button>
+<button data-t="ec" onclick="go('ec')">Saisie des écoles</button>
+<button data-t="zp" onclick="go('zp')">Saisie des ZEP</button>
+<button data-t="di" onclick="go('di')">Saisie des disciplines</button>
+<button data-t="sa" onclick="go('sa')">Saisie des résultats</button>
+<button data-t="re" onclick="go('re')">Résultats</button>
+<button data-t="me" onclick="go('me')">Ordre de mérite</button>
+<button data-t="cp" onclick="go('cp')">Comparatif</button>
+</nav></header>
+<main id="app"></main>
+<div id="toast" role="status" hidden></div>
+<script>
+
+!function(r){"use strict";function t(r,t,n,e){r[t]=n>>24&255,r[t+1]=n>>16&255,r[t+2]=n>>8&255,r[t+3]=255&n,r[t+4]=e>>24&255,r[t+5]=e>>16&255,r[t+6]=e>>8&255,r[t+7]=255&e}function n(r,t,n,e,o){var i,h=0;for(i=0;i<o;i++)h|=r[t+i]^n[e+i];return(1&h-1>>>8)-1}function e(r,t,e,o){return n(r,t,e,o,16)}function o(r,t,e,o){return n(r,t,e,o,32)}function i(r,t,n,e){for(var o,i=255&e[0]|(255&e[1])<<8|(255&e[2])<<16|(255&e[3])<<24,h=255&n[0]|(255&n[1])<<8|(255&n[2])<<16|(255&n[3])<<24,a=255&n[4]|(255&n[5])<<8|(255&n[6])<<16|(255&n[7])<<24,f=255&n[8]|(255&n[9])<<8|(255&n[10])<<16|(255&n[11])<<24,s=255&n[12]|(255&n[13])<<8|(255&n[14])<<16|(255&n[15])<<24,c=255&e[4]|(255&e[5])<<8|(255&e[6])<<16|(255&e[7])<<24,u=255&t[0]|(255&t[1])<<8|(255&t[2])<<16|(255&t[3])<<24,y=255&t[4]|(255&t[5])<<8|(255&t[6])<<16|(255&t[7])<<24,l=255&t[8]|(255&t[9])<<8|(255&t[10])<<16|(255&t[11])<<24,w=255&t[12]|(255&t[13])<<8|(255&t[14])<<16|(255&t[15])<<24,p=255&e[8]|(255&e[9])<<8|(255&e[10])<<16|(255&e[11])<<24,v=255&n[16]|(255&n[17])<<8|(255&n[18])<<16|(255&n[19])<<24,b=255&n[20]|(255&n[21])<<8|(255&n[22])<<16|(255&n[23])<<24,g=255&n[24]|(255&n[25])<<8|(255&n[26])<<16|(255&n[27])<<24,_=255&n[28]|(255&n[29])<<8|(255&n[30])<<16|(255&n[31])<<24,A=255&e[12]|(255&e[13])<<8|(255&e[14])<<16|(255&e[15])<<24,d=i,U=h,E=a,x=f,M=s,m=c,B=u,S=y,K=l,T=w,Y=p,k=v,L=b,z=g,R=_,P=A,O=0;O<20;O+=2)o=d+L|0,M^=o<<7|o>>>25,o=M+d|0,K^=o<<9|o>>>23,o=K+M|0,L^=o<<13|o>>>19,o=L+K|0,d^=o<<18|o>>>14,o=m+U|0,T^=o<<7|o>>>25,o=T+m|0,z^=o<<9|o>>>23,o=z+T|0,U^=o<<13|o>>>19,o=U+z|0,m^=o<<18|o>>>14,o=Y+B|0,R^=o<<7|o>>>25,o=R+Y|0,E^=o<<9|o>>>23,o=E+R|0,B^=o<<13|o>>>19,o=B+E|0,Y^=o<<18|o>>>14,o=P+k|0,x^=o<<7|o>>>25,o=x+P|0,S^=o<<9|o>>>23,o=S+x|0,k^=o<<13|o>>>19,o=k+S|0,P^=o<<18|o>>>14,o=d+x|0,U^=o<<7|o>>>25,o=U+d|0,E^=o<<9|o>>>23,o=E+U|0,x^=o<<13|o>>>19,o=x+E|0,d^=o<<18|o>>>14,o=m+M|0,B^=o<<7|o>>>25,o=B+m|0,S^=o<<9|o>>>23,o=S+B|0,M^=o<<13|o>>>19,o=M+S|0,m^=o<<18|o>>>14,o=Y+T|0,k^=o<<7|o>>>25,o=k+Y|0,K^=o<<9|o>>>23,o=K+k|0,T^=o<<13|o>>>19,o=T+K|0,Y^=o<<18|o>>>14,o=P+R|0,L^=o<<7|o>>>25,o=L+P|0,z^=o<<9|o>>>23,o=z+L|0,R^=o<<13|o>>>19,o=R+z|0,P^=o<<18|o>>>14;d=d+i|0,U=U+h|0,E=E+a|0,x=x+f|0,M=M+s|0,m=m+c|0,B=B+u|0,S=S+y|0,K=K+l|0,T=T+w|0,Y=Y+p|0,k=k+v|0,L=L+b|0,z=z+g|0,R=R+_|0,P=P+A|0,r[0]=d>>>0&255,r[1]=d>>>8&255,r[2]=d>>>16&255,r[3]=d>>>24&255,r[4]=U>>>0&255,r[5]=U>>>8&255,r[6]=U>>>16&255,r[7]=U>>>24&255,r[8]=E>>>0&255,r[9]=E>>>8&255,r[10]=E>>>16&255,r[11]=E>>>24&255,r[12]=x>>>0&255,r[13]=x>>>8&255,r[14]=x>>>16&255,r[15]=x>>>24&255,r[16]=M>>>0&255,r[17]=M>>>8&255,r[18]=M>>>16&255,r[19]=M>>>24&255,r[20]=m>>>0&255,r[21]=m>>>8&255,r[22]=m>>>16&255,r[23]=m>>>24&255,r[24]=B>>>0&255,r[25]=B>>>8&255,r[26]=B>>>16&255,r[27]=B>>>24&255,r[28]=S>>>0&255,r[29]=S>>>8&255,r[30]=S>>>16&255,r[31]=S>>>24&255,r[32]=K>>>0&255,r[33]=K>>>8&255,r[34]=K>>>16&255,r[35]=K>>>24&255,r[36]=T>>>0&255,r[37]=T>>>8&255,r[38]=T>>>16&255,r[39]=T>>>24&255,r[40]=Y>>>0&255,r[41]=Y>>>8&255,r[42]=Y>>>16&255,r[43]=Y>>>24&255,r[44]=k>>>0&255,r[45]=k>>>8&255,r[46]=k>>>16&255,r[47]=k>>>24&255,r[48]=L>>>0&255,r[49]=L>>>8&255,r[50]=L>>>16&255,r[51]=L>>>24&255,r[52]=z>>>0&255,r[53]=z>>>8&255,r[54]=z>>>16&255,r[55]=z>>>24&255,r[56]=R>>>0&255,r[57]=R>>>8&255,r[58]=R>>>16&255,r[59]=R>>>24&255,r[60]=P>>>0&255,r[61]=P>>>8&255,r[62]=P>>>16&255,r[63]=P>>>24&255}function h(r,t,n,e){for(var o,i=255&e[0]|(255&e[1])<<8|(255&e[2])<<16|(255&e[3])<<24,h=255&n[0]|(255&n[1])<<8|(255&n[2])<<16|(255&n[3])<<24,a=255&n[4]|(255&n[5])<<8|(255&n[6])<<16|(255&n[7])<<24,f=255&n[8]|(255&n[9])<<8|(255&n[10])<<16|(255&n[11])<<24,s=255&n[12]|(255&n[13])<<8|(255&n[14])<<16|(255&n[15])<<24,c=255&e[4]|(255&e[5])<<8|(255&e[6])<<16|(255&e[7])<<24,u=255&t[0]|(255&t[1])<<8|(255&t[2])<<16|(255&t[3])<<24,y=255&t[4]|(255&t[5])<<8|(255&t[6])<<16|(255&t[7])<<24,l=255&t[8]|(255&t[9])<<8|(255&t[10])<<16|(255&t[11])<<24,w=255&t[12]|(255&t[13])<<8|(255&t[14])<<16|(255&t[15])<<24,p=255&e[8]|(255&e[9])<<8|(255&e[10])<<16|(255&e[11])<<24,v=255&n[16]|(255&n[17])<<8|(255&n[18])<<16|(255&n[19])<<24,b=255&n[20]|(255&n[21])<<8|(255&n[22])<<16|(255&n[23])<<24,g=255&n[24]|(255&n[25])<<8|(255&n[26])<<16|(255&n[27])<<24,_=255&n[28]|(255&n[29])<<8|(255&n[30])<<16|(255&n[31])<<24,A=255&e[12]|(255&e[13])<<8|(255&e[14])<<16|(255&e[15])<<24,d=i,U=h,E=a,x=f,M=s,m=c,B=u,S=y,K=l,T=w,Y=p,k=v,L=b,z=g,R=_,P=A,O=0;O<20;O+=2)o=d+L|0,M^=o<<7|o>>>25,o=M+d|0,K^=o<<9|o>>>23,o=K+M|0,L^=o<<13|o>>>19,o=L+K|0,d^=o<<18|o>>>14,o=m+U|0,T^=o<<7|o>>>25,o=T+m|0,z^=o<<9|o>>>23,o=z+T|0,U^=o<<13|o>>>19,o=U+z|0,m^=o<<18|o>>>14,o=Y+B|0,R^=o<<7|o>>>25,o=R+Y|0,E^=o<<9|o>>>23,o=E+R|0,B^=o<<13|o>>>19,o=B+E|0,Y^=o<<18|o>>>14,o=P+k|0,x^=o<<7|o>>>25,o=x+P|0,S^=o<<9|o>>>23,o=S+x|0,k^=o<<13|o>>>19,o=k+S|0,P^=o<<18|o>>>14,o=d+x|0,U^=o<<7|o>>>25,o=U+d|0,E^=o<<9|o>>>23,o=E+U|0,x^=o<<13|o>>>19,o=x+E|0,d^=o<<18|o>>>14,o=m+M|0,B^=o<<7|o>>>25,o=B+m|0,S^=o<<9|o>>>23,o=S+B|0,M^=o<<13|o>>>19,o=M+S|0,m^=o<<18|o>>>14,o=Y+T|0,k^=o<<7|o>>>25,o=k+Y|0,K^=o<<9|o>>>23,o=K+k|0,T^=o<<13|o>>>19,o=T+K|0,Y^=o<<18|o>>>14,o=P+R|0,L^=o<<7|o>>>25,o=L+P|0,z^=o<<9|o>>>23,o=z+L|0,R^=o<<13|o>>>19,o=R+z|0,P^=o<<18|o>>>14;r[0]=d>>>0&255,r[1]=d>>>8&255,r[2]=d>>>16&255,r[3]=d>>>24&255,r[4]=m>>>0&255,r[5]=m>>>8&255,r[6]=m>>>16&255,r[7]=m>>>24&255,r[8]=Y>>>0&255,r[9]=Y>>>8&255,r[10]=Y>>>16&255,r[11]=Y>>>24&255,r[12]=P>>>0&255,r[13]=P>>>8&255,r[14]=P>>>16&255,r[15]=P>>>24&255,r[16]=B>>>0&255,r[17]=B>>>8&255,r[18]=B>>>16&255,r[19]=B>>>24&255,r[20]=S>>>0&255,r[21]=S>>>8&255,r[22]=S>>>16&255,r[23]=S>>>24&255,r[24]=K>>>0&255,r[25]=K>>>8&255,r[26]=K>>>16&255,r[27]=K>>>24&255,r[28]=T>>>0&255,r[29]=T>>>8&255,r[30]=T>>>16&255,r[31]=T>>>24&255}function a(r,t,n,e){i(r,t,n,e)}function f(r,t,n,e){h(r,t,n,e)}function s(r,t,n,e,o,i,h){var f,s,c=new Uint8Array(16),u=new Uint8Array(64);for(s=0;s<16;s++)c[s]=0;for(s=0;s<8;s++)c[s]=i[s];for(;o>=64;){for(a(u,c,h,ur),s=0;s<64;s++)r[t+s]=n[e+s]^u[s];for(f=1,s=8;s<16;s++)f=f+(255&c[s])|0,c[s]=255&f,f>>>=8;o-=64,t+=64,e+=64}if(o>0)for(a(u,c,h,ur),s=0;s<o;s++)r[t+s]=n[e+s]^u[s];return 0}function c(r,t,n,e,o){var i,h,f=new Uint8Array(16),s=new Uint8Array(64);for(h=0;h<16;h++)f[h]=0;for(h=0;h<8;h++)f[h]=e[h];for(;n>=64;){for(a(s,f,o,ur),h=0;h<64;h++)r[t+h]=s[h];for(i=1,h=8;h<16;h++)i=i+(255&f[h])|0,f[h]=255&i,i>>>=8;n-=64,t+=64}if(n>0)for(a(s,f,o,ur),h=0;h<n;h++)r[t+h]=s[h];return 0}function u(r,t,n,e,o){var i=new Uint8Array(32);f(i,e,o,ur);for(var h=new Uint8Array(8),a=0;a<8;a++)h[a]=e[a+16];return c(r,t,n,h,i)}function y(r,t,n,e,o,i,h){var a=new Uint8Array(32);f(a,i,h,ur);for(var c=new Uint8Array(8),u=0;u<8;u++)c[u]=i[u+16];return s(r,t,n,e,o,c,a)}function l(r,t,n,e,o,i){var h=new yr(i);return h.update(n,e,o),h.finish(r,t),0}function w(r,t,n,o,i,h){var a=new Uint8Array(16);return l(a,0,n,o,i,h),e(r,t,a,0)}function p(r,t,n,e,o){var i;if(n<32)return-1;for(y(r,0,t,0,n,e,o),l(r,16,r,32,n-32,r),i=0;i<16;i++)r[i]=0;return 0}function v(r,t,n,e,o){var i,h=new Uint8Array(32);if(n<32)return-1;if(u(h,0,32,e,o),0!==w(t,16,t,32,n-32,h))return-1;for(y(r,0,t,0,n,e,o),i=0;i<32;i++)r[i]=0;return 0}function b(r,t){var n;for(n=0;n<16;n++)r[n]=0|t[n]}function g(r){var t,n,e=1;for(t=0;t<16;t++)n=r[t]+e+65535,e=Math.floor(n/65536),r[t]=n-65536*e;r[0]+=e-1+37*(e-1)}function _(r,t,n){for(var e,o=~(n-1),i=0;i<16;i++)e=o&(r[i]^t[i]),r[i]^=e,t[i]^=e}function A(r,t){var n,e,o,i=$(),h=$();for(n=0;n<16;n++)h[n]=t[n];for(g(h),g(h),g(h),e=0;e<2;e++){for(i[0]=h[0]-65517,n=1;n<15;n++)i[n]=h[n]-65535-(i[n-1]>>16&1),i[n-1]&=65535;i[15]=h[15]-32767-(i[14]>>16&1),o=i[15]>>16&1,i[14]&=65535,_(h,i,1-o)}for(n=0;n<16;n++)r[2*n]=255&h[n],r[2*n+1]=h[n]>>8}function d(r,t){var n=new Uint8Array(32),e=new Uint8Array(32);return A(n,r),A(e,t),o(n,0,e,0)}function U(r){var t=new Uint8Array(32);return A(t,r),1&t[0]}function E(r,t){var n;for(n=0;n<16;n++)r[n]=t[2*n]+(t[2*n+1]<<8);r[15]&=32767}function x(r,t,n){for(var e=0;e<16;e++)r[e]=t[e]+n[e]}function M(r,t,n){for(var e=0;e<16;e++)r[e]=t[e]-n[e]}function m(r,t,n){var e,o,i=0,h=0,a=0,f=0,s=0,c=0,u=0,y=0,l=0,w=0,p=0,v=0,b=0,g=0,_=0,A=0,d=0,U=0,E=0,x=0,M=0,m=0,B=0,S=0,K=0,T=0,Y=0,k=0,L=0,z=0,R=0,P=n[0],O=n[1],N=n[2],C=n[3],F=n[4],I=n[5],G=n[6],Z=n[7],j=n[8],q=n[9],V=n[10],X=n[11],D=n[12],H=n[13],J=n[14],Q=n[15];e=t[0],i+=e*P,h+=e*O,a+=e*N,f+=e*C,s+=e*F,c+=e*I,u+=e*G,y+=e*Z,l+=e*j,w+=e*q,p+=e*V,v+=e*X,b+=e*D,g+=e*H,_+=e*J,A+=e*Q,e=t[1],h+=e*P,a+=e*O,f+=e*N,s+=e*C,c+=e*F,u+=e*I,y+=e*G,l+=e*Z,w+=e*j,p+=e*q,v+=e*V,b+=e*X,g+=e*D,_+=e*H,A+=e*J,d+=e*Q,e=t[2],a+=e*P,f+=e*O,s+=e*N,c+=e*C,u+=e*F,y+=e*I,l+=e*G,w+=e*Z,p+=e*j,v+=e*q,b+=e*V,g+=e*X,_+=e*D,A+=e*H,d+=e*J,U+=e*Q,e=t[3],f+=e*P,s+=e*O,c+=e*N,u+=e*C,y+=e*F,l+=e*I,w+=e*G,p+=e*Z,v+=e*j,b+=e*q,g+=e*V,_+=e*X,A+=e*D,d+=e*H,U+=e*J,E+=e*Q,e=t[4],s+=e*P,c+=e*O,u+=e*N,y+=e*C,l+=e*F,w+=e*I,p+=e*G,v+=e*Z,b+=e*j,g+=e*q,_+=e*V,A+=e*X,d+=e*D,U+=e*H,E+=e*J,x+=e*Q,e=t[5],c+=e*P,u+=e*O,y+=e*N,l+=e*C,w+=e*F,p+=e*I,v+=e*G,b+=e*Z,g+=e*j,_+=e*q,A+=e*V,d+=e*X,U+=e*D,E+=e*H,x+=e*J,M+=e*Q,e=t[6],u+=e*P,y+=e*O,l+=e*N,w+=e*C,p+=e*F,v+=e*I,b+=e*G,g+=e*Z,_+=e*j,A+=e*q,d+=e*V,U+=e*X,E+=e*D,x+=e*H,M+=e*J,m+=e*Q,e=t[7],y+=e*P,l+=e*O,w+=e*N,p+=e*C,v+=e*F,b+=e*I,g+=e*G,_+=e*Z,A+=e*j,d+=e*q,U+=e*V,E+=e*X,x+=e*D,M+=e*H,m+=e*J,B+=e*Q,e=t[8],l+=e*P,w+=e*O,p+=e*N,v+=e*C,b+=e*F,g+=e*I,_+=e*G,A+=e*Z,d+=e*j,U+=e*q,E+=e*V,x+=e*X,M+=e*D,m+=e*H,B+=e*J,S+=e*Q,e=t[9],w+=e*P,p+=e*O,v+=e*N,b+=e*C,g+=e*F,_+=e*I,A+=e*G,d+=e*Z,U+=e*j,E+=e*q,x+=e*V,M+=e*X,m+=e*D,B+=e*H,S+=e*J,K+=e*Q,e=t[10],p+=e*P,v+=e*O,b+=e*N,g+=e*C,_+=e*F,A+=e*I,d+=e*G,U+=e*Z,E+=e*j,x+=e*q,M+=e*V,m+=e*X,B+=e*D,S+=e*H,K+=e*J,T+=e*Q,e=t[11],v+=e*P,b+=e*O,g+=e*N,_+=e*C,A+=e*F,d+=e*I,U+=e*G,E+=e*Z,x+=e*j,M+=e*q,m+=e*V,B+=e*X;S+=e*D;K+=e*H,T+=e*J,Y+=e*Q,e=t[12],b+=e*P,g+=e*O,_+=e*N,A+=e*C,d+=e*F,U+=e*I,E+=e*G,x+=e*Z,M+=e*j,m+=e*q,B+=e*V,S+=e*X,K+=e*D,T+=e*H,Y+=e*J,k+=e*Q,e=t[13],g+=e*P,_+=e*O,A+=e*N,d+=e*C,U+=e*F,E+=e*I,x+=e*G,M+=e*Z,m+=e*j,B+=e*q,S+=e*V,K+=e*X,T+=e*D,Y+=e*H,k+=e*J,L+=e*Q,e=t[14],_+=e*P,A+=e*O,d+=e*N,U+=e*C,E+=e*F,x+=e*I,M+=e*G,m+=e*Z,B+=e*j,S+=e*q,K+=e*V,T+=e*X,Y+=e*D,k+=e*H,L+=e*J,z+=e*Q,e=t[15],A+=e*P,d+=e*O,U+=e*N,E+=e*C,x+=e*F,M+=e*I,m+=e*G,B+=e*Z,S+=e*j,K+=e*q,T+=e*V,Y+=e*X,k+=e*D,L+=e*H,z+=e*J,R+=e*Q,i+=38*d,h+=38*U,a+=38*E,f+=38*x,s+=38*M,c+=38*m,u+=38*B,y+=38*S,l+=38*K,w+=38*T,p+=38*Y,v+=38*k,b+=38*L,g+=38*z,_+=38*R,o=1,e=i+o+65535,o=Math.floor(e/65536),i=e-65536*o,e=h+o+65535,o=Math.floor(e/65536),h=e-65536*o,e=a+o+65535,o=Math.floor(e/65536),a=e-65536*o,e=f+o+65535,o=Math.floor(e/65536),f=e-65536*o,e=s+o+65535,o=Math.floor(e/65536),s=e-65536*o,e=c+o+65535,o=Math.floor(e/65536),c=e-65536*o,e=u+o+65535,o=Math.floor(e/65536),u=e-65536*o,e=y+o+65535,o=Math.floor(e/65536),y=e-65536*o,e=l+o+65535,o=Math.floor(e/65536),l=e-65536*o,e=w+o+65535,o=Math.floor(e/65536),w=e-65536*o,e=p+o+65535,o=Math.floor(e/65536),p=e-65536*o,e=v+o+65535,o=Math.floor(e/65536),v=e-65536*o,e=b+o+65535,o=Math.floor(e/65536),b=e-65536*o,e=g+o+65535,o=Math.floor(e/65536),g=e-65536*o,e=_+o+65535,o=Math.floor(e/65536),_=e-65536*o,e=A+o+65535,o=Math.floor(e/65536),A=e-65536*o,i+=o-1+37*(o-1),o=1,e=i+o+65535,o=Math.floor(e/65536),i=e-65536*o,e=h+o+65535,o=Math.floor(e/65536),h=e-65536*o,e=a+o+65535,o=Math.floor(e/65536),a=e-65536*o,e=f+o+65535,o=Math.floor(e/65536),f=e-65536*o,e=s+o+65535,o=Math.floor(e/65536),s=e-65536*o,e=c+o+65535,o=Math.floor(e/65536),c=e-65536*o,e=u+o+65535,o=Math.floor(e/65536),u=e-65536*o,e=y+o+65535,o=Math.floor(e/65536),y=e-65536*o,e=l+o+65535,o=Math.floor(e/65536),l=e-65536*o,e=w+o+65535,o=Math.floor(e/65536),w=e-65536*o,e=p+o+65535,o=Math.floor(e/65536),p=e-65536*o,e=v+o+65535,o=Math.floor(e/65536),v=e-65536*o,e=b+o+65535,o=Math.floor(e/65536),b=e-65536*o,e=g+o+65535,o=Math.floor(e/65536),g=e-65536*o,e=_+o+65535,o=Math.floor(e/65536),_=e-65536*o,e=A+o+65535,o=Math.floor(e/65536),A=e-65536*o,i+=o-1+37*(o-1),r[0]=i,r[1]=h,r[2]=a,r[3]=f,r[4]=s,r[5]=c,r[6]=u,r[7]=y,r[8]=l,r[9]=w,r[10]=p,r[11]=v,r[12]=b,r[13]=g;r[14]=_;r[15]=A}function B(r,t){m(r,t,t)}function S(r,t){var n,e=$();for(n=0;n<16;n++)e[n]=t[n];for(n=253;n>=0;n--)B(e,e),2!==n&&4!==n&&m(e,e,t);for(n=0;n<16;n++)r[n]=e[n]}function K(r,t){var n,e=$();for(n=0;n<16;n++)e[n]=t[n];for(n=250;n>=0;n--)B(e,e),1!==n&&m(e,e,t);for(n=0;n<16;n++)r[n]=e[n]}function T(r,t,n){var e,o,i=new Uint8Array(32),h=new Float64Array(80),a=$(),f=$(),s=$(),c=$(),u=$(),y=$();for(o=0;o<31;o++)i[o]=t[o];for(i[31]=127&t[31]|64,i[0]&=248,E(h,n),o=0;o<16;o++)f[o]=h[o],c[o]=a[o]=s[o]=0;for(a[0]=c[0]=1,o=254;o>=0;--o)e=i[o>>>3]>>>(7&o)&1,_(a,f,e),_(s,c,e),x(u,a,s),M(a,a,s),x(s,f,c),M(f,f,c),B(c,u),B(y,a),m(a,s,a),m(s,f,u),x(u,a,s),M(a,a,s),B(f,a),M(s,c,y),m(a,s,ir),x(a,a,c),m(s,s,a),m(a,c,y),m(c,f,h),B(f,u),_(a,f,e),_(s,c,e);for(o=0;o<16;o++)h[o+16]=a[o],h[o+32]=s[o],h[o+48]=f[o],h[o+64]=c[o];var l=h.subarray(32),w=h.subarray(16);return S(l,l),m(w,w,l),A(r,w),0}function Y(r,t){return T(r,t,nr)}function k(r,t){return rr(t,32),Y(r,t)}function L(r,t,n){var e=new Uint8Array(32);return T(e,n,t),f(r,tr,e,ur)}function z(r,t,n,e,o,i){var h=new Uint8Array(32);return L(h,o,i),lr(r,t,n,e,h)}function R(r,t,n,e,o,i){var h=new Uint8Array(32);return L(h,o,i),wr(r,t,n,e,h)}function P(r,t,n,e){for(var o,i,h,a,f,s,c,u,y,l,w,p,v,b,g,_,A,d,U,E,x,M,m,B,S,K,T=new Int32Array(16),Y=new Int32Array(16),k=r[0],L=r[1],z=r[2],R=r[3],P=r[4],O=r[5],N=r[6],C=r[7],F=t[0],I=t[1],G=t[2],Z=t[3],j=t[4],q=t[5],V=t[6],X=t[7],D=0;e>=128;){for(U=0;U<16;U++)E=8*U+D,T[U]=n[E+0]<<24|n[E+1]<<16|n[E+2]<<8|n[E+3],Y[U]=n[E+4]<<24|n[E+5]<<16|n[E+6]<<8|n[E+7];for(U=0;U<80;U++)if(o=k,i=L,h=z,a=R,f=P,s=O,c=N,u=C,y=F,l=I,w=G,p=Z,v=j,b=q,g=V,_=X,x=C,M=X,m=65535&M,B=M>>>16,S=65535&x,K=x>>>16,x=(P>>>14|j<<18)^(P>>>18|j<<14)^(j>>>9|P<<23),M=(j>>>14|P<<18)^(j>>>18|P<<14)^(P>>>9|j<<23),m+=65535&M,B+=M>>>16,S+=65535&x,K+=x>>>16,x=P&O^~P&N,M=j&q^~j&V,m+=65535&M,B+=M>>>16,S+=65535&x,K+=x>>>16,x=pr[2*U],M=pr[2*U+1],m+=65535&M,B+=M>>>16,S+=65535&x,K+=x>>>16,x=T[U%16],M=Y[U%16],m+=65535&M,B+=M>>>16,S+=65535&x,K+=x>>>16,B+=m>>>16,S+=B>>>16,K+=S>>>16,A=65535&S|K<<16,d=65535&m|B<<16,x=A,M=d,m=65535&M,B=M>>>16,S=65535&x,K=x>>>16,x=(k>>>28|F<<4)^(F>>>2|k<<30)^(F>>>7|k<<25),M=(F>>>28|k<<4)^(k>>>2|F<<30)^(k>>>7|F<<25),m+=65535&M,B+=M>>>16,S+=65535&x,K+=x>>>16,x=k&L^k&z^L&z,M=F&I^F&G^I&G,m+=65535&M,B+=M>>>16,S+=65535&x,K+=x>>>16,B+=m>>>16,S+=B>>>16,K+=S>>>16,u=65535&S|K<<16,_=65535&m|B<<16,x=a,M=p,m=65535&M,B=M>>>16,S=65535&x,K=x>>>16,x=A,M=d,m+=65535&M,B+=M>>>16,S+=65535&x,K+=x>>>16,B+=m>>>16,S+=B>>>16,K+=S>>>16,a=65535&S|K<<16,p=65535&m|B<<16,L=o,z=i,R=h,P=a,O=f,N=s,C=c,k=u,I=y,G=l,Z=w,j=p,q=v,V=b,X=g,F=_,U%16===15)for(E=0;E<16;E++)x=T[E],M=Y[E],m=65535&M,B=M>>>16,S=65535&x,K=x>>>16,x=T[(E+9)%16],M=Y[(E+9)%16],m+=65535&M,B+=M>>>16,S+=65535&x,K+=x>>>16,A=T[(E+1)%16],d=Y[(E+1)%16],x=(A>>>1|d<<31)^(A>>>8|d<<24)^A>>>7,M=(d>>>1|A<<31)^(d>>>8|A<<24)^(d>>>7|A<<25),m+=65535&M,B+=M>>>16,S+=65535&x,K+=x>>>16,A=T[(E+14)%16],d=Y[(E+14)%16],x=(A>>>19|d<<13)^(d>>>29|A<<3)^A>>>6,M=(d>>>19|A<<13)^(A>>>29|d<<3)^(d>>>6|A<<26),m+=65535&M,B+=M>>>16,S+=65535&x,K+=x>>>16,B+=m>>>16,S+=B>>>16,K+=S>>>16,T[E]=65535&S|K<<16,Y[E]=65535&m|B<<16;x=k,M=F,m=65535&M,B=M>>>16,S=65535&x,K=x>>>16,x=r[0],M=t[0],m+=65535&M,B+=M>>>16,S+=65535&x,K+=x>>>16,B+=m>>>16,S+=B>>>16,K+=S>>>16,r[0]=k=65535&S|K<<16,t[0]=F=65535&m|B<<16,x=L,M=I,m=65535&M,B=M>>>16,S=65535&x,K=x>>>16,x=r[1],M=t[1],m+=65535&M,B+=M>>>16,S+=65535&x,K+=x>>>16,B+=m>>>16,S+=B>>>16,K+=S>>>16,r[1]=L=65535&S|K<<16,t[1]=I=65535&m|B<<16,x=z,M=G,m=65535&M,B=M>>>16,S=65535&x,K=x>>>16,x=r[2],M=t[2],m+=65535&M,B+=M>>>16,S+=65535&x,K+=x>>>16,B+=m>>>16,S+=B>>>16,K+=S>>>16,r[2]=z=65535&S|K<<16,t[2]=G=65535&m|B<<16,x=R,M=Z,m=65535&M,B=M>>>16,S=65535&x,K=x>>>16,x=r[3],M=t[3],m+=65535&M,B+=M>>>16,S+=65535&x,K+=x>>>16,B+=m>>>16,S+=B>>>16,K+=S>>>16,r[3]=R=65535&S|K<<16,t[3]=Z=65535&m|B<<16,x=P,M=j,m=65535&M,B=M>>>16,S=65535&x,K=x>>>16,x=r[4],M=t[4],m+=65535&M,B+=M>>>16,S+=65535&x,K+=x>>>16,B+=m>>>16,S+=B>>>16,K+=S>>>16,r[4]=P=65535&S|K<<16,t[4]=j=65535&m|B<<16,x=O,M=q,m=65535&M,B=M>>>16,S=65535&x,K=x>>>16,x=r[5],M=t[5],m+=65535&M,B+=M>>>16,S+=65535&x,K+=x>>>16,B+=m>>>16,S+=B>>>16,K+=S>>>16,r[5]=O=65535&S|K<<16,t[5]=q=65535&m|B<<16,x=N,M=V,m=65535&M,B=M>>>16,S=65535&x,K=x>>>16,x=r[6],M=t[6],m+=65535&M,B+=M>>>16,S+=65535&x,K+=x>>>16,B+=m>>>16,S+=B>>>16,K+=S>>>16,r[6]=N=65535&S|K<<16,t[6]=V=65535&m|B<<16,x=C,M=X,m=65535&M,B=M>>>16,S=65535&x,K=x>>>16,x=r[7],M=t[7],m+=65535&M,B+=M>>>16,S+=65535&x,K+=x>>>16,B+=m>>>16,S+=B>>>16,K+=S>>>16,r[7]=C=65535&S|K<<16,t[7]=X=65535&m|B<<16,D+=128,e-=128}return e}function O(r,n,e){var o,i=new Int32Array(8),h=new Int32Array(8),a=new Uint8Array(256),f=e;for(i[0]=1779033703,i[1]=3144134277,i[2]=1013904242,i[3]=2773480762,i[4]=1359893119,i[5]=2600822924,i[6]=528734635,i[7]=1541459225,h[0]=4089235720,h[1]=2227873595,h[2]=4271175723,h[3]=1595750129,h[4]=2917565137,h[5]=725511199,h[6]=4215389547,h[7]=327033209,P(i,h,n,e),e%=128,o=0;o<e;o++)a[o]=n[f-e+o];for(a[e]=128,e=256-128*(e<112?1:0),a[e-9]=0,t(a,e-8,f/536870912|0,f<<3),P(i,h,a,e),o=0;o<8;o++)t(r,8*o,i[o],h[o]);return 0}function N(r,t){var n=$(),e=$(),o=$(),i=$(),h=$(),a=$(),f=$(),s=$(),c=$();M(n,r[1],r[0]),M(c,t[1],t[0]),m(n,n,c),x(e,r[0],r[1]),x(c,t[0],t[1]),m(e,e,c),m(o,r[3],t[3]),m(o,o,ar),m(i,r[2],t[2]),x(i,i,i),M(h,e,n),M(a,i,o),x(f,i,o),x(s,e,n),m(r[0],h,a),m(r[1],s,f),m(r[2],f,a),m(r[3],h,s)}function C(r,t,n){var e;for(e=0;e<4;e++)_(r[e],t[e],n)}function F(r,t){var n=$(),e=$(),o=$();S(o,t[2]),m(n,t[0],o),m(e,t[1],o),A(r,e),r[31]^=U(n)<<7}function I(r,t,n){var e,o;for(b(r[0],er),b(r[1],or),b(r[2],or),b(r[3],er),o=255;o>=0;--o)e=n[o/8|0]>>(7&o)&1,C(r,t,e),N(t,r),N(r,r),C(r,t,e)}function G(r,t){var n=[$(),$(),$(),$()];b(n[0],fr),b(n[1],sr),b(n[2],or),m(n[3],fr,sr),I(r,n,t)}function Z(r,t,n){var e,o=new Uint8Array(64),i=[$(),$(),$(),$()];for(n||rr(t,32),O(o,t,32),o[0]&=248,o[31]&=127,o[31]|=64,G(i,o),F(r,i),e=0;e<32;e++)t[e+32]=r[e];return 0}function j(r,t){var n,e,o,i;for(e=63;e>=32;--e){for(n=0,o=e-32,i=e-12;o<i;++o)t[o]+=n-16*t[e]*vr[o-(e-32)],n=t[o]+128>>8,t[o]-=256*n;t[o]+=n,t[e]=0}for(n=0,o=0;o<32;o++)t[o]+=n-(t[31]>>4)*vr[o],n=t[o]>>8,t[o]&=255;for(o=0;o<32;o++)t[o]-=n*vr[o];for(e=0;e<32;e++)t[e+1]+=t[e]>>8,r[e]=255&t[e]}function q(r){var t,n=new Float64Array(64);for(t=0;t<64;t++)n[t]=r[t];for(t=0;t<64;t++)r[t]=0;j(r,n)}function V(r,t,n,e){var o,i,h=new Uint8Array(64),a=new Uint8Array(64),f=new Uint8Array(64),s=new Float64Array(64),c=[$(),$(),$(),$()];O(h,e,32),h[0]&=248,h[31]&=127,h[31]|=64;var u=n+64;for(o=0;o<n;o++)r[64+o]=t[o];for(o=0;o<32;o++)r[32+o]=h[32+o];for(O(f,r.subarray(32),n+32),q(f),G(c,f),F(r,c),o=32;o<64;o++)r[o]=e[o];for(O(a,r,n+64),q(a),o=0;o<64;o++)s[o]=0;for(o=0;o<32;o++)s[o]=f[o];for(o=0;o<32;o++)for(i=0;i<32;i++)s[o+i]+=a[o]*h[i];return j(r.subarray(32),s),u}function X(r,t){var n=$(),e=$(),o=$(),i=$(),h=$(),a=$(),f=$();return b(r[2],or),E(r[1],t),B(o,r[1]),m(i,o,hr),M(o,o,r[2]),x(i,r[2],i),B(h,i),B(a,h),m(f,a,h),m(n,f,o),m(n,n,i),K(n,n),m(n,n,o),m(n,n,i),m(n,n,i),m(r[0],n,i),B(e,r[0]),m(e,e,i),d(e,o)&&m(r[0],r[0],cr),B(e,r[0]),m(e,e,i),d(e,o)?-1:(U(r[0])===t[31]>>7&&M(r[0],er,r[0]),m(r[3],r[0],r[1]),0)}function D(r,t,n,e){var i,h,a=new Uint8Array(32),f=new Uint8Array(64),s=[$(),$(),$(),$()],c=[$(),$(),$(),$()];if(h=-1,n<64)return-1;if(X(c,e))return-1;for(i=0;i<n;i++)r[i]=t[i];for(i=0;i<32;i++)r[i+32]=e[i];if(O(f,r,n),q(f),I(s,c,f),G(c,t.subarray(32)),N(s,c),F(a,s),n-=64,o(t,0,a,0)){for(i=0;i<n;i++)r[i]=0;return-1}for(i=0;i<n;i++)r[i]=t[i+64];return h=n}function H(r,t){if(r.length!==br)throw new Error("bad key size");if(t.length!==gr)throw new Error("bad nonce size")}function J(r,t){if(r.length!==Er)throw new Error("bad public key size");if(t.length!==xr)throw new Error("bad secret key size")}function Q(){var r,t;for(t=0;t<arguments.length;t++)if("[object Uint8Array]"!==(r=Object.prototype.toString.call(arguments[t])))throw new TypeError("unexpected type "+r+", use Uint8Array")}function W(r){for(var t=0;t<r.length;t++)r[t]=0}var $=function(r){var t,n=new Float64Array(16);if(r)for(t=0;t<r.length;t++)n[t]=r[t];return n},rr=function(){throw new Error("no PRNG")},tr=new Uint8Array(16),nr=new Uint8Array(32);nr[0]=9;var er=$(),or=$([1]),ir=$([56129,1]),hr=$([30883,4953,19914,30187,55467,16705,2637,112,59544,30585,16505,36039,65139,11119,27886,20995]),ar=$([61785,9906,39828,60374,45398,33411,5274,224,53552,61171,33010,6542,64743,22239,55772,9222]),fr=$([54554,36645,11616,51542,42930,38181,51040,26924,56412,64982,57905,49316,21502,52590,14035,8553]),sr=$([26200,26214,26214,26214,26214,26214,26214,26214,26214,26214,26214,26214,26214,26214,26214,26214]),cr=$([41136,18958,6951,50414,58488,44335,6150,12099,55207,15867,153,11085,57099,20417,9344,11139]),ur=new Uint8Array([101,120,112,97,110,100,32,51,50,45,98,121,116,101,32,107]),yr=function(r){this.buffer=new Uint8Array(16),this.r=new Uint16Array(10),this.h=new Uint16Array(10),this.pad=new Uint16Array(8),this.leftover=0,this.fin=0;var t,n,e,o,i,h,a,f;t=255&r[0]|(255&r[1])<<8,this.r[0]=8191&t,n=255&r[2]|(255&r[3])<<8,this.r[1]=8191&(t>>>13|n<<3),e=255&r[4]|(255&r[5])<<8,this.r[2]=7939&(n>>>10|e<<6),o=255&r[6]|(255&r[7])<<8,this.r[3]=8191&(e>>>7|o<<9),i=255&r[8]|(255&r[9])<<8,this.r[4]=255&(o>>>4|i<<12),this.r[5]=i>>>1&8190,h=255&r[10]|(255&r[11])<<8,this.r[6]=8191&(i>>>14|h<<2),a=255&r[12]|(255&r[13])<<8,this.r[7]=8065&(h>>>11|a<<5),f=255&r[14]|(255&r[15])<<8,this.r[8]=8191&(a>>>8|f<<8),this.r[9]=f>>>5&127,this.pad[0]=255&r[16]|(255&r[17])<<8,this.pad[1]=255&r[18]|(255&r[19])<<8,this.pad[2]=255&r[20]|(255&r[21])<<8,this.pad[3]=255&r[22]|(255&r[23])<<8,this.pad[4]=255&r[24]|(255&r[25])<<8,this.pad[5]=255&r[26]|(255&r[27])<<8,this.pad[6]=255&r[28]|(255&r[29])<<8,this.pad[7]=255&r[30]|(255&r[31])<<8};yr.prototype.blocks=function(r,t,n){for(var e,o,i,h,a,f,s,c,u,y,l,w,p,v,b,g,_,A,d,U=this.fin?0:2048,E=this.h[0],x=this.h[1],M=this.h[2],m=this.h[3],B=this.h[4],S=this.h[5],K=this.h[6],T=this.h[7],Y=this.h[8],k=this.h[9],L=this.r[0],z=this.r[1],R=this.r[2],P=this.r[3],O=this.r[4],N=this.r[5],C=this.r[6],F=this.r[7],I=this.r[8],G=this.r[9];n>=16;)e=255&r[t+0]|(255&r[t+1])<<8,E+=8191&e,o=255&r[t+2]|(255&r[t+3])<<8,x+=8191&(e>>>13|o<<3),i=255&r[t+4]|(255&r[t+5])<<8,M+=8191&(o>>>10|i<<6),h=255&r[t+6]|(255&r[t+7])<<8,m+=8191&(i>>>7|h<<9),a=255&r[t+8]|(255&r[t+9])<<8,B+=8191&(h>>>4|a<<12),S+=a>>>1&8191,f=255&r[t+10]|(255&r[t+11])<<8,K+=8191&(a>>>14|f<<2),s=255&r[t+12]|(255&r[t+13])<<8,T+=8191&(f>>>11|s<<5),c=255&r[t+14]|(255&r[t+15])<<8,Y+=8191&(s>>>8|c<<8),k+=c>>>5|U,u=0,y=u,y+=E*L,y+=x*(5*G),y+=M*(5*I),y+=m*(5*F),y+=B*(5*C),u=y>>>13,y&=8191,y+=S*(5*N),y+=K*(5*O),y+=T*(5*P),y+=Y*(5*R),y+=k*(5*z),u+=y>>>13,y&=8191,l=u,l+=E*z,l+=x*L,l+=M*(5*G),l+=m*(5*I),l+=B*(5*F),u=l>>>13,l&=8191,l+=S*(5*C),l+=K*(5*N),l+=T*(5*O),l+=Y*(5*P),l+=k*(5*R),u+=l>>>13,l&=8191,w=u,w+=E*R,w+=x*z,w+=M*L,w+=m*(5*G),w+=B*(5*I),u=w>>>13,w&=8191,w+=S*(5*F),w+=K*(5*C),w+=T*(5*N),w+=Y*(5*O),w+=k*(5*P),u+=w>>>13,w&=8191,p=u,p+=E*P,p+=x*R,p+=M*z,p+=m*L,p+=B*(5*G),u=p>>>13,p&=8191,p+=S*(5*I),p+=K*(5*F),p+=T*(5*C),p+=Y*(5*N),p+=k*(5*O),u+=p>>>13,p&=8191,v=u,v+=E*O,v+=x*P,v+=M*R,v+=m*z,v+=B*L,u=v>>>13,v&=8191,v+=S*(5*G),v+=K*(5*I),v+=T*(5*F),v+=Y*(5*C),v+=k*(5*N),u+=v>>>13,v&=8191,b=u,b+=E*N,b+=x*O,b+=M*P,b+=m*R,b+=B*z,u=b>>>13,b&=8191,b+=S*L,b+=K*(5*G),b+=T*(5*I),b+=Y*(5*F),b+=k*(5*C),u+=b>>>13,b&=8191,g=u,g+=E*C,g+=x*N,g+=M*O,g+=m*P,g+=B*R,u=g>>>13,g&=8191,g+=S*z,g+=K*L,g+=T*(5*G),g+=Y*(5*I),g+=k*(5*F),u+=g>>>13,g&=8191,_=u,_+=E*F,_+=x*C,_+=M*N,_+=m*O,_+=B*P,u=_>>>13,_&=8191,_+=S*R,_+=K*z,_+=T*L,_+=Y*(5*G),_+=k*(5*I),u+=_>>>13,_&=8191,A=u,A+=E*I,A+=x*F,A+=M*C,A+=m*N,A+=B*O,u=A>>>13,A&=8191,A+=S*P,A+=K*R,A+=T*z,A+=Y*L,A+=k*(5*G),u+=A>>>13,A&=8191,d=u,d+=E*G,d+=x*I,d+=M*F,d+=m*C,d+=B*N,u=d>>>13,d&=8191,d+=S*O,d+=K*P,d+=T*R,d+=Y*z,d+=k*L,u+=d>>>13,d&=8191,u=(u<<2)+u|0,u=u+y|0,y=8191&u,u>>>=13,l+=u,E=y,x=l,M=w,m=p,B=v,S=b,K=g,T=_,Y=A,k=d,t+=16,n-=16;this.h[0]=E,this.h[1]=x,this.h[2]=M,this.h[3]=m,this.h[4]=B,this.h[5]=S,this.h[6]=K,this.h[7]=T,this.h[8]=Y,this.h[9]=k},yr.prototype.finish=function(r,t){var n,e,o,i,h=new Uint16Array(10);if(this.leftover){for(i=this.leftover,this.buffer[i++]=1;i<16;i++)this.buffer[i]=0;this.fin=1,this.blocks(this.buffer,0,16)}for(n=this.h[1]>>>13,this.h[1]&=8191,i=2;i<10;i++)this.h[i]+=n,n=this.h[i]>>>13,this.h[i]&=8191;for(this.h[0]+=5*n,n=this.h[0]>>>13,this.h[0]&=8191,this.h[1]+=n,n=this.h[1]>>>13,this.h[1]&=8191,this.h[2]+=n,h[0]=this.h[0]+5,n=h[0]>>>13,h[0]&=8191,i=1;i<10;i++)h[i]=this.h[i]+n,n=h[i]>>>13,h[i]&=8191;for(h[9]-=8192,e=(1^n)-1,i=0;i<10;i++)h[i]&=e;for(e=~e,i=0;i<10;i++)this.h[i]=this.h[i]&e|h[i];for(this.h[0]=65535&(this.h[0]|this.h[1]<<13),this.h[1]=65535&(this.h[1]>>>3|this.h[2]<<10),this.h[2]=65535&(this.h[2]>>>6|this.h[3]<<7),this.h[3]=65535&(this.h[3]>>>9|this.h[4]<<4),this.h[4]=65535&(this.h[4]>>>12|this.h[5]<<1|this.h[6]<<14),this.h[5]=65535&(this.h[6]>>>2|this.h[7]<<11),this.h[6]=65535&(this.h[7]>>>5|this.h[8]<<8),this.h[7]=65535&(this.h[8]>>>8|this.h[9]<<5),o=this.h[0]+this.pad[0],this.h[0]=65535&o,i=1;i<8;i++)o=(this.h[i]+this.pad[i]|0)+(o>>>16)|0,this.h[i]=65535&o;r[t+0]=this.h[0]>>>0&255,r[t+1]=this.h[0]>>>8&255,r[t+2]=this.h[1]>>>0&255,r[t+3]=this.h[1]>>>8&255,r[t+4]=this.h[2]>>>0&255,r[t+5]=this.h[2]>>>8&255,r[t+6]=this.h[3]>>>0&255,r[t+7]=this.h[3]>>>8&255,r[t+8]=this.h[4]>>>0&255,r[t+9]=this.h[4]>>>8&255,r[t+10]=this.h[5]>>>0&255,r[t+11]=this.h[5]>>>8&255,r[t+12]=this.h[6]>>>0&255,r[t+13]=this.h[6]>>>8&255,r[t+14]=this.h[7]>>>0&255,r[t+15]=this.h[7]>>>8&255},yr.prototype.update=function(r,t,n){var e,o;if(this.leftover){for(o=16-this.leftover,o>n&&(o=n),e=0;e<o;e++)this.buffer[this.leftover+e]=r[t+e];if(n-=o,t+=o,this.leftover+=o,this.leftover<16)return;this.blocks(this.buffer,0,16),this.leftover=0}if(n>=16&&(o=n-n%16,this.blocks(r,t,o),t+=o,n-=o),n){for(e=0;e<n;e++)this.buffer[this.leftover+e]=r[t+e];this.leftover+=n}};var lr=p,wr=v,pr=[1116352408,3609767458,1899447441,602891725,3049323471,3964484399,3921009573,2173295548,961987163,4081628472,1508970993,3053834265,2453635748,2937671579,2870763221,3664609560,3624381080,2734883394,310598401,1164996542,607225278,1323610764,1426881987,3590304994,1925078388,4068182383,2162078206,991336113,2614888103,633803317,3248222580,3479774868,3835390401,2666613458,4022224774,944711139,264347078,2341262773,604807628,2007800933,770255983,1495990901,1249150122,1856431235,1555081692,3175218132,1996064986,2198950837,2554220882,3999719339,2821834349,766784016,2952996808,2566594879,3210313671,3203337956,3336571891,1034457026,3584528711,2466948901,113926993,3758326383,338241895,168717936,666307205,1188179964,773529912,1546045734,1294757372,1522805485,1396182291,2643833823,1695183700,2343527390,1986661051,1014477480,2177026350,1206759142,2456956037,344077627,2730485921,1290863460,2820302411,3158454273,3259730800,3505952657,3345764771,106217008,3516065817,3606008344,3600352804,1432725776,4094571909,1467031594,275423344,851169720,430227734,3100823752,506948616,1363258195,659060556,3750685593,883997877,3785050280,958139571,3318307427,1322822218,3812723403,1537002063,2003034995,1747873779,3602036899,1955562222,1575990012,2024104815,1125592928,2227730452,2716904306,2361852424,442776044,2428436474,593698344,2756734187,3733110249,3204031479,2999351573,3329325298,3815920427,3391569614,3928383900,3515267271,566280711,3940187606,3454069534,4118630271,4000239992,116418474,1914138554,174292421,2731055270,289380356,3203993006,460393269,320620315,685471733,587496836,852142971,1086792851,1017036298,365543100,1126000580,2618297676,1288033470,3409855158,1501505948,4234509866,1607167915,987167468,1816402316,1246189591],vr=new Float64Array([237,211,245,92,26,99,18,88,214,156,247,162,222,249,222,20,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,16]),br=32,gr=24,_r=32,Ar=16,dr=32,Ur=32,Er=32,xr=32,Mr=32,mr=gr,Br=_r,Sr=Ar,Kr=64,Tr=32,Yr=64,kr=32,Lr=64;r.lowlevel={crypto_core_hsalsa20:f,crypto_stream_xor:y,crypto_stream:u,crypto_stream_salsa20_xor:s,crypto_stream_salsa20:c,crypto_onetimeauth:l,crypto_onetimeauth_verify:w,crypto_verify_16:e,crypto_verify_32:o,crypto_secretbox:p,crypto_secretbox_open:v,crypto_scalarmult:T,crypto_scalarmult_base:Y,crypto_box_beforenm:L,crypto_box_afternm:lr,crypto_box:z,crypto_box_open:R,crypto_box_keypair:k,crypto_hash:O,crypto_sign:V,crypto_sign_keypair:Z,crypto_sign_open:D,crypto_secretbox_KEYBYTES:br,crypto_secretbox_NONCEBYTES:gr,crypto_secretbox_ZEROBYTES:_r,crypto_secretbox_BOXZEROBYTES:Ar,crypto_scalarmult_BYTES:dr,crypto_scalarmult_SCALARBYTES:Ur,crypto_box_PUBLICKEYBYTES:Er,crypto_box_SECRETKEYBYTES:xr,crypto_box_BEFORENMBYTES:Mr,crypto_box_NONCEBYTES:mr,crypto_box_ZEROBYTES:Br,crypto_box_BOXZEROBYTES:Sr,crypto_sign_BYTES:Kr,crypto_sign_PUBLICKEYBYTES:Tr,crypto_sign_SECRETKEYBYTES:Yr,crypto_sign_SEEDBYTES:kr,crypto_hash_BYTES:Lr},r.util||(r.util={},r.util.decodeUTF8=r.util.encodeUTF8=r.util.encodeBase64=r.util.decodeBase64=function(){throw new Error("nacl.util moved into separate package: https://github.com/dchest/tweetnacl-util-js")}),r.randomBytes=function(r){var t=new Uint8Array(r);return rr(t,r),t},r.secretbox=function(r,t,n){Q(r,t,n),H(n,t);for(var e=new Uint8Array(_r+r.length),o=new Uint8Array(e.length),i=0;i<r.length;i++)e[i+_r]=r[i];return p(o,e,e.length,t,n),o.subarray(Ar)},r.secretbox.open=function(r,t,n){Q(r,t,n),H(n,t);for(var e=new Uint8Array(Ar+r.length),o=new Uint8Array(e.length),i=0;i<r.length;i++)e[i+Ar]=r[i];return!(e.length<32)&&(0===v(o,e,e.length,t,n)&&o.subarray(_r))},r.secretbox.keyLength=br,r.secretbox.nonceLength=gr,r.secretbox.overheadLength=Ar,r.scalarMult=function(r,t){if(Q(r,t),r.length!==Ur)throw new Error("bad n size");if(t.length!==dr)throw new Error("bad p size");var n=new Uint8Array(dr);return T(n,r,t),n},r.scalarMult.base=function(r){if(Q(r),r.length!==Ur)throw new Error("bad n size");var t=new Uint8Array(dr);return Y(t,r),t},r.scalarMult.scalarLength=Ur,r.scalarMult.groupElementLength=dr,r.box=function(t,n,e,o){var i=r.box.before(e,o);return r.secretbox(t,n,i)},r.box.before=function(r,t){Q(r,t),J(r,t);var n=new Uint8Array(Mr);return L(n,r,t),n},r.box.after=r.secretbox,r.box.open=function(t,n,e,o){var i=r.box.before(e,o);return r.secretbox.open(t,n,i)},r.box.open.after=r.secretbox.open,r.box.keyPair=function(){var r=new Uint8Array(Er),t=new Uint8Array(xr);return k(r,t),{publicKey:r,secretKey:t}},r.box.keyPair.fromSecretKey=function(r){if(Q(r),r.length!==xr)throw new Error("bad secret key size");var t=new Uint8Array(Er);return Y(t,r),{publicKey:t,secretKey:new Uint8Array(r)}},r.box.publicKeyLength=Er,r.box.secretKeyLength=xr,r.box.sharedKeyLength=Mr,r.box.nonceLength=mr,r.box.overheadLength=r.secretbox.overheadLength,r.sign=function(r,t){if(Q(r,t),t.length!==Yr)throw new Error("bad secret key size");var n=new Uint8Array(Kr+r.length);return V(n,r,r.length,t),n},r.sign.open=function(r,t){if(2!==arguments.length)throw new Error("nacl.sign.open accepts 2 arguments; did you mean to use nacl.sign.detached.verify?");if(Q(r,t),t.length!==Tr)throw new Error("bad public key size");var n=new Uint8Array(r.length),e=D(n,r,r.length,t);if(e<0)return null;for(var o=new Uint8Array(e),i=0;i<o.length;i++)o[i]=n[i];return o},r.sign.detached=function(t,n){for(var e=r.sign(t,n),o=new Uint8Array(Kr),i=0;i<o.length;i++)o[i]=e[i];return o},r.sign.detached.verify=function(r,t,n){if(Q(r,t,n),t.length!==Kr)throw new Error("bad signature size");if(n.length!==Tr)throw new Error("bad public key size");var e,o=new Uint8Array(Kr+r.length),i=new Uint8Array(Kr+r.length);for(e=0;e<Kr;e++)o[e]=t[e];for(e=0;e<r.length;e++)o[e+Kr]=r[e];return D(i,o,o.length,n)>=0},r.sign.keyPair=function(){var r=new Uint8Array(Tr),t=new Uint8Array(Yr);return Z(r,t),{publicKey:r,secretKey:t}},r.sign.keyPair.fromSecretKey=function(r){if(Q(r),r.length!==Yr)throw new Error("bad secret key size");for(var t=new Uint8Array(Tr),n=0;n<t.length;n++)t[n]=r[32+n];return{publicKey:t,secretKey:new Uint8Array(r)}},r.sign.keyPair.fromSeed=function(r){if(Q(r),r.length!==kr)throw new Error("bad seed size");for(var t=new Uint8Array(Tr),n=new Uint8Array(Yr),e=0;e<32;e++)n[e]=r[e];return Z(t,n,!0),{publicKey:t,secretKey:n}},r.sign.publicKeyLength=Tr,r.sign.secretKeyLength=Yr,r.sign.seedLength=kr,r.sign.signatureLength=Kr,r.hash=function(r){Q(r);var t=new Uint8Array(Lr);return O(t,r,r.length),t},r.hash.hashLength=Lr,r.verify=function(r,t){return Q(r,t),
+0!==r.length&&0!==t.length&&(r.length===t.length&&0===n(r,0,t,0,r.length))},r.setPRNG=function(r){rr=r},function(){var t="undefined"!=typeof self?self.crypto||self.msCrypto:null;if(t&&t.getRandomValues){var n=65536;r.setPRNG(function(r,e){var o,i=new Uint8Array(e);for(o=0;o<e;o+=n)t.getRandomValues(i.subarray(o,o+Math.min(e-o,n)));for(o=0;o<e;o++)r[o]=i[o];W(i)})}else"undefined"!=typeof require&&(t=require("crypto"),t&&t.randomBytes&&r.setPRNG(function(r,n){var e,o=t.randomBytes(n);for(e=0;e<n;e++)r[e]=o[e];W(o)}))}()}("undefined"!=typeof module&&module.exports?module.exports:self.nacl=self.nacl||{});
+
+</script>
+<script>
+const KEY="locoreb",NV=["CEB","COMMUNAL","PROVINCIAL","RÉGIONAL"],K=["ef","co","mo"],LB=["Effectif","Ont composé","Ont eu la moyenne"];
+let S;
+try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){S=null}
+S=S||{};
+S.id=S.id||{};["dreppnf","dpeppnf","ceb"].forEach(k=>{if(S.id[k])S.id[k]=String(S.id[k]).toLocaleUpperCase("fr")});S.schools=S.schools||[];S.ex=S.ex||{};S.meta=S.meta||{};
+S.zeps=S.zeps||[];
+if(!S.zeps.length){const vu=new Set();Object.values(S.meta).forEach(m=>{const z=String(m&&m.zep||"").trim(),k=z.toLowerCase();if(z&&!vu.has(k)){vu.add(k);S.zeps.push(z)}});S.zeps.sort((a,b)=>a.localeCompare(b,"fr"))}
+normZeps();
+S.disc=S.disc||["Dictée","Questions de dictée","Rédaction","Mathématiques","Lecture"];
+S.ui=S.ui||{tab:"ac",n:1,school:"",a:1,b:2,scope:"",zsc:""};
+const $=i=>document.getElementById(i);
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const esc=s=>String(s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const num=v=>+v||0;
+function discEnter(t){const NL=String.fromCharCode(10),pos=t.selectionStart,tr=t.value.slice(-1)===NL;sansDoublon(t,'disc');normDisc();const v=S.disc.join(NL)+(tr&&S.disc.length?NL:"");if(t.value!==v){t.value=v;const q=Math.min(pos,v.length);t.setSelectionRange(q,q)}save()}
+function capD(t){const S1=capD.a||(capD.a=new Set(["a","à","y","au","aux","ce","ces","de","des","du","en","et","la","le","les","ma","mes","mon","ni","ne","on","ou","où","par","pas","que","qui","sa","se","ses","son","sur","un","une","art","air","âge","eau","ère","feu","jeu","mer","mot","sol","vie","vue","loi","lui","non","oui","ton","ta","tes","nos"])),S2=capD.b||(capD.b=new Set(["eps","svt","ecm","edm","emc","tic","tice","ess","edhc","cps"]));
+ const LT="a-zàâäéèêëîïôöùûüçœ",SEP=/^(\s+|[\-–—\/\\,;:+&|._()]+)$/;
+ const isAb=w=>{const c=w.replace(new RegExp("^["+LT+"]{1,2}['’]"),"");if(!new RegExp("["+LT+"]").test(c))return false;if(S2.has(c))return true;if(S1.has(c))return false;if(!/[aeiouyàâäéèêëîïôöùûüœ]/.test(c))return true;return c.length<=3};
+ const up=x=>x.charAt(0).toLocaleUpperCase("fr")+x.slice(1);
+ let nx=true,o="";
+ String(t==null?"":t).trim().split(/(\s+|[\-–—\/\\,;:+&|._()]+)/).forEach(p=>{
+  if(p==="")return;
+  if(SEP.test(p)){if(/^\s+$/.test(p))o+=" ";else{o+=p;if(!/^[()]+$/.test(p))nx=true}return}
+  const lw=p.toLocaleLowerCase("fr");
+  if(isAb(lw)){const m=lw.match(new RegExp("^(["+LT+"]{1,2}['’])(.+)$"));o+=m?(nx?up(m[1]):m[1])+m[2].toLocaleUpperCase("fr"):lw.toLocaleUpperCase("fr")}
+  else o+=nx?up(lw):lw;
+  nx=false});
+ return o}
+function normDisc(){S.disc=S.disc||[];const cp=capD;
+ S.disc.forEach((d,i)=>{const nw=cp(d);if(!nw||nw===d)return;if(S.disc.some((x,j)=>j!==i&&String(x).toLowerCase()===nw.toLowerCase()))return;
+  Object.values(S.ex||{}).forEach(e=>Object.values((e&&e.d)||{}).forEach(x=>{if(!x)return;
+   if(x.p&&x.p[d]!==undefined&&x.p[nw]===undefined){x.p[nw]=x.p[d];delete x.p[d]}
+   if(x.m)Object.keys(x.m).forEach(k=>{if(k.indexOf(d+"|")===0){x.m[nw+k.slice(d.length)]=x.m[k];delete x.m[k]}})}));
+  S.disc[i]=nw})}
+function normZeps(){S.id=S.id||{};["dreppnf","dpeppnf","ceb"].forEach(k=>{if(S.id[k])S.id[k]=String(S.id[k]).toLocaleUpperCase("fr")});const U=z=>String(z==null?"":z).trim().toLocaleUpperCase("fr"),vu=new Set();S.zeps=(S.zeps||[]).map(U).filter(z=>{const k=z.toLowerCase();if(!z||vu.has(k))return false;vu.add(k);return true});S.zeps.sort((a,b)=>a.localeCompare(b,"fr"));Object.values(S.meta||{}).forEach(m=>{if(m&&m.zep)m.zep=U(m.zep)});normDisc()}
+const UPS=s=>String(s==null?"":s).toLocaleUpperCase("fr");
+/* Noms : NOM en majuscules, Prénom en « nom propre » ; signature = Prénom + NOM ; anciennes données « Nom et prénom » séparées automatiquement */
+/* Emploi ou Titre honorifique : les noms et les adjectifs commencent par une majuscule (Chevalier de l'Ordre du Mérite ou de l'Étalon),
+   seuls les prépositions, déterminants et conjonctions restent en minuscules, et tout mot inconnu est une abréviation en MAJUSCULES (IEPENF) */
+const TT_F="de du des d l la le les et ou ni à au aux en pour par sur sous dans chez avec sans vers entre contre selon après avant depuis pendant devant derrière hors parmi sauf jusqu un une ce cet cette ces son sa ses leur leurs notre nos votre vos mon ma mes ton ta tes qu",
+TT_A="pédagogique pédagogiques national nationale nationaux nationales primaire primaires préscolaire préscolaires secondaire formel formelle formels non régional régionale provincial provinciale communal communale général générale généraux adjoint adjointe principal principale honoraire titulaire supérieur supérieure chargé chargée chargés chargées scolaire scolaires éducatif éducative académique académiques civil civile militaire public publique privé privée technique spécial spéciale burkinabè ancien ancienne retraité retraitée intérimaire départemental départementale local locale central centrale sanitaire social sociale culturel culturelle administratif administrative professionnel professionnelle normal normale populaire démocratique fédéral fédérale international internationale africain africaine ivoirien burkinabé",
+TT_N="chevalier officier commandeur grand ordre mérite étalon honneur palme palmes inspecteur inspectrice inspection conseiller conseillère directeur directrice direction chef circonscription éducation base enseignement école écoles éducateur éducatrice instituteur institutrice enseignant enseignante secrétaire secrétariat président présidente coordonnateur coordonnatrice coordinateur coordination responsable zone encadrement pédagogie formation province région commune ministère ministre service bureau gouvernement république burkina faso nation patrie travail progrès justice gouverneur haut-commissaire préfet maire adjoint-maire professeur professeure maître maîtresse surveillant censeur proviseur principal-adjoint économe comptable agent attaché technicien ingénieur médecin infirmier infirmière officier-supérieur colonel capitaine lieutenant sergent commissaire médaille croix étoile distinction reconnaissance",
+nk=w=>w.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase(),
+mkTT=t=>{const o={};t.split(" ").forEach(w=>{o[nk(w)]=w});return o},TTF=mkTT(TT_F),TTA=mkTT(TT_A),TTN=mkTT(TT_N);
+function fmtTitre(s){
+ s=String(s==null?"":s).replace(/\s+/g," ").replace(/(['’])\s+/g,"$1").trim();if(!s)return"";
+ const cp=w=>w.charAt(0).toLocaleUpperCase("fr")+w.slice(1);let first=true;
+ const word=w=>{const k=nk(w);let r;
+  if(/\d/.test(w))r=w;
+  else if(TTF[k]!==undefined)r=TTF[k];
+  else if(TTA[k]!==undefined)r=cp(TTA[k]);
+  else if(TTN[k]!==undefined)r=cp(TTN[k]);
+  else if(w.length>=9&&/[aeiouy]/i.test(w))r=cp(w.toLocaleLowerCase("fr"));
+  else r=w.toLocaleUpperCase("fr");
+  if(first){r=cp(r);first=false}
+  return r};
+ return s.split(" ").map(t=>t.split(/(['’-])/).map(q=>/^['’-]$/.test(q)?q:(q?word(q):"")).join("")).join(" ")}
+const cap1=s=>String(s==null?"":s).trim().toLocaleLowerCase("fr").replace(/(^|[\s-])(\S)/g,(m,a,b)=>a+b.toLocaleUpperCase("fr"));
+const fullNm=(n,p)=>[cap1(p),UPS(String(n==null?"":n).trim())].filter(Boolean).join(" ");
+const migNm=(o,k,kn,kp)=>{if(!o||!o[k]||o[kn]!=null||o[kp]!=null)return;const t=String(o[k]).trim().split(/\s+/).filter(Boolean),isU=w=>w.length>1&&w===UPS(w)&&w!==w.toLocaleLowerCase("fr");let n=t.filter(isU),p=t.filter(w=>!isU(w));if(!n.length&&t.length){n=[t[t.length-1]];p=t.slice(0,-1)}o[kn]=UPS(n.join(" "));o[kp]=cap1(p.join(" "))};
+const today=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+const E=n=>{const e=S.ex[n]||(S.ex[n]={niveau:"CEB",d:{}});if(NV.indexOf(e.niveau)<0)e.niveau="CEB";return e};
+const D=(n,s)=>E(n).d[s]||(E(n).d[s]={g:{},p:{}});
+const Mt=s=>S.meta[s]||(S.meta[s]={});
+const pc=(m,c)=>c?(m/c*100).toFixed(2).replace(".",","):"";
+/* F, G, T : si F et G sont vides (0), les trois cases restent vides */
+const hz=o=>!!(o.xf||o.xg||o.f||o.g),eF=o=>hz(o)?o.f:"",eG=o=>hz(o)?o.g:"",eT=o=>hz(o)?o.f+o.g:"";
+const tn=(o,j)=>{const c=j=="t"?o.co.f+o.co.g:o.co[j],m=j=="t"?o.mo.f+o.mo.g:o.mo[j];return c?m/c*100:null};
+const ec=(x,y)=>x==null||y==null?"":((y-x>0?"+":"")+(y-x).toFixed(2).replace(".",","));
+const sg=v=>(v>0?"+":"")+v;
+const z=()=>({f:0,g:0,xf:false,xg:false});
+const man=(x,d,j)=>{const k=d+"|co|"+j;if(x.m)return !!x.m[k];const v=x.p&&x.p[d]&&x.p[d].co&&x.p[d].co[j];return v!==undefined&&v!==""&&num(v)!==num(x.g&&x.g.co&&x.g.co[j])};
+const effco=(x,d,j)=>man(x,d,j)?num(x.p&&x.p[d]&&x.p[d].co&&x.p[d].co[j]):num(x.g&&x.g.co&&x.g.co[j]);
+let NOTE="";
+
+function agg(n,list){
+ const r={g:{ef:z(),co:z(),mo:z()},p:{}};
+ S.disc.forEach(d=>r.p[d]={co:z(),mo:z()});
+ list.forEach(s=>{const x=(S.ex[n]||{d:{}}).d[s];if(!x)return;
+  const hs=v=>v!==undefined&&v!==null&&v!=="";
+  K.forEach(k=>["f","g"].forEach(j=>{const rv=x.g&&x.g[k]&&x.g[k][j];r.g[k][j]+=num(rv);if(hs(rv))r.g[k]["x"+j]=true}));
+  S.disc.forEach(d=>["co","mo"].forEach(k=>["f","g"].forEach(j=>{const rv=k=="co"?(man(x,d,j)?(x.p&&x.p[d]&&x.p[d].co&&x.p[d].co[j]):(x.g&&x.g.co&&x.g.co[j])):(x.p&&x.p[d]&&x.p[d][k]&&x.p[d][k][j]);r.p[d][k][j]+=num(rv);if(hs(rv))r.p[d][k]["x"+j]=true})))});
+ return r}
+
+function val(r,q){
+ const [t,a,b,c]=q.split(".");
+ const o=t=="g"?r.g:r.p[S.disc[+a]],k=t=="g"?a:b,j=t=="g"?b:c;
+ if(k=="tx")return j=="t"?pc(o.mo.f+o.mo.g,o.co.f+o.co.g):pc(o.mo[j],o.co[j]);
+ return hz(o[k])?o[k].f+o[k].g:""}
+
+function tabs(r,edit){
+ const cell=(p,v,x,o)=>{const c=p.endsWith(".f")?' class="fr"':"";return edit?`<td${c}><input type="number" min="0" data-p="${p}"${/^p\.\d+\.co\./.test(p)?' tabindex="-1"':' enterkeyhint="next"'} value="${v||(x?"0":"")}" oninput="setv(this)" onchange="fix(this)" aria-label="${p}"></td>`:`<td${c}>${o&&!hz(o)?"":v}</td>`};
+ const cm=q=>edit&&q.endsWith(".t")&&!q.includes(".tx.")?`<td class="c"><input readonly tabindex="-1" data-q="${q}" value="${val(r,q)}" aria-label="${q}"></td>`:`<td class="c${q.endsWith(".f")?" fr":""}" data-q="${q}">${edit&&val(r,q)==="—"?"":val(r,q)}</td>`;
+ const g=K.map((k,i)=>`<tr><th>${LB[i]}</th>${cell("g."+k+".f",r.g[k].f,r.g[k].xf,r.g[k])}${cell("g."+k+".g",r.g[k].g,r.g[k].xg,r.g[k])}${cm("g."+k+".t")}</tr>`).join("")
+  +`<tr class="tot"><th>Taux de réussite</th>${["f","g","t"].map(j=>cm("g.tx."+j)).join("")}</tr>`;
+ const p=S.disc.map((d,i)=>`<tr><th>${esc(capD(d))}</th>`+["co","mo"].map(k=>cell(`p.${i}.${k}.f`,r.p[d][k].f,r.p[d][k].xf,r.p[d][k])+cell(`p.${i}.${k}.g`,r.p[d][k].g,r.p[d][k].xg,r.p[d][k])+cm(`p.${i}.${k}.t`)).join("")+["f","g","t"].map(j=>cm(`p.${i}.tx.${j}`)).join("")+"</tr>").join("");
+ const fgt='<th class="fr fg">F</th><th class="fg">G</th><th class="fg">T</th>';
+ return `<h3>RÉSULTATS GLOBAUX</h3><div class="w"><table><thead><tr><th class="ve"></th>${fgt}</tr></thead><tbody>${g}</tbody></table></div>
+${edit?'<div class="ctl np" style="justify-content:flex-start"><button class="bt" type="button" onclick="viderCo()">Vider les « Ont composé » par discipline</button><button class="bt" type="button" onclick="autoCo()">Rétablir le remplissage automatique</button></div><p class="mu np">Les « Ont composé » par discipline reprennent automatiquement les résultats globaux. Pour en effacer un, videz sa case.</p>':""}<h3>TAUX DE RÉUSSITE PAR DISCIPLINE</h3><div class="w"><table class="fx sx"><colgroup><col class="c0"><col class="cn" span="6"><col class="ct" span="3"></colgroup><thead><tr><th rowspan="2">Disciplines</th><th colspan="3">Ont composé</th><th colspan="3">Ont eu la moyenne</th><th colspan="3">Taux de réussite</th></tr><tr>${fgt}${fgt}${fgt}</tr></thead><tbody>${p}</tbody></table></div>`}
+
+function setv(el){
+ const [t,a,b,c]=el.dataset.p.split("."),x=D(S.ui.n,S.ui.school);
+ if(!x.m){x.m={};S.disc.forEach(d=>["f","g"].forEach(j=>{if(man(x,d,j))x.m[d+"|co|"+j]=1}))}
+ if(t=="g"){(x.g[a]=x.g[a]||{})[b]=el.value}
+ else{const d=S.disc[+a];x.p[d]=x.p[d]||{};(x.p[d][b]=x.p[d][b]||{})[c]=el.value;
+  if(b=="co"){x.m[d+"|co|"+c]=el.value===""?2:1}}
+ save();refresh(false)}
+function viderCo(){
+ if(!confirm("Vider tous les « Ont composé » par discipline de cette école ?"))return;
+ const x=D(S.ui.n,S.ui.school);ensureM(x,S.disc);x.p=x.p||{};
+ S.disc.forEach(d=>{x.p[d]=x.p[d]||{};x.p[d].co=x.p[d].co||{};["f","g"].forEach(j=>{x.p[d].co[j]="";x.m[d+"|co|"+j]=2})});
+ save();refresh(true)}
+function autoCo(){
+ const x=D(S.ui.n,S.ui.school);ensureM(x,S.disc);
+ S.disc.forEach(d=>["f","g"].forEach(j=>{delete x.m[d+"|co|"+j];if(x.p&&x.p[d]&&x.p[d].co)delete x.p[d].co[j]}));
+ save();refresh(true)}
+function lim(x,p){
+ const [t,a,b,c]=p.split(".");
+ if(t=="g")return a=="co"?num(x.g.ef&&x.g.ef[b]):a=="mo"?num(x.g.co&&x.g.co[b]):Infinity;
+ return b=="co"?num(x.g.ef&&x.g.ef[c]):effco(x,S.disc[+a],c)}
+function fix(el){
+ const x=D(S.ui.n,S.ui.school);
+ if(el.value!==""){let v=Math.max(0,Math.floor(num(el.value))),L=lim(x,el.dataset.p);
+  if(v>L){v=L;NOTE="Valeur ramenée à "+L+" (maximum autorisé)."}
+  el.value=v}
+ setv(el);refresh(true)}
+function refresh(force){
+ const n=S.ui.n,x=D(n,S.ui.school),r=agg(n,[S.ui.school]);
+ document.querySelectorAll("[data-q]").forEach(e=>{let v=val(r,e.dataset.q);if(v==="—")v="";if(e.tagName==="INPUT")e.value=v;else e.textContent=v});
+ document.querySelectorAll("input[data-p]").forEach(i=>{
+  const [t,a,b,c]=i.dataset.p.split(".");
+  if(t=="p"&&b=="co"&&(force||document.activeElement!==i)){const o=r.p[S.disc[+a]].co;i.value=o[c]||(o["x"+c]?"0":"")}});
+ validate(x)}
+function validate(x){
+ const m=[],bad=new Set(),V=(p,t)=>{bad.add(p);m.push(t)};
+ const ef=j=>num(x.g.ef&&x.g.ef[j]),gc=j=>num(x.g.co&&x.g.co[j]),gm=j=>num(x.g.mo&&x.g.mo[j]);
+ ["f","g"].forEach(j=>{const sx=j=="f"?"filles":"garçons";
+  if(gc(j)>ef(j))V("g.co."+j,`Résultats globaux (${sx}) : « Ont composé » (${gc(j)}) dépasse l’effectif (${ef(j)}).`);
+  if(gm(j)>gc(j))V("g.mo."+j,`Résultats globaux (${sx}) : « Ont eu la moyenne » (${gm(j)}) dépasse « Ont composé » (${gc(j)}).`);
+  S.disc.forEach((d,i)=>{const c=effco(x,d,j),mo=num(x.p[d]&&x.p[d].mo&&x.p[d].mo[j]);
+   if(c>ef(j))V(`p.${i}.co.${j}`,`${d} (${sx}) : « Ont composé » (${c}) dépasse l’effectif (${ef(j)}).`);
+   if(mo>c)V(`p.${i}.mo.${j}`,`${d} (${sx}) : « Ont eu la moyenne » (${mo}) dépasse « Ont composé » (${c}).`)})});
+ document.querySelectorAll("input[data-p]").forEach(i=>i.classList.toggle("bad",bad.has(i.dataset.p)));
+ const b=$("vmsg");
+ if(b)b.innerHTML=(NOTE?esc(NOTE)+"<br>":"")+m.slice(0,6).map(esc).join("<br>")+(m.length>6?"<br>…":"");
+ NOTE=""}
+
+const exSel=k=>`<select class="np" aria-label="Examen blanc" onchange="S.ui.${k}=+this.value;save();R()">${[1,2,3,4,5,6].map(i=>`<option value="${i}"${S.ui[k]==i?" selected":""}>Examen blanc n°${i}</option>`).join("")}</select>`;
+const title=n=>`<h2>RÉSULTATS DE L’EXAMEN BLANC N°${n} – NIVEAU ${esc(E(n).niveau)}</h2>`;
+const hd=()=>{const I=S.id;return `<div class="hd"><table class="hdt"><tr><td class="hl">MEBAPLN<br>SECRÉTARIAT GÉNÉRAL<br>DREPPNF : ${esc(String(I.dreppnf||"").toLocaleUpperCase("fr"))}<br>DPEPPNF : ${esc(String(I.dpeppnf||"").toLocaleUpperCase("fr"))}<br>CEB : ${esc(String(I.ceb||"").toLocaleUpperCase("fr"))}</td><td class="hr">BURKINA FASO<br>La Patrie ou la Mort, nous Vaincrons<br>Année scolaire : ${esc(I.annee)}</td></tr></table></div>`};
+const MOIS=["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
+const dateLong=v=>{const p=String(v).split("-").map(Number);if(p.length<3||!p[0]||!p[1]||!p[2]||p[1]>12)return String(v).split("-").reverse().join("/");return (p[2]===1?"1er":p[2])+" "+MOIS[p[1]-1]+" "+p[0]};
+const sig=(a,b,ext)=>{const I=S.id;migNm(I,"cceb","ccebn","ccebp");migNm(I,"rb","rbn","rbp");const d=dateLong(I.date||today()),A=a||{sx:I.rbs,tt:"R/BEPrim",nm:fullNm(I.rbn,I.rbp),jb:I.rbt},B=b||{sx:I.ccebs,tt:"CCEB",nm:fullNm(I.ccebn,I.ccebp),jb:I.ccebt};
+ const blk=(sx,tt,nm,jb)=>`${sx=="F"?"La":sx=="M"?"Le":"Le/la"} ${tt}<i></i>${nm?`<b><u>${esc(nm)}</u></b>`:""}${jb?`<em style="font-style:italic">${esc(fmtTitre(jb))}</em>`:""}`;
+ return `<div class="sig${ext?" sgx":""}"><table class="sgt"><tr><td></td><td class="sgd">Fait à ${esc(cap1(I.lieu))||"……"}, le ${d}</td></tr><tr><td>${blk(A.sx,A.tt,A.nm,A.jb)}</td><td>${blk(B.sx,B.tt,B.nm,B.jb)}</td></tr></table></div>`};
+const pdf=`<button class="bt np" onclick="exportPdf()">Exporter en PDF</button>`;
+const xl=`<button class="bt np" onclick="exportXlsx()">Exporter en Excel</button>`;
+
+function pgId(){
+ migNm(S.id,"cceb","ccebn","ccebp");migNm(S.id,"rb","rbn","rbp");
+const rq='<span class="rqs" aria-hidden="true">*</span>',bd=k=>IDTRY&&!idVal(k)?"bad":"";
+ const UQ=["dreppnf","dpeppnf","ceb"],f=(k,l)=>`<label>${l} ${rq}<input data-id="${k}" required aria-required="true" class="${bd(k)}" enterkeyhint="next"${UQ.includes(k)?' style="text-transform:uppercase"':""} value="${esc(S.id[k])}" oninput="S.id['${k}']=${UQ.includes(k)?"this.value.toLocaleUpperCase('fr')":"this.value"};save();idChk()"></label>`;
+ const nn=(k,l)=>`<label>${l} ${rq}<input data-id="${k}" required aria-required="true" class="${bd(k)}" enterkeyhint="next" style="text-transform:uppercase" value="${esc(S.id[k])}" oninput="S.id['${k}']=UPS(this.value.trim());idChk()" onchange="this.value=S.id['${k}']=UPS(this.value.trim());save();idChk()"></label>`,pn=(k,l)=>`<label>${l} ${rq}<input data-id="${k}" required aria-required="true" class="${bd(k)}" enterkeyhint="next" value="${esc(S.id[k])}" oninput="S.id['${k}']=cap1(this.value);idChk()" onchange="this.value=S.id['${k}']=cap1(this.value);save();idChk()"></label>`;
+ const sx=(k,l)=>`<label>${l} ${rq}<select data-id="${k}" required aria-required="true" class="${bd(k)}" onchange="S.id.${k}=this.value;save();idChk()"><option value=""></option>${["F","M"].map(v=>`<option${S.id[k]==v?" selected":""}>${v}</option>`).join("")}</select></label>`;
+const tt=(k,l)=>`<label>${l} ${rq}<input data-id="${k}" required aria-required="true" class="${bd(k)}" enterkeyhint="next" value="${esc(fmtTitre(S.id[k]))}" oninput="S.id['${k}']=this.value;save();idChk()" onchange="this.value=S.id['${k}']=fmtTitre(this.value);save();idChk()"></label>`;
+ return `<div class="card idp"><h2>IDENTIFICATION</h2><p style="text-align:center;margin:0 0 14px">MEBAPLN<br>SECRÉTARIAT GÉNÉRAL</p>
+ <p class="mu" style="text-align:center;margin:-6px 0 12px">Tous les champs marqués d’un <b class="rqs">*</b> sont obligatoires pour passer à l’étape suivante.</p>
+<div class="idr" style="grid-template-columns:repeat(3,minmax(0,1fr))">${f("annee","Année scolaire")}</div><div class="idr" style="grid-template-columns:repeat(3,minmax(0,1fr))">${f("dreppnf","DREPPNF")}${f("dpeppnf","DPEPPNF")}${f("ceb","CEB")}</div><div class="idr id4">${nn("ccebn","Nom du CCEB")}${pn("ccebp","Prénom du CCEB")}${sx("ccebs","Sexe du CCEB")}${tt("ccebt","Emploi ou Titre honorifique du CCEB")}</div><div class="idr id4">${nn("rbn","Nom du R/BEPrim")}${pn("rbp","Prénom du R/BEPrim")}${sx("rbs","Sexe du R/BEPrim")}${tt("rbt","Emploi ou Titre honorifique du R/BEPrim")}</div><div class="idr" style="grid-template-columns:minmax(0,2fr) minmax(0,1fr)">${pn("lieu","Fait à")}<label>Le ${rq}<input data-id="date" required aria-required="true" type=\"date\" value=\"${esc(S.id.date||today())}\" oninput=\"S.id.date=this.value;save()\"></label></div></div>
+<div class="card"><div id="idmsg" class="np warn" role="alert" style="margin:0 0 10px"${IDTRY&&idMiss().length?"":" hidden"}>${IDTRY&&idMiss().length?esc(idMsgTxt(idMiss())):""}</div><button class="bt" onclick="go('ec')">Passer à la saisie des écoles</button></div>
+<div class="card"><h3>Sauvegarde des données</h3><p class="mu">Enregistrez un fichier de sauvegarde après chaque séance de saisie, et restaurez-le sur un autre appareil ou après un effacement du navigateur. Pour l’envoyer par Bluetooth, la liste de partage du téléphone s’ouvre : choisissez-y Bluetooth. Pour l’envoyer par WhatsApp, WhatsApp s’ouvre directement sur vos contacts (application Android).</p>
+<div class="ctl"><button class="bt" onclick="sauver()">Sauvegarder (fichier)</button><button class="bt" type="button" onclick="envoyerSauv('bt')">Envoyer une sauvegarde par Bluetooth</button><button class="bt" type="button" onclick="envoyerSauv('wa')">Envoyer une sauvegarde par WhatsApp (nécessite une connexion)</button><label class="bt" style="margin:0">Restaurer un fichier<input type="file" accept=".json,application/json,text/plain,application/octet-stream" hidden onchange="restaurer(this)"></label></div></div>
+<div class="card"><h3>Fusion de données</h3><p class="mu">Plusieurs personnes ont saisi des données sur leur appareil ? Chacune envoie son fichier de sauvegarde (bouton « Sauvegarder (fichier) »). La personne qui centralise sélectionne ici tous les fichiers reçus : les écoles, les ZEP, les disciplines et les résultats sont réunis, sans effacer ce qui est déjà saisi.</p>
+<div class="ctl"><label class="bt" style="margin:0">Fusionner des fichiers<input type="file" accept=".json,application/json,text/plain,application/octet-stream" multiple hidden onchange="fusionChoisir(this)"></label>${(()=>{try{return localStorage.getItem(KEY+"_avant_fusion")?'<button class="bt" onclick="annulerFusion()">Annuler la dernière fusion</button>':""}catch(e){return""}})()}</div></div>`}
+function pgAc(){
+ const B=[["id","Identification"],["ec","Saisie des écoles"],["zp","Saisie des ZEP"],["di","Saisie des disciplines"],["sa","Saisie des résultats"],["re","Résultats"],["me","Ordre de mérite"],["cp","Comparatif"]];
+ const logo=document.querySelector("header .lg svg").outerHTML;
+ let k=0;const ttl="BIENVENUE DANS LoCoREB,".split(" ").map(w=>`<i class="wl">${[...w].map(c=>`<i class="ch" style="--i:${k++}" aria-hidden="true">${c}</i>`).join("")}</i>`).join(" ");
+ return `<div class="card home"><div class="lgbig">${logo}</div><h2><i class="sr">BIENVENUE DANS LoCoREB,</i>${ttl}<span class="sub" style="--n:${k}">le Logiciel de Compilation des Résultats des Examens Blancs.</span></h2>
+<div class="tiles">${B.map((x,i)=>`<button class="bt tile" onclick="go('${x[0]}')"><b>${i+1}</b>${x[1]}</button>`).join("")}</div></div>${licHtml()}<div class="card rst np"><h3>Réinitialisation</h3><p class="mu">Efface les résultats saisis de tous les examens blancs. L’identification, les écoles, les ZEP, les disciplines et la licence sont conservés. Un message d’avertissement vous demandera de confirmer.</p><div class="ctl"><button class="bt rdg" type="button" onclick="reinitOuvrir()">Réinitialiser l’application</button></div></div><div class="card">${credit()}</div>`}
+function pgEc(){
+ return `<div class="card"><h2>SAISIE DES ÉCOLES DE LA CEB</h2>
+<label>Une école par ligne<textarea class="up" style="min-height:220px" onchange="sansDoublon(this,'schools');S.schools.sort((a,b)=>a.localeCompare(b,'fr'));this.value=S.schools.join(String.fromCharCode(10));save()" onpaste="const t=this;setTimeout(()=>sansDoublon(t,'schools'),0)" oninput="S.schools=this.value.split(/\\n/).map(s=>s.trim()).filter(Boolean);save();if(this.value.slice(-1)===String.fromCharCode(10)||/^insert(LineBreak|Paragraph)$/.test(event.inputType||''))sansDoublon(this,'schools')" onkeyup="if(event.key==='Enter')sansDoublon(this,'schools')">${esc(S.schools.join("\n"))}</textarea></label>
+<p class="mu">Les écoles sont classées par ordre alphabétique. Saisissez-les avant les résultats : renommer une école après saisie en détache les chiffres. Les données restent sur cet appareil.</p>
+<div class="ctl"><button class="bt" onclick="go('id')">Précédent</button><button class="bt" onclick="go('zp')">Passer à la saisie des ZEP</button></div></div>`}
+function pgZp(){
+ return `<div class="card"><h2>SAISIE DES ZEP DE LA CEB</h2>
+<label>Une ZEP par ligne<textarea style="min-height:220px;text-transform:uppercase" onchange="sansDoublon(this,'zeps');S.zeps.sort((a,b)=>a.localeCompare(b,'fr'));this.value=S.zeps.join(String.fromCharCode(10));save()" onpaste="const t=this;setTimeout(()=>sansDoublon(t,'zeps'),0)" oninput="S.zeps=this.value.split(/\\n/).map(s=>s.trim().toLocaleUpperCase("fr")).filter(Boolean);save();if(this.value.slice(-1)===String.fromCharCode(10)||/^insert(LineBreak|Paragraph)$/.test(event.inputType||''))sansDoublon(this,'zeps')" onkeyup="if(event.key==='Enter')sansDoublon(this,'zeps')">${esc(S.zeps.join("\n"))}</textarea></label>
+<p class="mu">Les ZEP sont classées par ordre alphabétique. Elles alimentent la liste déroulante de la case ZEP dans Saisie des résultats. Renommer une ZEP après l’avoir attribuée à une école ne modifie pas l’école : choisissez de nouveau la ZEP. Les données restent sur cet appareil.</p>
+<div class="ctl"><button class="bt" onclick="go('ec')">Précédent</button><button class="bt" onclick="go('di')">Passer à la saisie des disciplines</button></div></div>`}
+function pgDi(){
+ return `<div class="card"><h2>SAISIE DES DISCIPLINES</h2>
+<label>Une discipline par ligne<textarea style="min-height:220px" onchange="sansDoublon(this,'disc');normDisc();this.value=S.disc.join(String.fromCharCode(10));save()" onpaste="const t=this;setTimeout(()=>sansDoublon(t,'disc'),0)" oninput="S.disc=this.value.split(/\\n/).map(s=>s.trim()).filter(Boolean);save();if(this.value.slice(-1)===String.fromCharCode(10)||/^insert(LineBreak|Paragraph)$/.test(event.inputType||''))discEnter(this)" onkeyup="if(event.key==='Enter')discEnter(this)">${esc(S.disc.join("\n"))}</textarea></label>
+<p class="mu">Renommer une discipline après saisie en détache les chiffres. Les données restent sur cet appareil.</p>
+<div class="ctl"><button class="bt" onclick="go('zp')">Précédent</button><button class="bt" onclick="go('sa')">Passer à la saisie des résultats</button></div></div>`}
+
+/* ===== Réinitialisation de l'application (page d'accueil) : efface les données, conserve la licence ===== */
+function reinitFermer(){const d=$("rmod");if(d)d.remove()}
+function reinitCheck(){const v=String($("rmi").value||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim().toUpperCase();$("rmo").disabled=v!=="REINITIALISER"}
+function reinitOuvrir(){
+ if($("rmod"))return;
+ const d=document.createElement("div");d.id="rmod";d.className="fmod np";d.setAttribute("role","dialog");d.setAttribute("aria-modal","true");d.setAttribute("aria-labelledby","rmt");
+ d.onkeydown=e=>{if(e.key==="Escape")reinitFermer()};
+ d.innerHTML='<div><h3 id="rmt" style="margin-top:0;color:var(--rd)">&#9888; Réinitialiser l’application ?</h3>'
+ +'<p>Cette action efface les résultats saisis sur cet appareil. Lisez attentivement avant de continuer :</p>'
+ +'<ul><li><b>Seuls les résultats saisis de tous les examens blancs seront effacés définitivement</b> (effectifs, ont composé, ont eu la moyenne, par école et par discipline).</li><li>L’identification, la liste des écoles (avec leur statut et leur ZEP), la liste des ZEP, la liste des disciplines et le niveau de chaque examen sont <b>conservés</b>.</li>'
+ +'<li>Cette opération est <b>irréversible</b> : elle ne pourra pas être annulée.</li>'
+ +''
+ +'<li>Votre licence d’utilisation <b>n’est pas</b> supprimée.</li>'
+ +'<li>Recommandation : enregistrez d’abord un fichier de sauvegarde pour pouvoir restaurer vos résultats plus tard.</li></ul>'
+ +'<div class="ctl"><button class="bt" type="button" onclick="sauver()">Sauvegarder (fichier) d’abord</button></div>'
+ +'<label>Pour confirmer, tapez <b>REINITIALISER</b> ci-dessous<input id="rmi" autocomplete="off" autocapitalize="characters" spellcheck="false" oninput="reinitCheck()"></label>'
+ +'<div class="ctl" style="justify-content:flex-end;margin:14px 0 0"><button class="bt" type="button" onclick="reinitFermer()">Annuler</button><button class="bt rdg" id="rmo" type="button" disabled onclick="reinitFaire()">Réinitialiser</button></div></div>';
+ document.body.appendChild(d);$("rmi").focus()}
+function reinitFaire(){
+ try{localStorage.removeItem(KEY+"_avant_fusion")}catch(e){}
+ Object.keys(S.ex||{}).forEach(n=>{if(S.ex[n])S.ex[n].d={}});
+ S.ui=S.ui||{};S.ui.tab="ac";
+ reinitFermer();save();R();toast("Résultats effacés.")}
+function sauver(){saveBlob(new Blob([JSON.stringify(S)],{type:"application/json"}),"LoCoREB_sauvegarde_"+new Date().toISOString().slice(0,10)+".json")}
+/* Envoi de la sauvegarde par Bluetooth ou WhatsApp : ouvre la liste de partage du téléphone (Android) ; sans partage possible, le fichier est téléchargé */
+async function envoyerSauv(mode){
+ const wa=mode==="wa",cible=wa?"WhatsApp":"Bluetooth";
+ if(wa&&navigator.onLine===false){toast("WhatsApp nécessite une connexion Internet. Connectez-vous, ou utilisez Bluetooth.");return}
+ const name="LoCoREB_sauvegarde_"+new Date().toISOString().slice(0,10)+".json",blob=new Blob([JSON.stringify(S)],{type:"application/json"});
+ if(wa&&window.Pont&&window.Pont.envoyerWhatsApp){
+  const b64=await new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>{const t=String(fr.result);res(t.slice(t.indexOf(",")+1))};fr.onerror=rej;fr.readAsDataURL(blob)});
+  const r=await window.Pont.envoyerWhatsApp(name,"application/json",b64,"Sauvegarde LoCoREB");
+  if(r&&r.ok)return;
+  toast(/absent/i.test((r&&r.erreur)||"")?"WhatsApp n’est pas installé sur ce téléphone : choisissez une autre application dans la liste.":"WhatsApp n’a pas pu s’ouvrir directement : choisissez-le dans la liste de partage.")}
+ if(window.Pont&&window.Pont.enregistrer){await saveBlob(blob,name,false,"","Choisissez "+cible+" pour envoyer la sauvegarde");return}
+ try{
+  const file=new File([blob],name,{type:"application/json"});
+  if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:name,text:"Sauvegarde LoCoREB"});return}
+ }catch(e){if(e&&e.name==="AbortError")return}
+ saveBlob(blob,name);toast("Le partage n’est pas disponible ici : le fichier a été téléchargé. Envoyez-le ensuite par "+cible+".")}
+function restaurer(el){const f=el.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!d.ex||!d.schools)throw 0;S=d;S.zeps=S.zeps||[];normZeps();save();R()}catch(e){alert("Fichier de sauvegarde invalide.")}};r.readAsText(f)}
+
+/* ===== Fusion de données : plusieurs personnes saisissent, puis on réunit les fichiers ===== */
+const nkey=t=>nrm(t).replace(/[-_'\u2019.]/g," ").replace(/\s+/g," ").trim();
+const aVal=v=>v!==undefined&&v!==null&&v!=="";
+function ensureM(x,discs){if(x.m)return;const m={};(discs||[]).forEach(d=>["f","g"].forEach(j=>{if(man(x,d,j))m[d+"|co|"+j]=1}));x.m=m}
+function fusionner(T,F,mode,rep){
+ const canon=(list,name,kind)=>{const n=String(name==null?"":name).trim();if(!n)return"";const k=nkey(n);let c=list.find(x=>nkey(x)===k);if(!c){list.push(n);c=n;rep[kind]++}return c};
+ T.id=T.id||{};T.meta=T.meta||{};T.ex=T.ex||{};T.schools=T.schools||[];T.zeps=T.zeps||[];T.disc=T.disc||[];
+ (F.schools||[]).forEach(x=>canon(T.schools,x,"ecoles"));
+ (F.zeps||[]).forEach(x=>canon(T.zeps,x,"zeps"));
+ (F.disc||[]).forEach(x=>canon(T.disc,x,"disc"));
+ Object.keys(F.id||{}).forEach(k=>{if(!aVal(T.id[k])&&aVal(F.id[k]))T.id[k]=F.id[k]});
+ Object.keys(F.meta||{}).forEach(sn=>{
+  const c=canon(T.schools,sn,"ecoles"),fm=F.meta[sn]||{},tm=T.meta[c]=T.meta[c]||{};
+  ["st","zep"].forEach(f=>{let v=fm[f];if(!aVal(v))return;if(f==="zep")v=canon(T.zeps,v,"zeps");
+   if(!aVal(tm[f])){tm[f]=v;rep.meta++}
+   else if(nkey(tm[f])!==nkey(v)){rep.conf++;rep.confs.push(c+" – "+(f==="st"?"statut":"ZEP"));if(mode==="fichier")tm[f]=v}})});
+ Object.keys(F.ex||{}).forEach(n=>{
+  const fe=F.ex[n]||{},te=T.ex[n]=T.ex[n]||{niveau:fe.niveau||"CEB",d:{}};te.d=te.d||{};
+  if(!Object.keys(te.d).length&&fe.niveau)te.niveau=fe.niveau;
+  Object.keys(fe.d||{}).forEach(sn=>{
+   const fx=fe.d[sn];if(!fx)return;
+   const c=canon(T.schools,sn,"ecoles"),tx=te.d[c]=te.d[c]||{g:{},p:{}};
+   tx.g=tx.g||{};tx.p=tx.p||{};ensureM(tx,T.disc);
+   const lab=c+" – examen n°"+n;
+   const put=(o,j,fv,what)=>{if(!aVal(fv))return;
+    if(!aVal(o[j])){o[j]=fv;rep.filled++}
+    else if(+o[j]!==+fv){rep.conf++;rep.confs.push(lab+" – "+what);if(mode==="fichier")o[j]=fv}};
+   ["ef","co","mo"].forEach(k=>["f","g"].forEach(j=>{
+    const fv=fx.g&&fx.g[k]&&fx.g[k][j];if(!aVal(fv))return;
+    tx.g[k]=tx.g[k]||{};
+    put(tx.g[k],j,fv,(k==="ef"?"effectif":k==="co"?"ont composé":"ont eu la moyenne")+" "+j.toUpperCase())}));
+   Object.keys(fx.p||{}).forEach(dn=>{
+    const dc=canon(T.disc,dn,"disc"),fp=fx.p[dn]||{};
+    tx.p[dc]=tx.p[dc]||{};
+    ["f","g"].forEach(j=>{
+     const fm=fp.mo&&fp.mo[j];
+     if(aVal(fm)){tx.p[dc].mo=tx.p[dc].mo||{};put(tx.p[dc].mo,j,fm,dc+" – ont eu la moyenne "+j.toUpperCase())}
+     if(man(fx,dn,j)&&fp.co&&aVal(fp.co[j])){
+      const fv=fp.co[j],key=dc+"|co|"+j;tx.p[dc].co=tx.p[dc].co||{};
+      if(!tx.m[key]){tx.p[dc].co[j]=fv;tx.m[key]=1;rep.filled++}
+      else if(+tx.p[dc].co[j]!==+fv){rep.conf++;rep.confs.push(lab+" – "+dc+" – ont composé "+j.toUpperCase());if(mode==="fichier")tx.p[dc].co[j]=fv}}})})})})}
+function fusionRun(files,mode){
+ const T=JSON.parse(JSON.stringify(S)),rep={ecoles:0,zeps:0,disc:0,meta:0,filled:0,conf:0,confs:[]};
+ files.forEach(f=>fusionner(T,f.d,mode,rep));
+ T.schools.sort((a,b)=>a.localeCompare(b,"fr"));{const U=z=>String(z==null?"":z).trim().toLocaleUpperCase("fr"),vu=new Set();T.zeps=T.zeps.map(U).filter(z=>{const k=z.toLowerCase();if(!z||vu.has(k))return false;vu.add(k);return true});Object.values(T.meta||{}).forEach(m=>{if(m&&m.zep)m.zep=U(m.zep)})}T.zeps.sort((a,b)=>a.localeCompare(b,"fr"));
+ return {T,rep}}
+let FUS=null;
+function fusionChoisir(el){
+ const fs=[...el.files];el.value="";if(!fs.length)return;
+ Promise.all(fs.map(f=>new Promise(ok=>{const r=new FileReader();
+  r.onload=()=>{try{const d=JSON.parse(r.result);if(!d||typeof d!=="object"||!d.ex||!d.schools)throw 0;ok({name:f.name,d})}catch(e){ok({name:f.name,err:1})}};
+  r.onerror=()=>ok({name:f.name,err:1});r.readAsText(f)}))).then(L=>fusionApercu(L))}
+function fusionApercu(L){
+ const good=L.filter(x=>!x.err),bad=L.filter(x=>x.err);
+ if(!good.length){alert("Aucun fichier de sauvegarde valide.");return}
+ FUS={good};
+ const {rep}=fusionRun(good,"garder"),nul=!(rep.ecoles||rep.zeps||rep.disc||rep.meta||rep.filled||rep.conf);
+ const li=t=>`<li>${t}</li>`;
+ const lines=[li(`Fichiers lus : <b>${good.length}</b>`+(bad.length?` (non valides, ignorés : ${bad.map(x=>esc(x.name)).join(", ")})`:"")),
+  li(`Écoles ajoutées : <b>${rep.ecoles}</b>`),li(`ZEP ajoutées : <b>${rep.zeps}</b>`),li(`Disciplines ajoutées : <b>${rep.disc}</b>`),
+  li(`Cases de résultats complétées : <b>${rep.filled+rep.meta}</b>`),li(`Valeurs différentes (conflits) : <b>${rep.conf}</b>`)].join("");
+ const ex=rep.confs.slice(0,8).map(x=>li(esc(x))).join("")+(rep.confs.length>8?li("… et "+(rep.confs.length-8)+" autre(s)"):"");
+ const d=document.createElement("div");d.className="fmod np";d.id="fmod";d.setAttribute("role","dialog");d.setAttribute("aria-label","Fusion des données");
+ d.innerHTML=`<div><h3 style="margin-top:0">Fusion des données</h3><ul>${lines}</ul>`
+  +(nul?`<p class="mu">Rien de nouveau : ces fichiers ne contiennent pas de données absentes de votre application.</p>`:"")
+  +(rep.conf?`<p><b>Si une même case a des valeurs différentes :</b></p><label style="display:block"><input type="radio" name="fmode" value="garder" checked style="width:auto;display:inline;margin:0 6px 0 0"> Garder mes valeurs (celles déjà saisies)</label><label style="display:block"><input type="radio" name="fmode" value="fichier" style="width:auto;display:inline;margin:0 6px 0 0"> Prendre les valeurs des fichiers</label><ul class="mu">${ex}</ul>`:"")
+  +`<p class="mu">Les cases vides sont complétées avec les données des fichiers. Une sauvegarde de vos données actuelles est conservée : vous pourrez annuler la fusion depuis la page Identification.</p>
+  <div class="ctl"><button class="bt" onclick="fusionAppliquer()"${nul?" disabled":""}>Appliquer la fusion</button><button class="bt" onclick="fusionFermer()">Annuler</button></div></div>`;
+ document.body.appendChild(d)}
+function fusionFermer(){const d=$("fmod");if(d)d.remove();FUS=null}
+function fusionAppliquer(){
+ if(!FUS)return;
+ const m=document.querySelector("#fmod input[name=fmode]:checked"),mode=m?m.value:"garder",{T}=fusionRun(FUS.good,mode);
+ try{localStorage.setItem(KEY+"_avant_fusion",JSON.stringify({t:Date.now(),s:S}))}catch(e){}
+ const ui=S.ui;S=T;S.ui=ui||T.ui;normDisc();save();fusionFermer();R();toast("Fusion appliquée.")}
+function annulerFusion(){
+ try{const b=JSON.parse(localStorage.getItem(KEY+"_avant_fusion"));if(!b||!b.s)throw 0;
+  if(!confirm("Revenir aux données d'avant la dernière fusion ?"))return;
+  S=b.s;S.zeps=S.zeps||[];normZeps();save();localStorage.removeItem(KEY+"_avant_fusion");R();toast("Fusion annulée.")}
+ catch(e){alert("Aucune fusion à annuler.")}}
+
+const SRQ='<span class="rqs" aria-hidden="true">*</span>';
+/* Saisie des résultats : le Statut et la ZEP de l'école sont obligatoires avant de saisir les chiffres */
+function srMiss(){if(!S.schools.length)return[];const m=Mt(S.ui.school),r=[];if(!String(m.st||"").trim())r.push("Statut");if(!String(m.zep||"").trim())r.push("ZEP");return r}
+function srLock(){if(S.ui.tab!=="sa"||!srMiss().length)return;document.querySelectorAll("#app .card.por input[data-p]").forEach(i=>{i.readOnly=true;i.dataset.lock="1"});document.querySelectorAll("#app .card.por button").forEach(b=>{b.disabled=true})}
+function srFocus(){const m=srMiss();toast("Renseignez d’abord le "+m.join(" et la ")+" de l’école : champs obligatoires avant la saisie des résultats.");const el=m[0]==="Statut"?$("sr-st"):document.querySelector("#app .ctl.l2 .cb input");if(el)try{el.focus()}catch(x){}}
+document.addEventListener("focusin",e=>{const el=e.target;if(el&&el.matches&&el.matches("input[data-lock]")&&S.ui.tab==="sa"&&srMiss().length){el.blur();srFocus()}});
+document.addEventListener("click",e=>{const el=e.target;if(el&&el.closest&&el.closest("#app .card.por")&&S.ui.tab==="sa"&&srMiss().length&&el.closest("input[data-p],button")){srFocus()}});
+function pgSa(){
+ const n=S.ui.n;
+ if(!S.schools.length)return `<div class="card">Ajoutez d’abord les écoles dans l’onglet Saisie des écoles.</div>`;
+ return `<div class="ctl np" style="justify-content:center;gap:56px">${exSel("n")}<label class="schl np"><b style="font-size:calc(14px*var(--ts));color:var(--tx)">NIVEAU :</b><select aria-label="Niveau" onchange="E(S.ui.n).niveau=this.value;save();R()">${NV.map(v=>`<option${v==E(n).niveau?" selected":""}>${v}</option>`).join("")}</select></label></div>
+<div class="ctl np l2"><label class="schl np"><span class="lt"><b>ÉCOLE</b> (Sélectionnez votre école ici. Pour la retrouver facilement, tapez ses premières lettres.)</span>${schoolBox("school",S.ui.school,"École : tapez les premières lettres","lst-ec")}</label><label class="gb"><b>Statut</b> ${SRQ}<select id="sr-st" class="${String(Mt(S.ui.school).st||"").trim()?"":"bad"}" onchange="Mt(S.ui.school).st=this.value;save();R()"><option value=""></option>${["Public","Privé"].map(v=>`<option${Mt(S.ui.school).st==v?" selected":""}>${v}</option>`).join("")}</select></label><label class="gb"><b>ZEP</b> ${SRQ}${cbBox("zeps",Mt(S.ui.school).zep,S.zeps.length?"ZEP : tapez les premières lettres":"Saisissez d’abord les ZEP","pickZep(this)",220,0)}</label>${pdf}</div>
+${srMiss().length?`<p class="warn np" role="alert" style="margin:0 0 10px">Renseignez d’abord le Statut et la ZEP de cette école (champs obligatoires <b class="rqs">*</b>) : la saisie des résultats est bloquée tant que ces deux champs sont vides.</p>`:""}<div class="card por">${hd()}${title(n)}<h3 style="text-align:center;font-weight:700">ÉCOLE : ${esc(UPS(S.ui.school))}</h3><p class="stz"><span>Statut : ${esc(Mt(S.ui.school).st||"........")}</span><span>ZEP : ${esc(Mt(S.ui.school).zep||"........")}</span></p><div id="vmsg" class="np" role="alert"></div>${tabs(agg(n,[S.ui.school]),true)}</div>`}
+
+const grpBy=(f,em,or=[])=>{const m=new Map();
+ S.schools.forEach(s=>{const raw=(f(s)||"").trim(),k=raw.toLowerCase();if(!m.has(k))m.set(k,{name:raw||em,list:[],k});m.get(k).list.push(s)});
+ const r=x=>x.k==""?1e9:(or.indexOf(x.k)<0?or.length:or.indexOf(x.k));
+ return [...m.values()].sort((a,b)=>r(a)-r(b)||a.name.localeCompare(b.name,"fr"))};
+const gZ=()=>grpBy(s=>Mt(s).zep,"ZEP non renseignée");
+const gS=()=>grpBy(s=>Mt(s).st,"Statut non renseigné",["public","privé"]);
+function tGrp(n,t,G){
+ const fgt='<th class="fr fg">F</th><th class="fg">G</th><th class="fg">T</th>';
+ const row=(nm,c,r,cl)=>`<tr class="${cl||""}"><th>${esc(nm)}</th><td>${c}</td>`+K.map(k=>`<td class="fr">${eF(r.g[k])}</td><td>${eG(r.g[k])}</td><td${k=="ef"?' class="b"':""}>${eT(r.g[k])}</td>`).join("")+["f","g","t"].map(j=>`<td${j=="f"?' class="fr"':""}>${val(r,"g.tx."+j)}</td>`).join("")+"</tr>";
+ return `<h3 style="text-align:center">RÉSULTATS PAR ${t.toUpperCase()}</h3><div class="w"><table><thead><tr><th rowspan="2">${t}</th><th rowspan="2">Nombre<br>d’écoles</th><th colspan="3">Effectif</th><th colspan="3">Ont composé</th><th colspan="3">Ont eu la moyenne</th><th colspan="3">Taux de réussite</th></tr><tr>${fgt}${fgt}${fgt}${fgt}</tr></thead><tbody>${G.map(g=>row(g.name,g.list.length,agg(n,g.list))).join("")}${row("TOTAL CEB",S.schools.length,agg(n,S.schools),"tot")}</tbody></table></div>`}
+
+/* Groupe choisi sur la page Résultats : une zone (ZEP) ou un statut ; null = TOTAL CEB */
+function reScope(){
+ const u=S.ui,key=g=>g.k||"~",z=gZ().find(g=>key(g)===u.rz),t=gS().find(g=>key(g)===u.rs);
+ return z?{lab:"Zone",g:z,id:"z:"+key(z)}:t?{lab:"Statut",g:t,id:"s:"+key(t)}:null}
+/* Signataires des pages « zone » et « statut » : Le/la R/ZEP (à gauche) et Le/la R/BEPrim (à droite) */
+function sigZ(sc,ext){
+ const I=S.id,z=(S.zr&&S.zr[sc.id])||{};migNm(z,"nom","n","p");migNm(I,"rb","rbn","rbp");
+ return sig({sx:z.sx,tt:"R/ZEP",nm:fullNm(z.n,z.p),jb:fmtTitre(z.tt)},{sx:I.rbs,tt:"R/BEPrim",nm:fullNm(I.rbn,I.rbp),jb:I.rbt},ext)}
+function setZr(k,v){const sc=reScope();if(!sc)return;S.zr=S.zr||{};const o=(S.zr[sc.id]=S.zr[sc.id]||{});if(o[k]===v||(v===""&&o[k]==null))return;o[k]=v;save();R()}
+function pgRe(){
+ const n=S.ui.n,L=S.schools,T=agg(n,L),sc=reScope(),key=g=>g.k||"~";
+ const pick=(lab,G,cur,other)=>`<label class="gb">${lab}<select aria-label="${lab}" onchange="S.ui.${cur}=this.value;S.ui.${other}='';save();R()"><option value="">${lab==="Zone"?"Toutes les zones":"Tous les statuts"}</option>${G.map(g=>`<option value="${esc(key(g))}"${S.ui[cur]===key(g)?" selected":""}>${esc(g.name)}</option>`).join("")}</select></label>`;
+ let ctl=`<div class="ctl np">${exSel("n")}${pick("Zone",gZ(),"rz","rs")}${pick("Statut",gS(),"rs","rz")}${pdf}${xl}</div>`;
+ if(sc){const z=(S.zr&&S.zr[sc.id])||{};migNm(z,"nom","n","p");
+  const zb=k=>ZRTRY&&!String(z[k]||"").trim()?"bad":"",rq='<span class="rqs" aria-hidden="true">*</span>';
+   ctl+=`<div class="ctl np zrc"><label>Nom du R/ZEP ${rq}<input data-k="n" required aria-required="true" class="${zb('n')}" enterkeyhint="next" style="text-transform:uppercase" value="${esc(z.n||"")}" onchange="setZr('n',UPS(this.value.trim()))"></label><label>Prénom du R/ZEP ${rq}<input data-k="p" required aria-required="true" class="${zb('p')}" enterkeyhint="next" value="${esc(z.p||"")}" onchange="setZr('p',cap1(this.value))"></label><label>Sexe ${rq}<select data-k="sx" required aria-required="true" class="${zb('sx')}" onchange="setZr('sx',this.value)"><option value=""></option>${["F","M"].map(v=>`<option${z.sx===v?" selected":""}>${v}</option>`).join("")}</select></label><label>Emploi ou Titre honorifique ${rq}<input data-k="tt" required aria-required="true" class="${zb('tt')}" enterkeyhint="done" value="${esc(fmtTitre(z.tt))}" onchange="setZr('tt',fmtTitre(this.value))"></label></div>`;
+   const zm=zrMiss();if(ZRTRY&&!zm.length)ZRTRY=false;
+   ctl+=`<p class="mu np" style="margin:2px 0 6px">Les champs marqués d’un <b class="rqs">*</b> sont obligatoires pour passer à l’étape suivante ou exporter en PDF.</p>`+(ZRTRY&&zm.length?`<div class="np warn" role="alert" style="margin:0 0 8px">${esc(zrMsgTxt(zm))}</div>`:"")}
+ const row=(nm,r,c,i,lite)=>`<tr class="${c||""}"><td>${i||""}</td><th>${esc(UPS(nm))}</th>${lite?"":`<td class="b">${i?esc(Mt(nm).st):""}</td><td class="b">${i?esc(Mt(nm).zep):""}</td>`}`+K.map(k=>`<td class="fr">${eF(r.g[k])}</td><td>${eG(r.g[k])}</td><td${k=="ef"?' class="b"':""}>${eT(r.g[k])}</td>`).join("")+["f","g","t"].map(j=>`<td${j=="f"?' class="fr"':""}>${val(r,"g.tx."+j)}</td>`).join("")+"</tr>";
+ const fgt='<th class="fr fg">F</th><th class="fg">G</th><th class="fg">T</th>';
+ const rec=(list,TT,lab,ttl,lite)=>`<h3 style="text-align:center">${ttl}</h3><div class="w"><table><thead><tr><th rowspan="2">N°</th><th rowspan="2">École</th>${lite?"":`<th rowspan="2">Statut</th><th rowspan="2">ZEP</th>`}<th colspan="3">Effectif</th><th colspan="3">Ont composé</th><th colspan="3">Ont eu la moyenne</th><th colspan="3">Taux de réussite</th></tr><tr>${fgt}${fgt}${fgt}${fgt}</tr></thead><tbody>${list.map((s,i)=>row(s,agg(n,[s]),"",i+1,lite)).join("")}${row(lab,TT,"tot",0,lite)}</tbody></table></div>`;
+ if(sc){const G=sc.g,nm=sc.lab.toUpperCase()+" : "+esc(G.name.toLocaleUpperCase("fr")),TG=agg(n,G.list);
+  return `${ctl}
+<div class="card por">${hd()}${title(n)}<h3 style="text-align:center">${nm}</h3>${tabs(TG,false)}${sigZ(sc)}</div>
+<div class="card por" data-rep="1">${hd()}${title(n)}${rec(G.list,TG,"TOTAL "+sc.lab.toUpperCase(),"RÉCAPITULATIF PAR ÉCOLE – "+nm,true)}${sigZ(sc,true)}</div>`}
+ return `${ctl}
+<div class="card por">${hd()}${title(n)}<h3 style="text-align:center">TOTAL CEB</h3>${tabs(T,false)}${sig()}</div>
+<div class="card por" data-rep="1">${hd()}${title(n)}${rec(L,T,"TOTAL CEB","RÉCAPITULATIF PAR ÉCOLE",true)}${sig(null,null,true)}</div>
+<div class="card">${hd()}${title(n)}${tGrp(n,"ZEP",gZ())}${tGrp(n,"Statut",gS())}${sig()}</div>`}
+
+function pgMe(){
+ const n=S.ui.n,c=S.ui.crit,di=(c===""||c===undefined||!S.disc[+c])?-1:+c;
+ const pick=r=>di<0?r.g:r.p[S.disc[di]];
+ const rows=S.schools.map(s=>{const o=pick(agg(n,[s]));return {s,o,t:tn(o,"t")}});
+ rows.sort((a,b)=>((a.t==null)-(b.t==null))||((b.t==null?0:b.t)-(a.t==null?0:a.t))||a.s.localeCompare(b.s,"fr"));
+ const rk=x=>{if(x.t==null)return "—";const k=1+rows.filter(y=>y.t!=null&&y.t>x.t).length;return k==1?"1er":k+"e"};
+ const rt=(o,j)=>j=="t"?pc(o.mo.f+o.mo.g,o.co.f+o.co.g):pc(o.mo[j],o.co[j]);
+ const cells=o=>["co","mo"].map(k=>`<td class="fr">${eF(o[k])}</td><td>${eG(o[k])}</td><td>${eT(o[k])}</td>`).join("")+["f","g","t"].map(j=>`<td${j=="f"?' class="fr"':""}>${rt(o,j)}</td>`).join("");
+ const fgt='<th class="fr fg">F</th><th class="fg">G</th><th class="fg">T</th>';
+ const body=rows.map(x=>`<tr><td>${rk(x)}</td><th>${esc(UPS(x.s))}</th>${cells(x.o)}</tr>`).join("")+`<tr class="tot"><td></td><th>TOTAL CEB</th>${cells(pick(agg(n,S.schools)))}</tr>`;
+ return `<div class="ctl np">${exSel("n")}<select aria-label="Classement selon" onchange="S.ui.crit=this.value;save();R()"><option value="">RÉSULTATS GLOBAUX</option>${S.disc.map((d,i)=>`<option value="${i}"${i==di?" selected":""}>${esc(capD(d))}</option>`).join("")}</select>${pdf}${xl}</div>
+<div class="card por" data-rep="1">${hd()}<h2>ORDRE DE MÉRITE DES ÉCOLES – EXAMEN BLANC N°${n} – NIVEAU ${esc(E(n).niveau)}</h2><p style="text-align:center;margin:0">${di<0?"RÉSULTATS GLOBAUX":esc(capD(S.disc[di]))}</p>
+<div class="w"><table class="f12"><thead><tr><th rowspan="2">Rang</th><th rowspan="2">École</th><th colspan="3">Ont composé</th><th colspan="3">Ont eu la moyenne</th><th colspan="3">Taux de réussite</th></tr><tr>${fgt}${fgt}${fgt}</tr></thead><tbody>${body}</tbody></table></div>
+<p class="mu">Classement selon le taux de réussite (T). Les écoles à égalité ont le même rang.</p>${sig()}</div>`}
+
+function pgCp(){
+ const u=S.ui,cv=u.cv==="zep"||u.cv==="ec"?u.cv:"",sc=cv==="ec"&&!!(u.scope&&S.schools.includes(u.scope)),L=sc?[u.scope]:S.schools,A=agg(u.a,L),B=agg(u.b,L);
+ const fgt='<th class="fr fg">F</th><th class="fg">G</th><th class="fg">T</th>';
+ const cEc=(v,txt,j)=>{const r=v==null?0:Math.round(v*100)/100,c=[j=="f"?"fr":"",r>0?"ep":r<0?"en":""].filter(Boolean).join(" ");return `<td${c?` class="${c}"`:""}>${r<0&&j=="f"?`<span class="cer">${txt}</span>`:txt}</td>`};
+ const ecs=(a,b)=>["f","g","t"].map(j=>{const x=tn(a,j),y=tn(b,j);return cEc(x==null||y==null?null:y-x,ec(x,y),j)}).join("");
+ const gdf=(A,B)=>{ const g=K.map((k,i)=>`<tr><th>${LB[i]}</th>`+[A,B].map(r=>`<td class="fr">${eF(r.g[k])}</td><td>${eG(r.g[k])}</td><td>${eT(r.g[k])}</td>`).join("")+[["f",B.g[k].f-A.g[k].f],["g",B.g[k].g-A.g[k].g],["t",B.g[k].f+B.g[k].g-A.g[k].f-A.g[k].g]].map(x=>cEc(x[1],(hz(A.g[k])||hz(B.g[k]))?sg(x[1]):"",x[0])).join("")+"</tr>").join("")
+  +`<tr class="tot"><th>Taux de réussite</th>`+[A,B].map(r=>["f","g","t"].map(j=>`<td${j=="f"?' class="fr"':""}>${val(r,"g.tx."+j)}</td>`).join("")).join("")+ecs(A.g,B.g)+"</tr>";
+ const p=S.disc.map((d,i)=>`<tr><th>${esc(capD(d))}</th>`+[A,B].map(r=>["f","g","t"].map(j=>`<td${j=="f"?' class="fr"':""}>${val(r,`p.${i}.tx.${j}`)}</td>`).join("")).join("")+ecs(A.p[d],B.p[d])+"</tr>").join("");
+ return {g,p}};
+ const {g,p}=gdf(A,B);
+ const cr=(nm,list,c,i,num)=>{const a=agg(u.a,list),b=agg(u.b,list);return `<tr class="${c||""}">${num?`<td>${i||""}</td>`:""}<th>${esc(nm)}</th>`+[a,b].map(r=>["f","g","t"].map(j=>`<td${j=="f"?' class="fr"':""}>${val(r,"g.tx."+j)}</td>`).join("")).join("")+ecs(a.g,b.g)+"</tr>"};
+ const ct=(t,items,num)=>`<h3>TAUX DE RÉUSSITE PAR ${t.toUpperCase()}</h3><div class="w"><table>${head(t,0,num)}<tbody>${items.map((i,k)=>cr(i.name,i.list,"",k+1,num)).join("")}${cr("TOTAL CEB",S.schools,"tot",0,num)}</tbody></table></div>`;
+ const head=(a,b,num)=>`<thead><tr>${num?'<th rowspan="2">N°</th>':""}<th rowspan="2"${a?' style="text-align:left"':' class="ve"'}>${esc(String(a==="École"?"Écoles":a).toUpperCase())}</th><th colspan="3" style="text-align:center">EXAMEN BLANC N°${u.a}<br>(NIVEAU ${esc(String(E(u.a).niveau).toUpperCase())})</th><th colspan="3" style="text-align:center">EXAMEN BLANC N°${u.b}<br>(NIVEAU ${esc(String(E(u.b).niveau).toUpperCase())})</th><th colspan="3" style="text-align:center">ÉCART</th></tr><tr>${fgt}${fgt}${fgt}</tr></thead>`;
+ const ttp=n=>`<p style="text-align:center;margin:0">${esc(n)}</p>`,ttlH=`<h2>COMPARAISON ENTRE LES EXAMENS BLANCS <span style="white-space:nowrap">N°${u.a} (NIVEAU ${esc(String(E(u.a).niveau).toUpperCase())}) ET N°${u.b} (NIVEAU ${esc(String(E(u.b).niveau).toUpperCase())})</span></h2>`,ttl=ttlH+ttp(L.length==1?UPS(L[0]):"TOTAL CEB");
+ const cardGD=(gg,pp,tt,sg)=>`<div class="card por">${hd()}${tt}<h3>RÉSULTATS GLOBAUX</h3><div class="w"><table>${head("")}<tbody>${gg}</tbody></table></div>
+<h3>TAUX DE RÉUSSITE PAR DISCIPLINE</h3><div class="w"><table class="fx">${head("Disciplines")}<tbody>${pp}</tbody></table></div>${sg||sig()}</div>`;
+ const cardEc=z=>`<div class="card por" data-rep="1">${hd()}${ttlH}<h3>TAUX DE RÉUSSITE PAR ÉCOLE – ZEP : ${esc(z.name)}</h3><div class="w"><table>${head("École",0,true)}<tbody>${z.list.map((x,k)=>cr(UPS(x),[x],"",k+1,true)).join("")}${cr("TOTAL ZEP",z.list,"tot",0,true)}</tbody></table></div>${sigZ({id:"z:"+(z.k||"~")})}</div>`;
+ const vsel=`<select aria-label="Affichage" onchange="S.ui.cv=this.value;S.ui.scope='';S.ui.zsc='';save();R()"><option value=""${cv===""?" selected":""}>TOTAL CEB</option><option value="zep"${cv==="zep"?" selected":""}>PAR ZEP</option><option value="ec"${cv==="ec"?" selected":""}>ÉCOLES</option></select>`;
+ const zall=gZ().filter(z=>z.list&&z.list.length),zsel=cv==="zep"&&zall.some(z=>(z.k||"~")===u.zsc)?u.zsc:"";
+ const zselH=cv==="zep"?`<label class="schl np"><span class="lt"><b>ZEP</b> (Sélectionnez une ZEP, ou toutes les ZEP.)</span><select aria-label="ZEP" onchange="S.ui.zsc=this.value;save();R()"><option value=""${zsel===""?" selected":""}>TOUTES LES ZEP</option>${zall.map(z=>`<option value="${esc(z.k||"~")}"${(z.k||"~")===zsel?" selected":""}>${esc(UPS(z.name))}</option>`).join("")}</select></label>`:"";
+ let body;
+ if(sc||cv==="")body=cardGD(g,p,ttl)+(sc?"":`<div class="card por">${hd()}${ttl}${ct("ZEP",gZ())}${ct("Statut",gS())}${sig()}</div>`);
+ else if(cv==="ec")body=`<div class="card por" data-rep="1">${hd()}${ttl}${ct("École",S.schools.map(s=>({name:UPS(s),list:[s]})),true)}${sig()}</div>`;
+ else body=gZ().filter(z=>z.list&&z.list.length).filter(z=>!zsel||(z.k||"~")===zsel).map(z=>{const a2=agg(u.a,z.list),b2=agg(u.b,z.list),r=gdf(a2,b2);return cardGD(r.g,r.p,ttlH+ttp("ZEP : "+z.name),sigZ({id:"z:"+(z.k||"~")}))+cardEc(z)}).join("");
+ const zmiss=cv==="zep"?zall.filter(z=>!zsel||(z.k||"~")===zsel).filter(z=>{const o=(S.zr&&S.zr["z:"+(z.k||"~")])||{};migNm(o,"nom","n","p");return ZR_REQ.some(x=>!String(o[x[0]]==null?"":o[x[0]]).trim())}).map(z=>z.name):[];
+ const zwarn=zmiss.length?`<p class="warn np" role="alert" style="margin:0 0 10px">Signataire R/ZEP à compléter pour : ${esc(zmiss.join(", "))}. Renseignez-le dans la page Résultats (choisissez la zone), puis revenez ici.</p>`:"";
+ return `<div class="ctl np">${exSel("a")}${exSel("b")}${vsel}${zselH}${cv==="ec"?`<label class="schl np"><span class="lt"><b>ÉCOLE</b> (Sélectionnez votre école ici. Pour la retrouver facilement, tapez ses premières lettres.)</span>${schoolBox("scope",u.scope||"","Total CEB (ou tapez une école)","lst-cp")}</label>`:""}${pdf}${xl}</div>
+${zwarn}${body}`}
+
+/* ===== Licence (même principe que LoGeNo : identifiant propre à l'appareil + code signé Ed25519 avec date d'expiration) ===== */
+const LIC_KEY="locoreb-lic-v1",LPUB="86abec07e30211fd8bee4cdc7a548600b6ec823b3e7575f0ad202a8fec6f86c5",B32A="ABCDEFGHIJKLMNOPQRSTUVWXYZ234567",WA_NUM="22678214250";
+let WL=null;
+const p2=n=>String(n).padStart(2,"0");
+const fmtDate=s=>{const a=String(s).split("-");return a[2]+"/"+a[1]+"/"+a[0]};
+const lHex=h=>{const o=new Uint8Array(h.length/2);for(let i=0;i<o.length;i++)o[i]=parseInt(h.substr(i*2,2),16);return o};
+const lUtf8=s=>{s=unescape(encodeURIComponent(s));const o=new Uint8Array(s.length);for(let i=0;i<s.length;i++)o[i]=s.charCodeAt(i);return o};
+const lIso=n=>{const d=new Date(n*864e5);return d.getUTCFullYear()+"-"+p2(d.getUTCMonth()+1)+"-"+p2(d.getUTCDate())};
+function lB32dec(s){const out=[];let bits=0,v=0;for(let i=0;i<s.length;i++){const k=B32A.indexOf(s.charAt(i));if(k<0)return null;v=(v<<5)|k;bits+=5;if(bits>=8){out.push((v>>>(bits-8))&255);bits-=8;v&=(1<<bits)-1}}return new Uint8Array(out)}
+const lClean=x=>String(x||"").toUpperCase().replace(/[^A-Z2-7]/g,"");
+const lExtract=t=>{t=String(t||"").toUpperCase();const m=t.match(/(?:[A-Z2-7]{6}-){17}[A-Z2-7]{1,6}/);return lClean(m?m[0]:t)};
+const lSave=()=>{try{localStorage.setItem(LIC_KEY,JSON.stringify(WL))}catch(e){}};
+/* Vérifie un code délivré par le générateur : signature Ed25519 de « LOGEB1|identifiant|jours » */
+function licCheck(code,id){
+ try{
+  if(typeof nacl==="undefined")return null;
+  let b=lB32dec(lExtract(code));const i10=lClean(id);
+  if(!b||b.length<67||i10.length!==10)return null;
+  b=b.subarray(0,67);
+  const days=(b[0]<<16)|(b[1]<<8)|b[2],sig=b.subarray(3,67);
+  if(!nacl.sign.detached.verify(lUtf8("LOGEB1|"+i10+"|"+days),sig,lHex(LPUB)))return null;
+  return {until:lIso(days),days}
+ }catch(e){return null}}
+function wlState(){
+ let o=WL;
+ if(!o){try{o=JSON.parse(localStorage.getItem(LIC_KEY)||"null")}catch(e){o=null}}
+ if(!o||typeof o!=="object")o={};
+ if(!/^[A-Z2-7]{5}-[A-Z2-7]{5}$/.test(o.id||"")){
+  let q="";const r=new Uint8Array(10);
+  try{crypto.getRandomValues(r)}catch(e){for(let j=0;j<10;j++)r[j]=Math.floor(Math.random()*256)}
+  for(let i=0;i<10;i++){q+=B32A.charAt(r[i]&31);if(i===4)q+="-"}
+  o.id=q;delete o.code}
+ const t=today();if(!o.seen||o.seen<t)o.seen=t;
+ WL=o;lSave();return o}
+function licInfo(){
+ try{
+  const o=wlState(),v=o.code?licCheck(o.code,o.id):null;
+  if(!v)return {id:o.id,until:null,jours:null,bloque:true,first:true};
+  const a=o.seen.split("-"),b=v.until.split("-");
+  const j=Math.round((Date.UTC(+b[0],+b[1]-1,+b[2])-Date.UTC(+a[0],+a[1]-1,+a[2]))/864e5);
+  return {id:o.id,until:v.until,jours:j,bloque:j<0,first:false}
+ }catch(e){return {id:"",until:null,jours:null,bloque:true,first:true}}}
+function licActivate(code){
+ const o=wlState(),v=licCheck(code,o.id);
+ if(!v)return {ok:false,message:"Code de licence invalide, ou délivré pour un autre appareil. Vérifiez que l’identifiant envoyé est bien celui affiché ici."};
+ if(v.until<o.seen)return {ok:false,message:"Ce code a expiré le "+fmtDate(v.until)+". Demandez un nouveau code."};
+ const cur=o.code?licCheck(o.code,o.id):null;
+ if(cur&&v.until<=cur.until)return {ok:false,message:"Ce code ne prolonge pas la licence (déjà valable jusqu’au "+fmtDate(cur.until)+")."};
+ o.code=lExtract(code);WL=o;lSave();
+ return {ok:true,message:(cur?"Licence prolongée":"Application activée")+" jusqu’au "+fmtDate(v.until)+"."}}
+const waLink=id=>"https://wa.me/"+WA_NUM+"?text="+encodeURIComponent("Bonjour, voici l’identifiant de mon application LoCoREB : "+id+". Merci de m’envoyer le code de licence.");
+const idBtns=id=>`<div class="ctl"><button class="bt" type="button" onclick="copyId('${id}')">Copier l’identifiant</button><a class="bt" style="text-decoration:none" href="${waLink(id)}" target="_blank" rel="noopener">Envoyer l’identifiant par WhatsApp</a></div>`;
+function copyId(id){
+ const ok=()=>toast("Identifiant copié.");
+ const fb=()=>{const t=document.createElement("textarea");t.value=id;document.body.appendChild(t);t.select();let r=false;try{r=document.execCommand("copy")}catch(e){}t.remove();toast(r?"Identifiant copié.":"Copiez l’identifiant affiché à l’écran.")};
+ if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(id).then(ok,fb);else fb()}
+function licBanner(){
+ const L=licInfo();if(!L||L.bloque||L.jours>30)return "";
+ return `<div class="banner np"><p>L’application expire le ${fmtDate(L.until)}${L.jours>0?" (dans "+L.jours+" jour"+(L.jours>1?"s":"")+")":" (aujourd’hui)"}.</p><button class="bt" onclick="go('ac')">Prolonger</button></div>`}
+function licHtml(){
+ const L=licInfo();if(!L||L.bloque)return "";
+ const n=L.jours;
+ return `<div class="card"><h3>Licence</h3><p class="mu">Valable jusqu’au ${fmtDate(L.until)} (${n>1?n+" jours restants":n===1?"1 jour restant":"dernier jour"}). Pour prolonger, envoyez l’identifiant de cet appareil au fournisseur, puis collez le code reçu.</p>
+<p>Identifiant : <b class="lid">${esc(L.id)}</b></p>
+<form onsubmit="doRenew('renew');return false"><label>Code de licence<textarea id="r-code" rows="3" autocomplete="off" spellcheck="false" style="min-height:70px"></textarea></label><div class="ctl" style="margin-top:8px"><button class="bt" type="submit">Prolonger</button></div></form><p class="warn" id="r-err" hidden></p></div>`}
+function lockHtml(L){
+ const f=L.first;
+ return `<div class="card lock"><div class="lgbig">${document.querySelector("header .lg svg").outerHTML}</div><h2>${f?"Activation de LoCoREB":"Période d’utilisation terminée"}</h2><p>${f?"Pour utiliser l’application, envoyez l’identifiant ci-dessous au fournisseur, puis collez ici le code de licence reçu.":"Cette application a expiré le "+fmtDate(L.until)+". Vos données sont conservées. Envoyez l’identifiant ci-dessous au fournisseur, puis collez le code reçu pour continuer."}</p>
+<p>Identifiant : <b class="lid">${esc(L.id)}</b></p>${idBtns(L.id)}
+<form onsubmit="doRenew('unlock');return false"><label>Code de licence<textarea id="u-code" rows="4" autocomplete="off" spellcheck="false"></textarea></label><div class="ctl" style="margin-top:8px"><button class="bt" type="submit">${f?"Activer":"Débloquer"}</button></div></form><p class="warn" id="u-err" hidden></p>${credit()}</div>`}
+const credit=()=>`<div class="credit"><p class="ct">Conception et réalisation</p><p class="nm">Edmon NITIEMA</p><p>Amateur informatique</p><p class="tel">WhatsApp : 78 21 42 50</p><p>Telegram : 70 08 98 57</p><p>Orange : 76 54 18 23</p></div>`;
+function doRenew(which){
+ const inp=$(which==="unlock"?"u-code":"r-code"),err=$(which==="unlock"?"u-err":"r-err"),r=licActivate(inp.value);
+ if(r.ok){toast(r.message);R()}else{err.textContent=r.message;err.hidden=false}}
+function toast(m){const t=$("toast");t.textContent=m;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>{t.hidden=true},4000)}
+
+var MP_W1=[278, 278, 355, 556, 556, 889, 667, 191, 333, 333, 389, 584, 278, 333, 278, 278, 556, 556, 556, 556, 556, 556, 556, 556, 556, 556, 278, 278, 584, 584, 584, 556, 1015, 667, 667, 722, 722, 667, 611, 778, 722, 278, 500, 667, 556, 833, 722, 778, 667, 778, 722, 667, 611, 722, 667, 944, 667, 667, 611, 278, 278, 278, 469, 556, 333, 556, 556, 500, 556, 556, 278, 556, 556, 222, 222, 500, 222, 833, 556, 556, 556, 556, 333, 500, 278, 556, 500, 722, 500, 500, 500, 334, 260, 334, 584, 761, 556, 0, 222, 556, 333, 1000, 556, 556, 333, 1000, 667, 333, 1000, 0, 611, 0, 0, 222, 222, 333, 333, 350, 556, 1000, 333, 1000, 500, 333, 944, 0, 500, 667, 278, 333, 556, 556, 556, 556, 260, 556, 333, 737, 370, 556, 584, 333, 737, 333, 400, 584, 333, 333, 333, 556, 537, 278, 333, 333, 365, 556, 834, 834, 834, 611, 667, 667, 667, 667, 667, 667, 1000, 722, 667, 667, 667, 667, 278, 278, 278, 278, 722, 722, 778, 778, 778, 778, 778, 584, 778, 722, 722, 722, 722, 667, 667, 611, 556, 556, 556, 556, 556, 556, 889, 500, 556, 556, 556, 556, 278, 278, 278, 278, 556, 556, 556, 556, 556, 556, 556, 584, 611, 556, 556, 556, 556, 500, 556, 500];
+var MP_W2=[278, 333, 474, 556, 556, 889, 722, 238, 333, 333, 389, 584, 278, 333, 278, 278, 556, 556, 556, 556, 556, 556, 556, 556, 556, 556, 333, 333, 584, 584, 584, 611, 975, 722, 722, 722, 722, 667, 611, 778, 722, 278, 556, 722, 611, 833, 722, 778, 667, 778, 722, 667, 611, 722, 667, 944, 667, 667, 611, 333, 278, 333, 584, 556, 333, 556, 611, 556, 611, 556, 333, 611, 611, 278, 278, 556, 278, 889, 611, 611, 611, 611, 389, 556, 333, 611, 556, 778, 556, 556, 500, 389, 280, 389, 584, 761, 556, 0, 278, 556, 500, 1000, 556, 556, 333, 1000, 667, 333, 1000, 0, 611, 0, 0, 278, 278, 500, 500, 350, 556, 1000, 333, 1000, 556, 333, 944, 0, 500, 667, 278, 333, 556, 556, 556, 556, 280, 556, 333, 737, 370, 556, 584, 333, 737, 333, 400, 584, 333, 333, 333, 611, 556, 278, 333, 333, 365, 556, 834, 834, 834, 611, 722, 722, 722, 722, 722, 722, 1000, 722, 667, 667, 667, 667, 278, 278, 278, 278, 722, 722, 778, 778, 778, 778, 778, 584, 778, 722, 722, 722, 722, 667, 667, 611, 556, 556, 556, 556, 556, 556, 889, 556, 556, 556, 556, 556, 278, 278, 278, 278, 611, 611, 611, 611, 611, 611, 611, 584, 611, 611, 611, 611, 611, 556, 611, 556];
+var MP_SP={8364:128,8218:130,402:131,8222:132,8230:133,8224:134,8225:135,710:136,8240:137,352:138,8249:139,338:140,381:142,8216:145,8217:146,8220:147,8221:148,8226:149,8211:150,8212:151,732:152,8482:153,353:154,8250:155,339:156,382:158,376:159};
+function mpEnc(s){var o=[];for(var i=0;i<s.length;i++){var c=s.charCodeAt(i),b;if(c>=32&&c<127)b=c;else if(c>=160&&c<=255)b=c;else if(MP_SP[c])b=MP_SP[c];else b=c<32?32:63;o.push(b)}return o}
+function mpEsc(s){return mpEnc(s).map(function(b){if(b===92||b===40||b===41)return '\\'+String.fromCharCode(b);if(b<32||b>126){var o=b.toString(8);return '\\'+('000'+o).slice(-3)}return String.fromCharCode(b)}).join('')}
+function mpC(r,g,b){if(g===undefined){g=r;b=r}return [r/255,g/255,b/255]}
+function mpCol(c){return c.map(function(v){return v.toFixed(3)}).join(' ')}
+function MiniPDF(o){o=o||{};var land=o.orientation==='landscape';this.k=72/25.4;this.pw=(land?297:210)*this.k;this.ph=(land?210:297)*this.k;this.pages=[[]];this.sz=[[this.pw,this.ph]];this.font=1;this.fs=12;this.tc=[0,0,0];this.dc=[0,0,0];this.fc=[1,1,1];this.lw=0.2*this.k}
+MiniPDF.prototype={
+  setFont:function(n,s){this.font=s==='bold'?2:(s==='italic'?3:1);return this},
+  setFontSize:function(s){this.fs=s;return this},
+  setTextColor:function(r,g,b){this.tc=mpC(r,g,b);return this},
+  setDrawColor:function(r,g,b){this.dc=mpC(r,g,b);return this},
+  setFillColor:function(r,g,b){this.fc=mpC(r,g,b);return this},
+  setLineWidth:function(w){this.lw=w*this.k;return this},
+  addPage:function(land){this.pages.push([]);if(land!==undefined){this.pw=(land?297:210)*this.k;this.ph=(land?210:297)*this.k}this.sz.push([this.pw,this.ph]);return this},
+  getTextWidth:function(t){var W=this.font===2?MP_W2:MP_W1,e=mpEnc(String(t)),s=0;for(var i=0;i<e.length;i++)s+=(W[e[i]-32]||0);return s/1000*this.fs/this.k},
+  text:function(t,x,y,o){t=String(t);var w=this.getTextWidth(t);if(o&&o.align==='center')x-=w/2;else if(o&&o.align==='right')x-=w;
+    this.pages[this.pages.length-1].push('BT /F'+this.font+' '+this.fs.toFixed(2)+' Tf '+mpCol(this.tc)+' rg '+(x*this.k).toFixed(2)+' '+(this.ph-y*this.k).toFixed(2)+' Td ('+mpEsc(t)+') Tj ET');return this},
+  line:function(x1,y1,x2,y2){this.pages[this.pages.length-1].push(this.lw.toFixed(3)+' w '+mpCol(this.dc)+' RG '+(x1*this.k).toFixed(2)+' '+(this.ph-y1*this.k).toFixed(2)+' m '+(x2*this.k).toFixed(2)+' '+(this.ph-y2*this.k).toFixed(2)+' l S');return this},
+  ellipse:function(cx,cy,rx,ry){var k=this.k,ph=this.ph,c=0.5523,q=function(x,y){return (x*k).toFixed(2)+' '+(ph-y*k).toFixed(2)};
+    this.pages[this.pages.length-1].push(this.lw.toFixed(3)+' w '+mpCol(this.dc)+' RG '+q(cx+rx,cy)+' m '
+     +q(cx+rx,cy+c*ry)+' '+q(cx+c*rx,cy+ry)+' '+q(cx,cy+ry)+' c '
+     +q(cx-c*rx,cy+ry)+' '+q(cx-rx,cy+c*ry)+' '+q(cx-rx,cy)+' c '
+     +q(cx-rx,cy-c*ry)+' '+q(cx-c*rx,cy-ry)+' '+q(cx,cy-ry)+' c '
+     +q(cx+c*rx,cy-ry)+' '+q(cx+rx,cy-c*ry)+' '+q(cx+rx,cy)+' c h S');return this},
+  rect:function(x,y,w,h,st){var op=st==='F'?'f':(st==='FD'||st==='DF')?'B':'S';
+    this.pages[this.pages.length-1].push(this.lw.toFixed(3)+' w '+mpCol(this.dc)+' RG '+mpCol(this.fc)+' rg '+(x*this.k).toFixed(2)+' '+(this.ph-(y+h)*this.k).toFixed(2)+' '+(w*this.k).toFixed(2)+' '+(h*this.k).toFixed(2)+' re '+op);return this},
+  output:function(){
+    var n=this.pages.length,objs=[null],kids=[],i;
+    for(i=0;i<n;i++)kids.push((5+2*i)+' 0 R');
+    objs[1]='<< /Type /Catalog /Pages 2 0 R >>';
+    objs[2]='<< /Type /Pages /Kids ['+kids.join(' ')+'] /Count '+n+' >>';
+    objs[3]='<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>';
+    objs[4]='<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>';
+    for(i=0;i<n;i++){
+      var c=this.pages[i].join('\n');
+      objs[5+2*i]='<< /Type /Page /Parent 2 0 R /MediaBox [0 0 '+this.sz[i][0].toFixed(2)+' '+this.sz[i][1].toFixed(2)+'] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 '+(5+2*n)+' 0 R >> >> /Contents '+(6+2*i)+' 0 R >>';
+      objs[6+2*i]='<< /Length '+c.length+' >>\nstream\n'+c+'\nendstream';
+    }
+    objs[5+2*n]='<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique /Encoding /WinAnsiEncoding >>';
+    var out='%PDF-1.4\n',off=[];
+    for(i=1;i<objs.length;i++){off[i]=out.length;out+=i+' 0 obj\n'+objs[i]+'\nendobj\n'}
+    var xr=out.length;out+='xref\n0 '+objs.length+'\n0000000000 65535 f \n';
+    for(i=1;i<objs.length;i++)out+=('0000000000'+off[i]).slice(-10)+' 00000 n \n';
+    out+='trailer\n<< /Size '+objs.length+' /Root 1 0 R >>\nstartxref\n'+xr+'\n%%EOF';
+    return new Blob([out],{type:'application/pdf'});
+  }
+};
+
+function fit(doc,t,w){t=String(t);if(doc.getTextWidth(t)<=w) return t;while(t.length>1&&doc.getTextWidth(t+'.')>w) t=t.slice(0,-1);return t+'.'}
+function balT(doc,t,w){var a=wrapT(doc,t,w),n=a.length;if(n<2)return a;var lo=0,hi=w;for(var i=0;i<30;i++){var m=(lo+hi)/2;if(wrapT(doc,t,m).length<=n)hi=m;else lo=m}return wrapT(doc,t,hi)}
+function wrapT(doc,t,w){var out=[],cur='';t.split(' ').forEach(function(wd){var n=cur?cur+' '+wd:wd;if(cur&&doc.getTextWidth(n)>w){out.push(cur);cur=wd}else cur=n});if(cur)out.push(cur);return out}
+
+/* ===== Export PDF : le document affiché est converti en vrai fichier PDF (A4 paysage) ===== */
+const pdfT=s=>String(s).replace(/\u00a0/g," ").replace(/[\u2192\u2794]/g,"->").replace(/\s+/g," ").trim();
+const safeName=s=>String(s).replace(/[\\\/:*?"<>|]/g," ").replace(/\s+/g," ").trim();
+const cellTxt=c=>{const i=c.querySelector("input");if(i)return pdfT(i.value);if(c.querySelector("br"))return c.innerHTML.split(/<br\s*\/?>/i).map(h=>{const d=document.createElement("div");d.innerHTML=h;return pdfT(d.textContent)}).join("\n");return pdfT(c.textContent)};
+const RED=[193,18,31],GREEN=[21,128,61],INK=[20,20,20],GRID=[110,110,110],HEADFILL=[255,255,255];
+
+function buildPdf(cards,cnt){
+ cnt=cnt||{};const cnt2={},isPor=c=>c.classList.contains("por");
+ const doc=new MiniPDF({orientation:cards.length&&isPor(cards[0])?"portrait":"landscape"});
+ let W=cards.length&&isPor(cards[0])?210:297,H=cards.length&&isPor(cards[0])?297:210;const M=10;let BOT=H-M-4,AV=W-2*M;
+ let y=M,pg=1,cur=0,part=1,perPart=cards.some(c=>c.dataset.rep);
+ const setO=land=>{W=land?297:210;H=land?210:297;BOT=H-M-4;AV=W-2*M};
+ const dn=new Date(),STAMP=p2(dn.getDate())+"/"+p2(dn.getMonth()+1)+"/"+dn.getFullYear()+" à "+p2(dn.getHours())+":"+p2(dn.getMinutes())+":"+p2(dn.getSeconds());
+ const foot=()=>{doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(110,110,110);doc.text("Généré par LoCoREB",M,H-6);doc.text(perPart?"Page "+(pg-part+1)+(cnt[cur]?"/"+cnt[cur]:""):"Page "+pg,W/2,H-6,{align:"center"});doc.text(STAMP,W-M,H-6,{align:"right"});doc.setTextColor(...INK)};
+ const np=land=>{foot();if(land===undefined)land=W>H;setO(land);doc.addPage(land);pg++;y=M};
+ const need=h=>{if(y+h>BOT)np()};
+ doc.setTextColor(...INK);
+ const para=(t,fs,bold,align,col,gap)=>{
+  doc.setFont("helvetica",bold?"bold":"normal");doc.setFontSize(fs);doc.setTextColor(...(col||INK));
+  const lh=fs*0.3528*1.35,ls=wrapT(doc,pdfT(t),AV);
+  ls.forEach(l=>{need(lh);y+=lh;doc.text(l,align==="center"?W/2:align==="right"?W-M:M,y-lh*0.25,align&&align!=="left"?{align}:undefined)});
+  y+=gap==null?1.5:gap;doc.setTextColor(...INK)};
+
+ function table(tbl,rep){
+  const rows=[...tbl.rows],grid=[],cells=[];let ncol=0,headRows=0;
+  rows.forEach((tr,ri)=>{
+   if(tr.parentNode.tagName==="THEAD")headRows=ri+1;
+   grid[ri]=grid[ri]||[];let ci=0;
+   [...tr.cells].forEach(c=>{
+    while(grid[ri][ci])ci++;
+    const cs=c.colSpan||1,rs=c.rowSpan||1,inHead=tr.parentNode.tagName==="THEAD",tot=tr.classList.contains("tot"),th=c.tagName==="TH";
+    const o={ve:c.classList.contains("ve"),r:ri,c:ci,cs,rs,txt:cellTxt(c),bold:th||tot||c.classList.contains("b"),red:c.classList.contains("fr")||c.classList.contains("en"),green:c.classList.contains("ep"),circ:!!c.querySelector(".cer"),fill:inHead||th||tot,left:th&&!inHead};
+    for(let a=0;a<rs;a++){grid[ri+a]=grid[ri+a]||[];for(let b=0;b<cs;b++)grid[ri+a][ci+b]=o}
+    cells.push(o);ci+=cs;ncol=Math.max(ncol,ci)})});
+  if(!ncol)return;
+  const mw=(o,fs)=>{doc.setFont("helvetica",o.bold?"bold":"normal");doc.setFontSize(fs);return Math.max(...o.txt.split("\n").map(t=>doc.getTextWidth(t)))};
+  const longest=(o,fs)=>{doc.setFont("helvetica",o.bold?"bold":"normal");doc.setFontSize(fs);return Math.max(0,...o.txt.split(/[ \n]/).map(w=>doc.getTextWidth(w)))};
+  const fgc=[],fgk={};{const hr=grid[headRows-1]||[],gr=headRows>1?grid[headRows-2]||[]:[];for(let c=0;c<ncol;c++){const h=hr[c];if(h&&h.cs===1&&/^[FGT]$/.test(h.txt.trim())){fgc.push(c);fgk[c]=!!(gr[c]&&/compos|moyenne|effectif/i.test(gr[c].txt))}}}
+  const measure=fs=>{
+   const nat=Array(ncol).fill(6),min=Array(ncol).fill(6),f12=tbl.classList.contains("f12");
+   /* Colonnes F / G / T : largeur fixe selon la nature de la colonne (effectifs : « 000 », taux : « 100,00 »), quelles que soient les valeurs saisies → mise en page identique d'un tableau à l'autre */
+   const eq=()=>{if(fgc.length<2)return;doc.setFont("helvetica","bold");doc.setFontSize(fs);
+    const wc=doc.getTextWidth("000")+3.5,wt=doc.getTextWidth("100,00")+3.5,cn=fgc.filter(c=>fgk[c]),ct=fgc.filter(c=>!fgk[c]);
+    [[cn,wc],[ct,wt]].forEach(([cl,ref])=>{if(cl.length){const w=Math.max(ref,...cl.map(c=>nat[c]));cl.forEach(c=>{nat[c]=w;min[c]=w})}})};
+   cells.filter(o=>o.cs===1).forEach(o=>{nat[o.c]=Math.max(nat[o.c],mw(o,fs)+3.5);min[o.c]=Math.max(min[o.c],longest(o,fs)+3.5)});
+   eq();
+   cells.filter(o=>o.cs>1).forEach(o=>{
+    const sum=a=>{let s=0;for(let k=0;k<o.cs;k++)s+=a[o.c+k];return s},add=(a,need)=>{const d=need-sum(a);if(d>0)for(let k=0;k<o.cs;k++)a[o.c+k]+=d/o.cs};
+    add(nat,(f12?longest(o,fs):mw(o,fs))+3.5);add(min,longest(o,fs)+3.5)});
+   eq();
+   return {nat,min}};
+  let fs=tbl.classList.contains("f12")?12:9.5,L=measure(fs);
+  while(L.nat.reduce((a,b)=>a+b,0)>AV&&fs>6.5){fs-=0.5;L=measure(fs)}
+  const sNat=L.nat.reduce((a,b)=>a+b,0),sMin=L.min.reduce((a,b)=>a+b,0);
+  let cw;
+  if(sNat>AV){cw=sMin<AV?L.nat.map((n,i)=>L.min[i]+(n-L.min[i])*(AV-sMin)/(sNat-sMin)):L.nat.map(n=>n*AV/sNat)}
+  else{const target=ncol<=4?Math.min(AV,Math.max(sNat,150)):AV;cw=L.nat.map(n=>n*target/sNat)}
+  if(tbl.classList.contains("fx")&&ncol>2){const m=Math.max(...cw.slice(1)),k=Math.min(1,(AV-cw[0])/(m*(ncol-1)));cw=cw.map((w,i)=>i?m*k:w)}
+  const tw=cw.reduce((a,b)=>a+b,0),x0=M+(AV-tw)/2,cx=[];let ax=x0;cw.forEach(w=>{cx.push(ax);ax+=w});
+  const lh=fs*0.3528*1.25,pad=1.8;
+  const lines=o=>{doc.setFont("helvetica",o.bold?"bold":"normal");doc.setFontSize(fs);let w=0;for(let k=0;k<o.cs;k++)w+=cw[o.c+k];return o.txt.split("\n").flatMap(t=>wrapT(doc,t,w-2.5))};
+  cells.forEach(o=>o.ls=lines(o));
+  const rh=Array(rows.length).fill(Math.max(5.6,lh+pad));
+  cells.filter(o=>o.rs===1).forEach(o=>{rh[o.r]=Math.max(rh[o.r],Math.max(1,o.ls.length)*lh+pad)});
+  cells.filter(o=>o.rs>1).forEach(o=>{let s=0;for(let k=0;k<o.rs;k++)s+=rh[o.r+k];const d=Math.max(1,o.ls.length)*lh+pad-s;if(d>0)rh[o.r+o.rs-1]+=d});
+  const drawRow=(ri,yy)=>{
+   cells.filter(o=>o.r===ri).forEach(o=>{
+    let w=0,h=0;for(let k=0;k<o.cs;k++)w+=cw[o.c+k];for(let k=0;k<o.rs;k++)h+=rh[ri+k];
+    const x=cx[o.c];
+    if(o.ve)return;
+    doc.setLineWidth(0.2);doc.setDrawColor(...GRID);doc.setFillColor(...(o.fill?HEADFILL:[255,255,255]));doc.rect(x,yy,w,h,"FD");
+    doc.setFont("helvetica",o.bold?"bold":"normal");doc.setFontSize(fs);doc.setTextColor(...(o.green?GREEN:o.red?RED:INK));
+    const n=o.ls.length,top=yy+(h-n*lh)/2;
+    o.ls.forEach((l,k)=>doc.text(l,o.left?x+1.5:x+w/2,top+lh*(k+1)-lh*0.22,o.left?undefined:{align:"center"}));
+    if(o.circ&&!o.left&&n===1){const tw=doc.getTextWidth(o.ls[0]),base=top+lh-lh*0.22;doc.setDrawColor(...RED);doc.setLineWidth(0.3);doc.ellipse(x+w/2,base-fs*0.3528*0.34,Math.min(tw/2+2.2,w/2-0.4),Math.min(fs*0.3528*0.95,h/2-0.35))}
+    doc.setTextColor(...INK)})};
+  const headH=rh.slice(0,headRows).reduce((a,b)=>a+b,0);
+  const drawHead=()=>{let yy=y;for(let r=0;r<headRows;r++){drawRow(r,yy);yy+=rh[r]}y=yy};
+  need(headH+(rh[headRows]||0)+2);
+  drawHead();
+  for(let r=headRows;r<rows.length;r++){
+   const lim=rep&&r===rows.length-1?BOT-46:BOT;
+   if(y+rh[r]>lim){np();drawHead()}
+   drawRow(r,y);y+=rh[r]}
+  y+=3}
+
+ function sign(el){
+  const dEl=el.querySelector(".sgd"),tds=[...el.querySelectorAll("tr:last-child > td")];
+  const blocks=tds.map(d=>{
+   const ns=[...d.childNodes];const ix=ns.findIndex(n=>n.nodeName==="I");
+   const title=pdfT(ns.slice(0,ix<0?ns.length:ix).map(n=>n.textContent).join(" "));
+   const after=ix<0?[]:ns.slice(ix+1);
+   const nm=after.find(n=>n.nodeName==="B"),jb=after.find(n=>n.nodeName==="EM");
+   return {title,name:nm?pdfT(nm.textContent):"",job:jb?pdfT(jb.textContent):""}});
+  const ext=true;
+  doc.setFont("helvetica","italic");doc.setFontSize(8.5);
+  const cxs=[M+AV/4,W-M-AV/4],sp=cxs[1]-cxs[0];doc.setFont("helvetica","bold");doc.setFontSize(10.5);const nat=blocks.map(b=>b.name?doc.getTextWidth(b.name):0),fit=blocks.every((b,i)=>cxs[i]-nat[i]/2>=6&&cxs[i]+nat[i]/2<=W-6)&&(blocks.length<2||cxs[0]+nat[0]/2+6<=cxs[1]-nat[1]/2),nl=blocks.map(b=>b.name?(fit?[b.name]:balT(doc,b.name,sp-6)):[]);doc.setFont("helvetica","italic");doc.setFontSize(8.5);const jl=blocks.map(b=>b.job?balT(doc,b.job,sp-6):[]),xl=Math.max(0,...blocks.map((b,i)=>Math.max(0,nl[i].length-1)*5+Math.max(0,jl[i].length-1)*3.7));
+  need(44+xl);y+=5;
+  if(dEl){doc.setFont("helvetica","normal");doc.setFontSize(10.5);doc.setTextColor(...INK);doc.text(pdfT(dEl.textContent),ext?W-M-AV/4:W-M-55,y,{align:"center"})}
+  y+=8;
+  blocks.forEach((b,i)=>{
+   const cx=ext?(i===0?M+AV/4:W-M-AV/4):(i===0?M+55:W-M-55),al="center";
+   doc.setFont("helvetica","bold");doc.setFontSize(10.5);doc.text(b.title,cx,y,{align:al});
+   let yy=y+17;
+   if(b.name){doc.setFont("helvetica","bold");doc.setFontSize(10.5);nl[i].forEach(ln=>{doc.text(ln,cx,yy,{align:al});
+    const tw=doc.getTextWidth(ln),x1=cx-tw/2;doc.setDrawColor(...INK);doc.setLineWidth(0.25);doc.line(x1,yy+0.9,x1+tw,yy+0.9);yy+=5})}
+   if(b.job){doc.setFont("helvetica","italic");doc.setFontSize(8.5);jl[i].forEach((ln,k)=>doc.text(ln,cx,yy+k*3.7,{align:al}))}
+   doc.setFont("helvetica","normal");doc.setFontSize(10.5)});
+  y+=17+14+xl}
+
+ const proc=el=>{
+  if(el.classList.contains("np")||el.id==="vmsg")return;
+  const tag=el.tagName,ctr=el.style.textAlign==="center";
+  if(el.classList.contains("hd")){
+   const y0=y,lh0=10*0.3528*1.35,spl=n=>n.innerHTML.split(/<br\s*\/?>/i).map(h=>{const t=document.createElement("div");t.innerHTML=h;return pdfT(t.textContent)});
+   spl(el.querySelector(".hl")).forEach((t,i)=>para(t,10,false,"left",INK,0.3));
+   const R=spl(el.querySelector(".hr"));let wm=0;
+   R.forEach((t,i)=>{doc.setFont("helvetica","normal");doc.setFontSize(10);wm=Math.max(wm,doc.getTextWidth(t))});
+   R.forEach((t,i)=>{doc.setFont("helvetica","normal");doc.setFontSize(10);doc.setTextColor(...INK);doc.text(t,W-M-wm/2,y0+lh0*(i+1)-lh0*0.25+0.3*i,{align:"center"})});
+   y+=3}
+  else if(tag==="H2"){y+=1;const sp=el.querySelector("span"),nw=sp&&sp.style.whiteSpace==="nowrap";if(nw){const a=pdfT(el.textContent.replace(sp.textContent,"")),b=pdfT(sp.textContent);doc.setFont("helvetica","bold");doc.setFontSize(13);if(doc.getTextWidth(a+" "+b)<=AV)para(a+" "+b,13,true,"center",INK,2.5);else{para(a,13,true,"center",INK,0);para(b,13,true,"center",INK,2.5)}}else para(el.textContent,13,true,"center",INK,2.5)}
+  else if(tag==="H3"){need(26);y+=1;para(el.textContent,11,true,ctr?"center":"left",INK,1.5)}
+  else if(tag==="P"&&el.classList.contains("stz")){const pt=[...el.children].map(c=>pdfT(c.textContent));doc.setFont("helvetica","bold");doc.setFontSize(10);doc.setTextColor(...INK);const lh=10*0.3528*1.35,gp=16,ws=pt.map(t=>doc.getTextWidth(t)),tt=ws.reduce((m,n)=>m+n,0)+gp*(pt.length-1);need(lh);y+=lh;let xx=W/2-tt/2;pt.forEach((t,k)=>{doc.text(t,xx,y-lh*0.25);xx+=ws[k]+gp});y+=1}
+  else if(tag==="P"){el.classList.contains("mu")?para(el.textContent,8.5,false,"left",[70,70,70],1):para(el.textContent,10,false,ctr?"center":"left",INK,1)}
+  else if(el.classList.contains("ctl")){
+   const t=[...el.querySelectorAll("label")].map(l=>{const c=l.querySelector("select,input"),v=c?(c.tagName==="SELECT"?(c.options[c.selectedIndex]||{}).text||"":c.value):"";return pdfT(l.firstChild.textContent)+" : "+(v||"........")}).join("          ");
+   if(t)para(t,10,false,"center",INK,2)}
+  else if(el.classList.contains("w")){const t=el.querySelector("table");if(t)table(t)}
+  else if(el.classList.contains("sig"))sign(el)};
+ cards.forEach((card,ci)=>{
+  if(ci){cnt2[cur]=pg-part+1;np(!isPor(card))}
+  cur=ci;part=pg;
+  const kids=[...card.children],fw=kids.findIndex(k=>k.classList.contains("w"));
+  const rep=card.dataset.rep&&fw>=0?{sig:card.querySelector(".sig"),top:kids.slice(0,fw)}:null;
+  kids.forEach(el=>{if(rep&&el.classList.contains("w"))table(el.querySelector("table"),rep);else proc(el)})});
+ cnt2[cur]=pg-part+1;
+ foot();
+ doc._cnt=cnt2;
+ return doc}
+
+/* ===== Export Excel (.xlsx) : classeur construit directement dans l'application, une feuille par document ===== */
+const XL_CRC=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
+function xlCrc(b){let c=0xFFFFFFFF;for(let i=0;i<b.length;i++)c=XL_CRC[(c^b[i])&255]^(c>>>8);return(c^0xFFFFFFFF)>>>0}
+function xlZip(files){
+ const enc=new TextEncoder(),parts=[],cen=[],u16=v=>[v&255,(v>>8)&255],u32=v=>[v&255,(v>>8)&255,(v>>16)&255,(v>>24)&255];let off=0;
+ files.forEach(f=>{const nm=enc.encode(f.name),d=enc.encode(f.data),crc=xlCrc(d);
+  const lh=Uint8Array.from([0x50,0x4b,3,4,...u16(20),...u16(0x0800),...u16(0),...u16(0),...u16(0x21),...u32(crc),...u32(d.length),...u32(d.length),...u16(nm.length),...u16(0)]);
+  parts.push(lh,nm,d);
+  cen.push(Uint8Array.from([0x50,0x4b,1,2,...u16(20),...u16(20),...u16(0x0800),...u16(0),...u16(0),...u16(0x21),...u32(crc),...u32(d.length),...u32(d.length),...u16(nm.length),...u16(0),...u16(0),...u16(0),...u16(0),...u32(0),...u32(off)]),nm);
+  off+=lh.length+nm.length+d.length});
+ const cs=cen.reduce((a,b)=>a+b.length,0),end=Uint8Array.from([0x50,0x4b,5,6,0,0,0,0,...u16(files.length),...u16(files.length),...u32(cs),...u32(off),0,0]);
+ return new Blob([...parts,...cen,end],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"})}
+const xlEsc=t=>String(t==null?"":t).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const xlCol=i=>{let s="";for(i++;i>0;i=Math.floor((i-1)/26))s=String.fromCharCode(65+(i-1)%26)+s;return s};
+/* Styles : chaque combinaison (police, remplissage, bordure, alignement, format) reçoit un numéro */
+function xlStyles(){
+ const fonts=[],fills=['<fill><patternFill patternType="none"/></fill>','<fill><patternFill patternType="gray125"/></fill>'],borders=['<border><left/><right/><top/><bottom/><diagonal/></border>'],xfs=[],map=new Map();
+ const idx=(a,x)=>{let i=a.indexOf(x);if(i<0){a.push(x);i=a.length-1}return i};
+ const bd='<border>'+["left","right","top","bottom"].map(s=>`<${s} style="thin"><color rgb="FF6E6E6E"/></${s}>`).join("")+'<diagonal/></border>';
+ const get=o=>{o=o||{};const k=JSON.stringify(o);if(map.has(k))return map.get(k);
+  const f=`<font>${o.b?"<b/>":""}${o.i?"<i/>":""}${o.u?"<u/>":""}<sz val="${o.sz||11}"/><color rgb="FF${o.col||"141414"}"/><name val="Calibri"/><family val="2"/></font>`,
+   fl=o.fill?`<fill><patternFill patternType="solid"><fgColor rgb="FF${o.fill}"/><bgColor indexed="64"/></patternFill></fill>`:null,
+   fi=idx(fonts,f),fli=fl?idx(fills,fl):0,bi=o.bd?idx(borders,bd):0;
+  xfs.push(`<xf numFmtId="${o.nf||0}" fontId="${fi}" fillId="${fli}" borderId="${bi}" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1" applyProtection="1"><alignment horizontal="${o.al||"general"}" vertical="${o.va||"center"}"${o.wrap?' wrapText="1"':""}/><protection locked="${o.lk?1:0}"/></xf>`);
+  map.set(k,xfs.length-1);return xfs.length-1};
+ get({});
+ const xml=()=>`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="2"><numFmt numFmtId="164" formatCode="+0.00;-0.00;0.00"/><numFmt numFmtId="165" formatCode="+0;-0;0"/></numFmts><fonts count="${fonts.length}">${fonts.join("")}</fonts><fills count="${fills.length}">${fills.join("")}</fills><borders count="${borders.length}">${borders.join("")}</borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="${xfs.length}">${xfs.join("")}</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles><dxfs count="2"><dxf><font><color rgb="FF15803D"/></font></dxf><dxf><font><color rgb="FFC1121F"/></font></dxf></dxfs></styleSheet>`;
+ return {get,xml}}
+function xlGrid(tbl){
+ const rows=[...tbl.rows],grid=[],cells=[];let ncol=0,headRows=0;
+ rows.forEach((tr,ri)=>{
+  if(tr.parentNode.tagName==="THEAD")headRows=ri+1;
+  grid[ri]=grid[ri]||[];let ci=0;
+  [...tr.cells].forEach(c=>{
+   while(grid[ri][ci])ci++;
+   const cs=c.colSpan||1,rs=c.rowSpan||1,inHead=tr.parentNode.tagName==="THEAD",tot=tr.classList.contains("tot"),th=c.tagName==="TH";
+   const o={ve:c.classList.contains("ve"),tot,r:ri,c:ci,cs,rs,txt:cellTxt(c),bold:th||tot||c.classList.contains("b"),red:c.classList.contains("fr")||c.classList.contains("en"),green:c.classList.contains("ep"),fill:inHead||th||tot,left:th&&!inHead,head:inHead};
+   for(let a=0;a<rs;a++){grid[ri+a]=grid[ri+a]||[];for(let b=0;b<cs;b++)grid[ri+a][ci+b]=o}
+   cells.push(o);ci+=cs;ncol=Math.max(ncol,ci)})});
+ return {cells,ncol,nrows:rows.length,headRows}}
+function xlVal(t){const s=String(t).trim();
+ if(/^-?(0|[1-9]\d{0,14})$/.test(s))return {n:+s};
+ if(/^-?(0|[1-9]\d{0,9}),\d{1,6}$/.test(s))return {n:+s.replace(",","."),nf:2};
+ return {s:String(t)}}
+/* Formules Excel : T = F+G ; totaux = SOMME des lignes ; taux = Ont eu la moyenne / Ont composé ; écart = B − A ; rang */
+function xlCache(t){const s=String(t).trim();return /^[+-]?\d+(,\d+)?$/.test(s)?{n:+s.replace(",",".")}:{s:s}}
+function xlFormulas(g,base){
+ const out={},cells=g.cells.filter(o=>!o.ve),H=g.headRows,N=g.nrows;
+ if(!H||N<=H)return out;
+ const ref=(r,c)=>xlCol(c)+(base+r+1),abs=(r,c)=>"$"+xlCol(c)+"$"+(base+r+1),hdr=cells.filter(o=>o.r<H),role={},col={};
+ hdr.filter(o=>o.r===H-1&&o.cs===1&&/^[FGT]$/.test(o.txt.trim())).forEach(o=>{role[o.c]={j:o.txt.trim().toLowerCase(),grp:""}});
+ if(H>1){let nb=0;
+  hdr.filter(o=>o.r===0&&o.cs>1).sort((a,b)=>a.c-b.c).forEach(o=>{const t=o.txt.trim(),gp=/^Effectif/i.test(t)?"ef":/^Ont compos/i.test(t)?"co":/moyenne/i.test(t)?"mo":/^Taux/i.test(t)?"tx":/^Examen blanc/i.test(t)?(nb++?"B":"A"):/^[ÉE]cart/i.test(t)?"ec":"";for(let k=0;k<o.cs;k++)if(role[o.c+k])role[o.c+k].grp=gp})}
+ Object.keys(role).forEach(c=>{const q=role[c];(col[q.grp]=col[q.grp]||{})[q.j]=+c});
+ const rows=[];for(let r=H;r<N;r++){const rc=cells.filter(o=>o.r===r);if(rc.length)rows.push({r,tot:rc.some(o=>o.tot),lab:((rc.find(o=>o.left)||{}).txt||"").trim()})}
+ const set=(r,c,f,nf,x)=>{out[r+","+c]=Object.assign({f,nf},x||{})},
+  tcnt=(gp,r)=>{const q=col[gp];if(!q||q.f==null||q.g==null||q.t==null)return;const a=ref(r,q.f),b=ref(r,q.g);set(r,q.t,`IF(COUNT(${a},${b})=0,"",SUM(${a},${b}))`,0)},
+  taux=(r,c,co,mo)=>{if(c==null)return;set(r,c,`IF(N(${co})=0,"",N(${mo})/${co}*100)`,2)},
+  ix=re=>(rows.find(w=>re.test(w.lab))||{}).r,
+  rEf=ix(/^Effectif/i),rCo=ix(/^Ont compos/i),rMo=ix(/moyenne/i),rTx=ix(/^Taux/i),
+  glob=rEf!=null&&rCo!=null&&rMo!=null&&rTx!=null,isC=w=>glob&&/^(Effectif|Ont compos|Ont eu)/i.test(w.lab);
+ /* tableau « Résultats globaux » (lignes Effectif / Ont composé / Ont eu la moyenne / Taux) */
+ if(col[""]&&H===1){
+  const q=col[""];
+  if(glob){[rEf,rCo,rMo].forEach(r=>tcnt("",r));["f","g","t"].forEach(j=>taux(rTx,q[j],ref(rCo,q[j]),ref(rMo,q[j])))}
+  return out}
+ /* tableaux comparatifs : colonnes A, B et Écart */
+ if(col.A&&col.B&&col.ec){
+  if(glob)["A","B"].forEach(gp=>{[rEf,rCo,rMo].forEach(r=>tcnt(gp,r));["f","g","t"].forEach(j=>taux(rTx,col[gp][j],ref(rCo,col[gp][j]),ref(rMo,col[gp][j])))});
+  rows.forEach(w=>["f","g","t"].forEach(j=>{
+   const a=col.A[j],b=col.B[j],e=col.ec[j];if(a==null||b==null||e==null)return;
+   if(isC(w))set(w.r,e,`IF(COUNT(${ref(w.r,col.A.f)},${ref(w.r,col.A.g)},${ref(w.r,col.B.f)},${ref(w.r,col.B.g)})=0,"",N(${ref(w.r,b)})-N(${ref(w.r,a)}))`,165,{ec:1,j});
+   else set(w.r,e,`IF(AND(ISNUMBER(${ref(w.r,a)}),ISNUMBER(${ref(w.r,b)})),${ref(w.r,b)}-${ref(w.r,a)},"")`,164,{ec:1,j})}));
+  return out}
+ /* tableaux par discipline / zone / statut / école / ordre de mérite */
+ const nb=hdr.find(o=>/^Nombre/i.test(o.txt.trim())),nbc=nb?nb.c:null,hasTx=col.tx&&col.co&&col.mo;
+ rows.forEach(w=>{
+  if(w.tot&&w.r-1>=H){
+   ["ef","co","mo"].forEach(gp=>{const q=col[gp];if(!q||q.f==null||q.g==null)return;
+    const rf=ref(H,q.f)+":"+ref(w.r-1,q.f),rg=ref(H,q.g)+":"+ref(w.r-1,q.g);
+    set(w.r,q.f,`IF(COUNT(${rf},${rg})=0,"",SUM(${rf}))`,0);set(w.r,q.g,`IF(COUNT(${rf},${rg})=0,"",SUM(${rg}))`,0)});
+   if(nbc!=null)set(w.r,nbc,`SUM(${ref(H,nbc)}:${ref(w.r-1,nbc)})`,0)}
+  ["ef","co","mo"].forEach(gp=>tcnt(gp,w.r));
+  if(hasTx)["f","g","t"].forEach(j=>taux(w.r,col.tx[j],ref(w.r,col.co[j]),ref(w.r,col.mo[j])))});
+ /* ordre de mérite : colonne Rang */
+ const rk=hdr.find(o=>/^Rang/i.test(o.txt.trim()));
+ if(rk&&col.tx&&col.tx.t!=null){const ds=rows.filter(w=>!w.tot).map(w=>w.r);
+  if(ds.length){const rng=abs(ds[0],col.tx.t)+":"+abs(ds[ds.length-1],col.tx.t);
+   ds.forEach(r=>{const x=ref(r,col.tx.t);set(r,rk.c,`IF(ISNUMBER(${x}),IF(RANK(${x},${rng})=1,"1er",RANK(${x},${rng})&"e"),"—")`,0)})}}
+ return out}
+function buildXlsx(cards){
+ const ST=xlStyles(),sheets=[],used=new Set(),isPor=c=>c.classList.contains("por"),dn=new Date(),
+  STAMP=p2(dn.getDate())+"/"+p2(dn.getMonth()+1)+"/"+dn.getFullYear()+" à "+p2(dn.getHours())+":"+p2(dn.getMinutes());
+ cards.forEach((card,ci)=>{
+  const tabs=[...card.querySelectorAll(".w table")].map(xlGrid),NC=Math.max(3,...tabs.map(t=>t.ncol)),cw=Array(NC).fill(9),R=[],merges=[],ht={},cfRefs=[];let r=0;
+  cw[0]=14;
+  tabs.forEach(t=>{
+   t.cells.filter(o=>!o.ve&&o.cs===1).forEach(o=>{const L=Math.min(45,String(o.txt).length*(o.bold?1.25:1.1)+3);cw[o.c]=Math.max(cw[o.c],o.c===0?Math.max(L,14):Math.max(L,9))});
+   t.cells.filter(o=>!o.ve&&o.cs>1).forEach(o=>{const need=String(o.txt).length*1.2+3;let s=0;for(let k=0;k<o.cs;k++)s+=cw[o.c+k];if(need>s)for(let k=0;k<o.cs;k++)cw[o.c+k]+=(need-s)/o.cs})});
+  const TW=cw.reduce((a,b)=>a+b,0);
+  const put=(rr,c,o)=>{(R[rr]=R[rr]||{})[c]=o};
+  const span=(rr,c0,c1,v,sty,h)=>{const s=ST.get(sty);put(rr,c0,{v,s});for(let c=c0+1;c<=c1;c++)put(rr,c,{s});if(c1>c0)merges.push(xlCol(c0)+(rr+1)+":"+xlCol(c1)+(rr+1));if(h)ht[rr]=Math.max(ht[rr]||0,h)};
+  const lines=(t,w)=>Math.max(1,Math.ceil(String(t).length*1.15/Math.max(8,w)));
+  const textRow=(t,sty,w)=>{const wd=w||TW,n=lines(t,wd);span(r,0,NC-1,t,Object.assign({wrap:true,va:"center"},sty),n>1?n*(sty.sz?sty.sz*1.4:15):0);r++};
+  const sig=el=>{
+   const dEl=el.querySelector(".sgd"),tds=[...el.querySelectorAll("tr:last-child > td")];
+   const bl=tds.map(d=>{const ns=[...d.childNodes],ix=ns.findIndex(n=>n.nodeName==="I"),after=ix<0?[]:ns.slice(ix+1),nm=after.find(n=>n.nodeName==="B"),jb=after.find(n=>n.nodeName==="EM");
+    return {title:pdfT(ns.slice(0,ix<0?ns.length:ix).map(n=>n.textContent).join(" ")),name:nm?pdfT(nm.textContent):"",job:jb?pdfT(jb.textContent):""}});
+   const h=Math.max(1,Math.floor(NC/2)),rng=i=>i===0?[0,h-1]:[h,NC-1],wd=i=>{const [a,b]=rng(i);let s=0;for(let k=a;k<=b;k++)s+=cw[k];return s};
+   r++;
+   if(dEl)span(r,h,NC-1,pdfT(dEl.textContent),{al:"center"});
+   r++;
+   bl.slice(0,2).forEach((b,i)=>{const [a,z]=rng(i);span(r,a,z,b.title,{b:true,al:"center"})});r++;
+   ht[r]=30;ht[r+1]=30;r+=2;
+   bl.slice(0,2).forEach((b,i)=>{const [a,z]=rng(i),n=lines(b.name,wd(i));span(r,a,z,b.name,{b:true,u:true,al:"center",wrap:true},n*16)});r++;
+   bl.slice(0,2).forEach((b,i)=>{const [a,z]=rng(i),n=lines(b.job,wd(i)*1.1);span(r,a,z,b.job,{i:true,sz:9,al:"center",wrap:true,va:"top"},n*13)});r++};
+  const proc=el=>{
+   if(el.classList.contains("np")||el.id==="vmsg")return;
+   const tag=el.tagName,ctr=el.style.textAlign==="center";
+   if(el.classList.contains("hd")){
+    const spl=n=>n.innerHTML.split(/<br\s*\/?>/i).map(h=>{const t=document.createElement("div");t.innerHTML=h;return pdfT(t.textContent)}),
+     L=spl(el.querySelector(".hl")),Rr=spl(el.querySelector(".hr")),n=Math.max(L.length,Rr.length);
+    for(let i=0;i<n;i++){if(L[i])put(r,0,{v:L[i],s:ST.get({})});if(Rr[i])put(r,NC-1,{v:Rr[i],s:ST.get({al:"right"})});r++}
+    r++}
+   else if(tag==="H2"){textRow(el.textContent.trim(),{b:true,sz:14,al:"center"});r++}
+   else if(tag==="H3"){textRow(el.textContent.trim(),{b:true,sz:12,al:ctr?"center":"left"})}
+   else if(tag==="P"&&el.classList.contains("stz")){textRow([...el.children].map(c=>pdfT(c.textContent)).join("          "),{b:true,al:"center"})}
+   else if(tag==="P"){textRow(el.textContent.trim(),el.classList.contains("mu")?{sz:9,col:"464646",al:ctr?"center":"left"}:{al:ctr?"center":"left"})}
+   else if(el.classList.contains("ctl")){
+    const t=[...el.querySelectorAll("label")].map(l=>{const c=l.querySelector("select,input"),v=c?(c.tagName==="SELECT"?(c.options[c.selectedIndex]||{}).text||"":c.value):"";return pdfT(l.firstChild.textContent)+" : "+(v||"........")}).join("          ");
+    if(t)textRow(t,{al:"center"})}
+   else if(el.classList.contains("w")){
+    const tb=el.querySelector("table");if(!tb)return;const g=xlGrid(tb),f=g.cells,fm=xlFormulas(g,r);
+    const hr=(f.filter(o=>o.r===g.headRows-1&&o.cs===1&&/^[FGT]$/.test(o.txt.trim()))).length;
+    f.forEach(o=>{if(o.ve)return;
+     const FM=fm[o.r+","+o.c],
+      v=o.left||o.head||o.fill&&o.bold&&!/\d/.test(o.txt)?{s:o.txt}:xlVal(o.txt),
+      sty={b:o.bold,col:FM&&FM.ec?(FM.j==="f"?"C1121F":"141414"):o.green?"15803D":o.red?"C1121F":"141414",fill:o.fill?"E7ECE8":null,bd:true,al:o.left?"left":"center",wrap:true,nf:FM?FM.nf:(v.nf||0),lk:!!FM};
+     const s=ST.get(sty),r0=r+o.r;
+     if(FM){const cv=xlCache(o.txt);put(r0,o.c,{f:FM.f,v:cv.n!==undefined?cv.n:cv.s,num:cv.n!==undefined,s});if(FM.ec)cfRefs.push(xlCol(o.c)+(r0+1))}
+     else put(r0,o.c,{v:v.n!==undefined?v.n:v.s,num:v.n!==undefined,s});
+     for(let a=0;a<o.rs;a++)for(let b=0;b<o.cs;b++)if(a||b)put(r0+a,o.c+b,{s});
+     if(o.cs>1||o.rs>1)merges.push(xlCol(o.c)+(r0+1)+":"+xlCol(o.c+o.cs-1)+(r0+o.rs))});
+    r+=g.nrows+1}
+   else if(el.classList.contains("sig"))sig(el)};
+  [...card.children].forEach(proc);
+  r++;span(r,0,NC-1,"Généré par LoCoREB – "+STAMP,{i:true,sz:8,col:"6E6E6E",al:"left"});
+  /* nom de feuille : titre de la zone / de l'école, sans caractères interdits, unique, 31 caractères au plus */
+  const h3=[...card.querySelectorAll("h3")].map(h=>h.textContent.trim()),h2=[...card.querySelectorAll("h2")].map(h=>h.textContent.trim());
+  const pz=[...card.querySelectorAll("p")].map(t=>t.textContent.trim()).find(t=>/^ZEP : /.test(t));
+  let nm=h3.find(t=>/ZONE|STATUT|RÉCAP|PAR ÉCOLE|PAR ZEP/i.test(t))||(pz&&h3.some(t=>/GLOBAUX/i.test(t))?pz:h3.some(t=>/GLOBAUX/i.test(t))?"Résultats globaux":h2.some(t=>/MÉRITE/i.test(t))?"Ordre de mérite":h2[0]||h3[h3.length-1]||"Feuille "+(ci+1));
+  nm=nm.replace(/^TAUX DE RÉUSSITE PAR ÉCOLE – ZEP : /i,"Écoles ZEP ").replace(/^ZEP : /,"ZEP ").replace(/RÉCAPITULATIF/i,"Récap.").replace(/\s*:\s*/g," ").replace(/[\[\]:*?\/\\]/g," ").replace(/\s+/g," ").trim().slice(0,31)||"Feuille";let nn=nm,k=2;while(used.has(nn.toLowerCase())){nn=nm.slice(0,27)+" ("+k+")";k++}used.add(nn.toLowerCase());
+  const rowsXml=R.map((row,i)=>{if(!row)return"";const cs=Object.keys(row).map(Number).sort((a,b)=>a-b).map(c=>{const o=row[c],ref=xlCol(c)+(i+1);
+    if(o.f){const fx=`<f>${xlEsc(o.f)}</f>`;return o.num?`<c r="${ref}" s="${o.s}">${fx}<v>${o.v}</v></c>`:`<c r="${ref}" s="${o.s}" t="str">${fx}<v>${xlEsc(o.v)}</v></c>`}
+    if(o.v===undefined||o.v==="")return`<c r="${ref}" s="${o.s}"/>`;
+    return o.num?`<c r="${ref}" s="${o.s}"><v>${o.v}</v></c>`:`<c r="${ref}" s="${o.s}" t="inlineStr"><is><t xml:space="preserve">${xlEsc(o.v)}</t></is></c>`}).join("");
+    return`<row r="${i+1}"${ht[i]?` ht="${ht[i]}" customHeight="1"`:""}>${cs}</row>`}).join("");
+  const cfXml=cfRefs.length?`<conditionalFormatting sqref="${cfRefs.join(" ")}"><cfRule type="cellIs" dxfId="0" priority="1" operator="greaterThan"><formula>0</formula></cfRule><cfRule type="cellIs" dxfId="1" priority="2" operator="lessThan"><formula>0</formula></cfRule></conditionalFormatting>`:"";
+  sheets.push({name:nn,xml:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><sheetViews><sheetView showGridLines="0" workbookViewId="0"/></sheetViews><sheetFormatPr defaultRowHeight="15"/><cols>${cw.map((w,i)=>`<col min="${i+1}" max="${i+1}" width="${w.toFixed(1)}" customWidth="1"/>`).join("")}</cols><sheetData>${rowsXml}</sheetData><sheetProtection sheet="1" objects="1" scenarios="1" formatColumns="0" formatRows="0"/>${merges.length?`<mergeCells count="${merges.length}">${merges.map(m=>`<mergeCell ref="${m}"/>`).join("")}</mergeCells>`:""}${cfXml}<pageMargins left="0.4" right="0.4" top="0.5" bottom="0.5" header="0.3" footer="0.3"/><pageSetup paperSize="9" orientation="${isPor(card)?"portrait":"landscape"}" fitToWidth="1" fitToHeight="0"/></worksheet>`})});
+ const N=sheets.length,H='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>',NS='xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"',RN='http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+ const files=[
+  {name:"[Content_Types].xml",data:H+'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'+sheets.map((s,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join("")+'</Types>'},
+  {name:"_rels/.rels",data:H+`<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${RN}/officeDocument" Target="xl/workbook.xml"/></Relationships>`},
+  {name:"xl/workbook.xml",data:H+`<workbook ${NS} xmlns:r="${RN}"><sheets>${sheets.map((s,i)=>`<sheet name="${xlEsc(s.name)}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join("")}</sheets><calcPr calcId="191029" fullCalcOnLoad="1"/></workbook>`},
+  {name:"xl/_rels/workbook.xml.rels",data:H+`<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${sheets.map((s,i)=>`<Relationship Id="rId${i+1}" Type="${RN}/worksheet" Target="worksheets/sheet${i+1}.xml"/>`).join("")}<Relationship Id="rId${N+1}" Type="${RN}/styles" Target="styles.xml"/></Relationships>`},
+  {name:"xl/styles.xml",data:ST.xml()}].concat(sheets.map((s,i)=>({name:`xl/worksheets/sheet${i+1}.xml`,data:s.xml})));
+ return xlZip(files)}
+const xlFileName=()=>pdfFileName().replace(/\.pdf$/i,".xlsx"),xlDossier=()=>dossierPdf().replace(/^FICHIERS PDF/,"FICHIERS EXCEL");
+function exportXlsx(){
+ if(zrBlock())return;
+ const cards=[...new Set([...document.querySelectorAll("#app .hd")].map(h=>h.closest(".card")))];
+ if(!cards.length){toast("Aucun document à exporter sur cette page.");return}
+ try{saveBlob(buildXlsx(cards),xlFileName(),false,xlDossier())}catch(e){toast("Le fichier Excel n’a pas pu être créé : "+(e&&e.message||e))}}
+
+function pdfFileName(){
+ const u=S.ui,t=u.tab,n=u.n,ex=i=>"Examen blanc n"+i+"_Niveau "+E(i).niveau,cb=String(S.id.ceb||"").trim(),P=safeName(!cb?"CEB":/^ceb\b/i.test(cb)?cb:"CEB "+cb);
+ if(t==="sa")return safeName(P+"_"+u.school+"_"+ex(n))+".pdf";
+ if(t==="re"){const sc=reScope();return safeName(P+"_Résultats "+(sc?sc.lab+" "+sc.g.name:"CEB")+"_"+ex(n))+".pdf"}
+ if(t==="me"){const c=u.crit===""||u.crit===undefined||!S.disc[+u.crit]?"global":S.disc[+u.crit];return safeName(P+"_Ordre de mérite_"+ex(n)+"_"+c)+".pdf"}
+ if(t==="cp")return safeName(P+"_Comparatif_EB"+u.a+"_EB"+u.b+"_Niveau "+(E(u.a).niveau==E(u.b).niveau?E(u.a).niveau:E(u.a).niveau+"-"+E(u.b).niveau)+(u.cv==="ec"?(u.scope?"_"+u.scope:"_Écoles"):u.cv==="zep"?(u.zsc&&u.zsc!=="~"?"_ZEP "+u.zsc.toUpperCase():"_Par ZEP"):""))+".pdf";
+ return P+".pdf"}
+/* Dossier créé pour les PDF : « FICHIERS PDF_EB N°<n>_<NIVEAU> » (comparatif : « EB N°1-2 », niveaux séparés par « - » s'ils diffèrent) */
+function dossierPdf(){
+ const u=S.ui;let n,nv;
+ if(u.tab==="cp"){n=u.a===u.b?String(u.a):u.a+"-"+u.b;nv=E(u.a).niveau===E(u.b).niveau?E(u.a).niveau:E(u.a).niveau+"-"+E(u.b).niveau}
+ else{n=String(u.n);nv=E(u.n).niveau}
+ return safeName("FICHIERS PDF_EB N°"+n+"_"+nv)}
+function exportPdf(){
+ if(zrBlock())return;
+ if(S.ui.tab==="sa"&&srMiss().length){srFocus();return}
+ const cards=[...new Set([...document.querySelectorAll("#app .hd")].map(h=>h.closest(".card")))];
+ if(!cards.length){toast("Aucun document à exporter sur cette page.");return}
+ try{saveBlob(buildPdf(cards,buildPdf(cards)._cnt).output(),pdfFileName(),true,dossierPdf())}catch(e){toast("Le PDF n’a pas pu être créé : "+(e&&e.message||e))}}
+
+/* Fenêtre qui indique l'emplacement exact du dossier des PDF */
+function infoDossier(r,name,dossier){
+ const old=$("pmod");if(old)old.remove();
+ const ch=String(r.chemin||""),sep=ch.indexOf("\\")>=0?"\\":"/",i=ch.lastIndexOf(sep),dir=r.dossierChemin||(i>0?ch.slice(0,i):""),
+  cree=!!ch&&dir.split(/[\\/]/).pop()===dossier;
+ const loc=t=>`<p style="margin:6px 0;padding:8px 10px;border:1px solid var(--ln);border-radius:6px;background:var(--hd);font-family:ui-monospace,Consolas,monospace;font-size:calc(13px*var(--ts));overflow-wrap:anywhere;user-select:all">${esc(t)}</p>`;
+ let h;
+ if(cree){
+  const an=/^\/storage\/emulated\/0\//.test(dir)?`<p class="mu">Dans l’application « Fichiers » : ${esc(dir.replace(/^\/storage\/emulated\/0\//,"Stockage interne › ").split("/").join(" › "))}</p>`:"";
+  h=`<h3 style="margin-top:0;color:var(--ac)">Dossier créé</h3><p>Le dossier <b>${esc(dossier)}</b> a été créé et le fichier <b>${esc(name)}</b> y a été enregistré.</p><p style="margin-bottom:0">Emplacement exact du dossier :</p>${loc(dir)}${an}`}
+ else if(ch){
+  h=`<h3 style="margin-top:0">Fichier enregistré</h3><p>Le fichier <b>${esc(name)}</b> a été enregistré à l’emplacement exact suivant :</p>${loc(ch)}<p class="warn">Le dossier « ${esc(dossier)} » n’a pas été créé par cet environnement.</p>`}
+ else if(r.navigateur){
+  h=`<h3 style="margin-top:0">Fichier téléchargé</h3><p>Le fichier <b>${esc(name)}</b> a été téléchargé dans le dossier de téléchargement de votre navigateur.</p><p class="warn">Un navigateur ne permet pas à une page de créer le dossier « ${esc(dossier)} » : pour cela, utilisez l’application installée (Windows ou Android).</p>`}
+ else if(r.repli){
+  h=`<h3 style="margin-top:0;color:var(--rd)">Dossier non créé</h3><p>Le dossier « ${esc(dossier)} » n’a pas pu être créé sur cet appareil${r.erreur?" ("+esc(r.erreur)+")":""}. Vérifiez que l’application a l’autorisation d’accéder au stockage.</p><p>Le fichier <b>${esc(name)}</b> a été proposé au partage : choisissez l’emplacement où l’enregistrer.</p>`}
+ else{
+  h=`<h3 style="margin-top:0">Fichier prêt</h3><p>Le fichier <b>${esc(name)}</b> est prêt, mais cet environnement n’a pas communiqué l’emplacement exact ni créé le dossier « ${esc(dossier)} ».</p>`}
+ const d=document.createElement("div");d.id="pmod";d.className="fmod np";d.setAttribute("role","dialog");d.setAttribute("aria-modal","true");
+ d.onkeydown=e=>{if(e.key==="Escape")d.remove()};
+ const sh=r.uri&&window.Pont&&window.Pont.partager?`<button class="bt" type="button" onclick="window.Pont.partager('${esc(r.uri)}',${esc(JSON.stringify(name))})">Partager le fichier</button>`:"";
+ d.innerHTML=`<div>${h}<div class="ctl" style="justify-content:flex-end;margin:14px 0 0">${sh}<button class="bt" type="button" id="pok" onclick="this.closest('.fmod').remove()">OK</button></div></div>`;
+ document.body.appendChild(d);$("pok").focus()}
+
+/* Enregistrement d'un fichier : application Windows (boîte « Enregistrer sous »), APK (partage Android) ou navigateur (téléchargement) */
+async function saveBlob(blob,name,ouvrir,dossier,titre){
+ try{
+  if(window.Pont&&window.Pont.enregistrer){
+   const b64=await new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>{const s=String(fr.result);res(s.slice(s.indexOf(",")+1))};fr.onerror=rej;fr.readAsDataURL(blob)});
+   const r=await window.Pont.enregistrer(name,blob.type||"application/octet-stream",b64,dossier||"",titre);
+   if(r&&r.annule)return;
+   if(ouvrir&&r&&r.chemin&&window.Pont.ouvrir){try{await window.Pont.ouvrir(r.chemin)}catch(e){}}
+   if(dossier){infoDossier(r||{},name,dossier);return}
+    toast(r&&r.chemin?"Fichier enregistré : "+r.chemin:"Fichier prêt : "+name);return}
+  const u=URL.createObjectURL(blob),a=document.createElement("a");a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();
+  if(ouvrir)try{window.open(u,"_blank")}catch(e){}
+  setTimeout(()=>URL.revokeObjectURL(u),60000);if(dossier)infoDossier({navigateur:true},name,dossier);else toast("Fichier téléchargé : "+name)
+ }catch(e){toast("Le fichier n’a pas pu être enregistré.")}}
+
+/* ===== Recherche d'une école en tapant ses premières lettres ===== */
+const nrm=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/\s+/g," ").trim();
+/* ===== Refus des doublons (écoles / disciplines) ===== */
+function sansDoublon(el,key){
+ const NL=String.fromCharCode(10),kk=t=>nrm(t).replace(/[-_'\u2019.]/g," ").replace(/\s+/g," ").trim();
+ const brut=el.value,vu=new Map(),res=[],noms=[];let dbl=false;
+ brut.split(NL).forEach(l=>{const t=l.trim();if(!t)return;const k=kk(t);if(vu.has(k)){dbl=true;if(!noms.includes(vu.get(k)))noms.push(vu.get(k));return}const tt=key==="zeps"?t.toLocaleUpperCase("fr"):t;vu.set(k,tt);res.push(tt)});
+ S[key]=res;save();
+ if(dbl){
+  const lab=el.closest("label")||el.parentNode;
+  const ancien=lab.parentNode.querySelector(".dblbox");if(ancien)ancien.remove();
+  el.value=res.join(NL)+(brut.endsWith(NL)?NL:"");
+  const msg=noms.map(n=>(key==="schools"?"L'école ":key==="zeps"?"La ZEP ":"La discipline ")+esc(key==="schools"?UPS(n):n)+" a déjà été saisie.").join("<br>");
+  const d=document.createElement("div");d.className="dblbox";d.setAttribute("role","alert");
+  d.style.cssText="margin:10px 0;padding:10px 14px;border:2px solid #d00000;border-radius:8px;background:#fdecec;color:#c00000;font-weight:600;position:relative";
+  d.innerHTML='<div style="font-size:1.05em;margin-bottom:4px">Doublons détectés</div><div>'+msg+'</div><button type="button" aria-label="Fermer" style="position:absolute;top:6px;right:8px;border:0;background:none;color:#c00000;font-size:calc(18px*var(--ts));cursor:pointer" onclick="this.parentNode.remove()">×</button>';
+  lab.parentNode.insertBefore(d,lab.nextSibling);
+  setTimeout(()=>{if(d.parentNode)d.remove()},8000);
+ }
+}
+const cbBox=(src,val,ph,pick,w,tot)=>`<span class="cb${tot?"":""}"><input style="min-width:${w}px" data-src="${src}"${tot?' data-tot="1"':""} role="combobox" aria-expanded="false" value="${esc(val)}" placeholder="${ph}" aria-label="${ph}" autocomplete="off" onfocus="this.select();cbRender(this,0)" onclick="this.select();cbRender(this,0)" oninput="cbRender(this,1)" onkeydown="cbKey(event,this)" onblur="cbClose(this)" onchange="${pick}"><button type="button" class="cbb" tabindex="-1" aria-label="Afficher la liste" onmousedown="event.preventDefault();cbToggle(this)">&#9662;</button><div class="cbl" role="listbox" hidden></div></span>`;
+const schoolBox=(key,val,ph,id)=>`<span class="np">${cbBox("schools",UPS(val),ph,"pickSchool(this,'"+key+"')",260,key==="scope")}</span>`;
+function cbRender(el,filter){
+ const box=el.parentNode.querySelector(".cbl"),q=filter?nrm(el.value):"",cur=nrm(el.value);
+ let L=(S[el.dataset.src]||[]).map(x=>[el.dataset.src==="schools"?UPS(x):x,x]);
+ if(q){const a=L.filter(x=>nrm(x[0]).startsWith(q)),b=L.filter(x=>!nrm(x[0]).startsWith(q)&&nrm(x[0]).includes(q));L=a.concat(b)}
+ else if(el.dataset.tot)L.unshift(["Total CEB",""]);
+ box.innerHTML=L.length?L.map(x=>`<div class="cbi${x[1]&&nrm(x[1])===cur?" on":""}" role="option" data-v="${esc(x[1])}" onmousedown="event.preventDefault();cbPick(this)">${esc(x[0])}</div>`).join(""):`<div class="cbe">Aucun résultat</div>`;
+ box.hidden=false;el.setAttribute("aria-expanded","true");
+ const on=box.querySelector(".on");if(on)on.scrollIntoView({block:"nearest"})}
+function cbToggle(b){const el=b.parentNode.querySelector("input"),box=b.parentNode.querySelector(".cbl");if(box.hidden){el.focus();cbRender(el,0)}else cbClose(el,1)}
+function cbClose(el,now){const f=()=>{const box=el.parentNode&&el.parentNode.querySelector(".cbl");if(box){box.hidden=true;el.setAttribute("aria-expanded","false")}};now?f():setTimeout(f,120)}
+function cbPick(d){const w=d.closest(".cb"),el=w.querySelector("input");el.value=d.dataset.v;w.querySelector(".cbl").hidden=true;el.dispatchEvent(new Event("change"))}
+function cbKey(e,el){
+ const box=el.parentNode.querySelector(".cbl");
+ if(e.key==="Escape"){cbClose(el,1);return}
+ if(e.key==="ArrowDown"||e.key==="ArrowUp"){
+  e.preventDefault();if(box.hidden)cbRender(el,0);
+  const L=[...box.querySelectorAll(".cbi")];if(!L.length)return;
+  let i=L.findIndex(x=>x.classList.contains("hl"));L.forEach(x=>x.classList.remove("hl"));
+  i=e.key==="ArrowDown"?(i+1)%L.length:(i<=0?L.length-1:i-1);
+  L[i].classList.add("hl");L[i].scrollIntoView({block:"nearest"});return}
+ if(e.key==="Enter"&&!box.hidden){const h=box.querySelector(".hl");if(h){e.preventDefault();cbPick(h)}}}
+function pickZep(el){
+ const q=nrm(el.value),s=S.ui.school,L=S.zeps;let r;
+ if(!q){Mt(s).zep="";save();R();return}
+ r=L.find(z=>nrm(z)===q);
+ if(r===undefined){const m=L.filter(z=>nrm(z).startsWith(q));if(m.length===1)r=m[0];else if(m.length>1){r=m[0];toast(m.length+" ZEP commencent par « "+el.value.trim()+" » : la première est choisie.")}}
+ if(r===undefined){const m=L.filter(z=>nrm(z).includes(q));if(m.length===1)r=m[0]}
+ if(r===undefined){toast("Aucune ZEP trouvée pour « "+el.value.trim()+" ».");R();return}
+ Mt(s).zep=r;save();R()}
+function pickSchool(el,key){
+ const q=nrm(el.value);let r;
+ if(!q&&key==="scope")r="";
+ else{
+  const L=S.schools;
+  r=L.find(s=>nrm(s)===q);
+  if(r===undefined){const m=L.filter(s=>nrm(s).startsWith(q));if(m.length===1)r=m[0];else if(m.length>1){r=m[0];toast(m.length+" écoles commencent par « "+el.value.trim()+" » : la première est choisie.")}}
+  if(r===undefined){const m=L.filter(s=>nrm(s).includes(q));if(q&&m.length===1)r=m[0]}
+ }
+ if(r===undefined){toast("Aucune école trouvée pour « "+el.value.trim()+" ».");R();return}
+ S.ui[key]=r;save();R()}
+
+
+/* Saisie des résultats : flèches et Entrée pour passer d'une case à l'autre (toutes les cases de saisie) */
+const MOA="#app table input[data-p]",MOQ=MOA+":not([tabindex='-1'])";
+document.addEventListener("keydown",e=>{
+ const el=e.target;
+ if(!el||!el.matches||!el.matches(MOA)||e.ctrlKey||e.altKey||e.metaKey)return;
+ const k=e.key,ent=(k==="Enter"||k==="NumpadEnter"||e.keyCode===13);
+ if(!ent&&k!=="ArrowLeft"&&k!=="ArrowRight"&&k!=="ArrowUp"&&k!=="ArrowDown")return;
+ const rows=[...document.querySelectorAll("#app tr")].map(tr=>[...tr.querySelectorAll(MOA)]).filter(r=>r.length);
+ const ri=rows.findIndex(r=>r.includes(el));
+ if(ri<0)return;
+ const ci=rows[ri].indexOf(el);let to=null;
+ if(ent){const all=[...document.querySelectorAll(MOQ)];
+  to=e.shiftKey?all.filter(x=>el.compareDocumentPosition(x)&Node.DOCUMENT_POSITION_PRECEDING).pop()
+               :all.find(x=>el.compareDocumentPosition(x)&Node.DOCUMENT_POSITION_FOLLOWING)}
+ else if(k==="ArrowRight")to=rows[ri][ci+1];
+ else if(k==="ArrowLeft")to=rows[ri][ci-1];
+ else{const r=rows[ri+(k==="ArrowDown"?1:-1)];if(r)to=r[Math.min(ci,r.length-1)]}
+ e.preventDefault();
+ if(to){to.focus();if(to.select)to.select()}
+ else if(ent)el.blur()});
+/* Page Identification : la touche Entrée passe à la case suivante (Maj+Entrée : à la précédente) */
+document.addEventListener("keydown",e=>{
+ const el=e.target;
+ if(!el||!el.closest||e.ctrlKey||e.altKey||e.metaKey||e.isComposing)return;
+ if(!(e.key==="Enter"||e.key==="NumpadEnter"))return;
+ const card=el.closest(".idp");
+ if(!card||!el.matches("input,select"))return;
+ const all=[...card.querySelectorAll("input,select")].filter(x=>!x.readOnly&&!x.disabled&&x.type!=="hidden");
+ const i=all.indexOf(el);if(i<0)return;
+ e.preventDefault();
+ const to=all[i+(e.shiftKey?-1:1)];
+ if(to){to.focus();if(to.select&&to.type!=="date")try{to.select()}catch(x){}}else el.blur()});
+/* Résultats : la touche Entrée passe d'une case du R/ZEP à la suivante (Maj+Entrée : à la précédente) */
+document.addEventListener("keydown",e=>{
+ const el=e.target;
+ if(!el||!el.closest||e.ctrlKey||e.altKey||e.metaKey||e.isComposing)return;
+ if(!(e.key==="Enter"||e.key==="NumpadEnter"))return;
+ const box=el.closest(".zrc");
+ if(!box||!el.matches("input,select")||!el.dataset.k)return;
+ const all=[...box.querySelectorAll("input,select")],i=all.indexOf(el);if(i<0)return;
+ e.preventDefault();
+ const k=el.dataset.k,raw=el.value,v=k==="n"?UPS(raw.trim()):k==="p"?cap1(raw):k==="tt"?fmtTitre(raw):raw,j=i+(e.shiftKey?-1:1);
+ setZr(k,v);
+ const to=document.querySelectorAll(".zrc input,.zrc select")[j];
+ if(to){to.focus();if(to.tagName==="INPUT")try{to.select()}catch(x){}}else if(document.activeElement)document.activeElement.blur()});
+/* Colonne « T » toujours en gras, dans tous les tableaux F / G / T */
+function boldT(){document.querySelectorAll("#app table").forEach(t=>{
+ const hr=t.tHead?[...t.tHead.rows]:[];if(!hr.length)return;
+ const occ=[],tc=[];
+ hr.forEach((tr,ri)=>{occ[ri]=occ[ri]||[];let ci=0;
+  [...tr.cells].forEach(c=>{while(occ[ri][ci])ci++;const cs=c.colSpan||1,rs=c.rowSpan||1;
+   for(let a=0;a<rs;a++){occ[ri+a]=occ[ri+a]||[];for(let b=0;b<cs;b++)occ[ri+a][ci+b]=1}
+   if(cs===1&&c.textContent.trim()==="T")tc.push(ci);ci+=cs})});
+ [...t.tBodies].forEach(tb=>[...tb.rows].forEach(tr=>tc.forEach(i=>{const c=tr.cells[i];if(c&&c.tagName==="TD")c.classList.add("b")})))})}
+/* Identification : tous les champs sont obligatoires avant de passer à une autre étape */
+let IDTRY=false;
+const ID_REQ=[["annee","Année scolaire"],["dreppnf","DREPPNF"],["dpeppnf","DPEPPNF"],["ceb","CEB"],["ccebn","Nom du CCEB"],["ccebp","Prénom du CCEB"],["ccebs","Sexe du CCEB"],["ccebt","Emploi ou Titre honorifique du CCEB"],["rbn","Nom du R/BEPrim"],["rbp","Prénom du R/BEPrim"],["rbs","Sexe du R/BEPrim"],["rbt","Emploi ou Titre honorifique du R/BEPrim"],["lieu","Fait à"],["date","Le (date)"]];
+/* valeur d'un champ ; la date non encore modifiée vaut la date du jour (valeur pré-remplie) */
+const idVal=k=>{const v=S.id[k];return String(k==="date"&&v===undefined?today():(v==null?"":v)).trim()};
+function idMiss(){const I=S.id=S.id||{};migNm(I,"cceb","ccebn","ccebp");migNm(I,"rb","rbn","rbp");return ID_REQ.filter(x=>!idVal(x[0])).map(x=>x[1])}
+function idMsgTxt(m){return "Complétez d’abord l’identification avant de passer à l’étape suivante. Champs à renseigner : "+m.join(", ")+"."}
+function idChk(){if(!IDTRY)return;const m=idMiss();document.querySelectorAll("[data-id]").forEach(e=>e.classList.toggle("bad",!idVal(e.dataset.id)));const b=$("idmsg");if(b){if(m.length){b.textContent=idMsgTxt(m);b.hidden=false}else{b.hidden=true;IDTRY=false}}}
+/* Résultats : les champs du R/ZEP sont obligatoires pour passer aux étapes suivantes ou exporter en PDF */
+let ZRTRY=false;
+const ZR_REQ=[["n","Nom du R/ZEP"],["p","Prénom du R/ZEP"],["sx","Sexe du R/ZEP"],["tt","Emploi ou Titre honorifique du R/ZEP"]];
+function zrMiss(){const sc=reScope();if(!sc)return[];const z=(S.zr&&S.zr[sc.id])||{};migNm(z,"nom","n","p");return ZR_REQ.filter(x=>!String(z[x[0]]==null?"":z[x[0]]).trim()).map(x=>x[1])}
+function zrMsgTxt(m){return "Complétez d’abord les informations du R/ZEP. Champs à renseigner : "+m.join(", ")+"."}
+function zrBlock(){if(S.ui.tab!=="re"||!zrMiss().length)return false;ZRTRY=true;R();toast("Complétez d’abord les informations du R/ZEP : tous les champs sont obligatoires.");return true}
+/* Agrandissement du texte du système (WebView Android) : on mesure le facteur appliqué et on le compense pour garder la même mise en page que dans Chrome */
+function tsFit(){try{const d=document,r=d.documentElement;if(!d.body)return;const p=d.createElement("div");p.setAttribute("aria-hidden","true");p.style.cssText="position:absolute;left:0;top:0;width:100%;opacity:0;pointer-events:none;overflow:hidden;font:14px sans-serif";p.innerHTML='<span style="font:100px sans-serif;white-space:nowrap">MMMMMMMM</span> '+"Mesure du texte pour adapter l’affichage. ".repeat(20);d.body.appendChild(p);const w=p.firstChild.getBoundingClientRect().width;p.remove();const c=d.createElement("canvas").getContext("2d");c.font="100px sans-serif";const b=c.measureText("MMMMMMMM").width;if(!(w>0&&b>0))return;let k=w/b;k=k>1.08?Math.min(k,2.2):1;r.style.setProperty("--ts",(1/k).toFixed(3))}catch(e){}}
+addEventListener("resize",tsFit);addEventListener("orientationchange",tsFit);document.addEventListener("visibilitychange",tsFit);
+function go(t){
+ if((t==="me"||t==="cp")&&zrBlock())return;
+ if(t!=="id"&&t!=="ac"&&idMiss().length){IDTRY=true;S.ui.tab="id";save();R();toast("Complétez d’abord l’identification : tous les champs sont obligatoires.");return}
+ S.ui.tab=t;save();R()}
+function R(){
+ const u=S.ui,nav=document.querySelector("nav"),L=licInfo();
+ if(L.bloque){nav.style.display="none";$("app").innerHTML=lockHtml(L);window.scrollTo(0,0);return}
+ nav.style.display=u.tab=="ac"?"none":"";nav.classList.add("one");
+ S.schools.sort((a,b)=>a.localeCompare(b,"fr"));
+ if(!S.schools.includes(u.school))u.school=S.schools[0]||"";
+ $("app").innerHTML=licBanner()+{ac:pgAc,id:pgId,ec:pgEc,zp:pgZp,di:pgDi,sa:pgSa,re:pgRe,me:pgMe,cp:pgCp}[u.tab]();
+ boldT();srLock();
+ document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.t==u.tab));
+ if(u.tab=="sa")refresh(true);window.scrollTo(0,0)}
+S.ui.tab="ac";
+tsFit();R();
+</script></body></html>
