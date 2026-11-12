@@ -235,7 +235,7 @@ S.zeps=S.zeps||[];
 if(!S.zeps.length){const vu=new Set();Object.values(S.meta).forEach(m=>{const z=String(m&&m.zep||"").trim(),k=z.toLowerCase();if(z&&!vu.has(k)){vu.add(k);S.zeps.push(z)}});S.zeps.sort((a,b)=>a.localeCompare(b,"fr"))}
 normZeps();
 S.disc=S.disc||["Dictée","Questions de dictée","Rédaction","Mathématiques","Lecture"];
-S.ui=S.ui||{tab:"ac",n:1,school:"",a:1,b:2,scope:"",zsc:""};
+S.ui=S.ui||{tab:"ac",n:1,school:"",a:1,b:2,scope:""};
 const $=i=>document.getElementById(i);
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
 const esc=s=>String(s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -626,21 +626,20 @@ function pgCp(){
  const {g,p}=gdf(A,B);
  const cr=(nm,list,c,i,num)=>{const a=agg(u.a,list),b=agg(u.b,list);return `<tr class="${c||""}">${num?`<td>${i||""}</td>`:""}<th>${esc(nm)}</th>`+[a,b].map(r=>["f","g","t"].map(j=>`<td${j=="f"?' class="fr"':""}>${val(r,"g.tx."+j)}</td>`).join("")).join("")+ecs(a.g,b.g)+"</tr>"};
  const ct=(t,items,num)=>`<h3>TAUX DE RÉUSSITE PAR ${t.toUpperCase()}</h3><div class="w"><table>${head(t,0,num)}<tbody>${items.map((i,k)=>cr(i.name,i.list,"",k+1,num)).join("")}${cr("TOTAL CEB",S.schools,"tot",0,num)}</tbody></table></div>`;
- const head=(a,b,num)=>`<thead><tr>${num?'<th rowspan="2">N°</th>':""}<th rowspan="2"${a?' style="text-align:left"':' class="ve"'}>${esc(String(a==="École"?"Écoles":a).toUpperCase())}</th><th colspan="3" style="text-align:center">EXAMEN BLANC N°${u.a}<br>(NIVEAU ${esc(String(E(u.a).niveau).toUpperCase())})</th><th colspan="3" style="text-align:center">EXAMEN BLANC N°${u.b}<br>(NIVEAU ${esc(String(E(u.b).niveau).toUpperCase())})</th><th colspan="3" style="text-align:center">ÉCART</th></tr><tr>${fgt}${fgt}${fgt}</tr></thead>`;
- const ttp=n=>`<p style="text-align:center;margin:0">${esc(n)}</p>`,ttlH=`<h2>COMPARAISON ENTRE LES EXAMENS BLANCS <span style="white-space:nowrap">N°${u.a} (NIVEAU ${esc(String(E(u.a).niveau).toUpperCase())}) ET N°${u.b} (NIVEAU ${esc(String(E(u.b).niveau).toUpperCase())})</span></h2>`,ttl=ttlH+ttp(L.length==1?UPS(L[0]):"TOTAL CEB");
+ const head=(a,b,num)=>`<thead><tr>${num?'<th rowspan="2">N°</th>':""}<th rowspan="2"${a?"":' class="ve"'}>${a}</th><th colspan="3">Examen blanc n°${u.a} (${esc(E(u.a).niveau)})</th><th colspan="3">Examen blanc n°${u.b} (${esc(E(u.b).niveau)})</th><th colspan="3">Écart</th></tr><tr>${fgt}${fgt}${fgt}</tr></thead>`;
+ const ttp=n=>`<p style="text-align:center;margin:0">${esc(n)}</p>`,ttlH=`<h2>COMPARAISON ENTRE LES EXAMENS BLANCS N°${u.a} (${esc(E(u.a).niveau)}) ET N°${u.b} (${esc(E(u.b).niveau)})</h2>`,ttl=ttlH+ttp(L.length==1?UPS(L[0]):"TOTAL CEB");
  const cardGD=(gg,pp,tt,sg)=>`<div class="card por">${hd()}${tt}<h3>RÉSULTATS GLOBAUX</h3><div class="w"><table>${head("")}<tbody>${gg}</tbody></table></div>
 <h3>TAUX DE RÉUSSITE PAR DISCIPLINE</h3><div class="w"><table class="fx">${head("Disciplines")}<tbody>${pp}</tbody></table></div>${sg||sig()}</div>`;
  const cardEc=z=>`<div class="card por" data-rep="1">${hd()}${ttlH}<h3>TAUX DE RÉUSSITE PAR ÉCOLE – ZEP : ${esc(z.name)}</h3><div class="w"><table>${head("École",0,true)}<tbody>${z.list.map((x,k)=>cr(UPS(x),[x],"",k+1,true)).join("")}${cr("TOTAL ZEP",z.list,"tot",0,true)}</tbody></table></div>${sigZ({id:"z:"+(z.k||"~")})}</div>`;
- const vsel=`<select aria-label="Affichage" onchange="S.ui.cv=this.value;S.ui.scope='';S.ui.zsc='';save();R()"><option value=""${cv===""?" selected":""}>TOTAL CEB</option><option value="zep"${cv==="zep"?" selected":""}>PAR ZEP</option><option value="ec"${cv==="ec"?" selected":""}>ÉCOLES</option></select>`;
- const zall=gZ().filter(z=>z.list&&z.list.length),zsel=cv==="zep"&&zall.some(z=>(z.k||"~")===u.zsc)?u.zsc:"";
- const zselH=cv==="zep"?`<label class="schl np"><span class="lt"><b>ZEP</b> (Sélectionnez une ZEP, ou toutes les ZEP.)</span><select aria-label="ZEP" onchange="S.ui.zsc=this.value;save();R()"><option value=""${zsel===""?" selected":""}>TOUTES LES ZEP</option>${zall.map(z=>`<option value="${esc(z.k||"~")}"${(z.k||"~")===zsel?" selected":""}>${esc(UPS(z.name))}</option>`).join("")}</select></label>`:"";
+ const vsel=`<select aria-label="Affichage" onchange="S.ui.cv=this.value;S.ui.scope='';S.ui.cz='';save();R()"><option value=""${cv===""?" selected":""}>TOTAL CEB</option><option value="zep"${cv==="zep"?" selected":""}>PAR ZEP</option><option value="ec"${cv==="ec"?" selected":""}>ÉCOLES</option></select>`;
+ const kz=g=>g.k||"~",ZL=cv==="zep"?gZ().filter(z=>z.list&&z.list.length):[],zs=ZL.find(z=>kz(z)===u.cz),ZV=zs?[zs]:ZL;
  let body;
  if(sc||cv==="")body=cardGD(g,p,ttl)+(sc?"":`<div class="card por">${hd()}${ttl}${ct("ZEP",gZ())}${ct("Statut",gS())}${sig()}</div>`);
  else if(cv==="ec")body=`<div class="card por" data-rep="1">${hd()}${ttl}${ct("École",S.schools.map(s=>({name:UPS(s),list:[s]})),true)}${sig()}</div>`;
- else body=gZ().filter(z=>z.list&&z.list.length).filter(z=>!zsel||(z.k||"~")===zsel).map(z=>{const a2=agg(u.a,z.list),b2=agg(u.b,z.list),r=gdf(a2,b2);return cardGD(r.g,r.p,ttlH+ttp("ZEP : "+z.name),sigZ({id:"z:"+(z.k||"~")}))+cardEc(z)}).join("");
- const zmiss=cv==="zep"?zall.filter(z=>!zsel||(z.k||"~")===zsel).filter(z=>{const o=(S.zr&&S.zr["z:"+(z.k||"~")])||{};migNm(o,"nom","n","p");return ZR_REQ.some(x=>!String(o[x[0]]==null?"":o[x[0]]).trim())}).map(z=>z.name):[];
+ else body=ZV.map(z=>{const a2=agg(u.a,z.list),b2=agg(u.b,z.list),r=gdf(a2,b2);return cardGD(r.g,r.p,ttlH+ttp("ZEP : "+z.name),sigZ({id:"z:"+(z.k||"~")}))+cardEc(z)}).join("");
+ const zmiss=cv==="zep"?ZV.filter(z=>{const o=(S.zr&&S.zr["z:"+(z.k||"~")])||{};migNm(o,"nom","n","p");return ZR_REQ.some(x=>!String(o[x[0]]==null?"":o[x[0]]).trim())}).map(z=>z.name):[];
  const zwarn=zmiss.length?`<p class="warn np" role="alert" style="margin:0 0 10px">Signataire R/ZEP à compléter pour : ${esc(zmiss.join(", "))}. Renseignez-le dans la page Résultats (choisissez la zone), puis revenez ici.</p>`:"";
- return `<div class="ctl np">${exSel("a")}${exSel("b")}${vsel}${zselH}${cv==="ec"?`<label class="schl np"><span class="lt"><b>ÉCOLE</b> (Sélectionnez votre école ici. Pour la retrouver facilement, tapez ses premières lettres.)</span>${schoolBox("scope",u.scope||"","Total CEB (ou tapez une école)","lst-cp")}</label>`:""}${pdf}${xl}</div>
+ return `<div class="ctl np">${exSel("a")}${exSel("b")}${vsel}${cv==="zep"?`<label class="gb">ZEP<select aria-label="ZEP" onchange="S.ui.cz=this.value;save();R()"><option value="">Toutes les ZEP</option>${ZL.map(z=>`<option value="${esc(kz(z))}"${zs&&kz(z)===kz(zs)?" selected":""}>${esc(z.name)}</option>`).join("")}</select></label>`:""}${cv==="ec"?`<label class="schl np"><span class="lt"><b>ÉCOLE</b> (Sélectionnez votre école ici. Pour la retrouver facilement, tapez ses premières lettres.)</span>${schoolBox("scope",u.scope||"","Total CEB (ou tapez une école)","lst-cp")}</label>`:""}${pdf}${xl}</div>
 ${zwarn}${body}`}
 
 /* ===== Licence (même principe que LoGeNo : identifiant propre à l'appareil + code signé Ed25519 avec date d'expiration) ===== */
@@ -893,7 +892,7 @@ function buildPdf(cards,cnt){
    R.forEach((t,i)=>{doc.setFont("helvetica","normal");doc.setFontSize(10);wm=Math.max(wm,doc.getTextWidth(t))});
    R.forEach((t,i)=>{doc.setFont("helvetica","normal");doc.setFontSize(10);doc.setTextColor(...INK);doc.text(t,W-M-wm/2,y0+lh0*(i+1)-lh0*0.25+0.3*i,{align:"center"})});
    y+=3}
-  else if(tag==="H2"){y+=1;const sp=el.querySelector("span"),nw=sp&&sp.style.whiteSpace==="nowrap";if(nw){const a=pdfT(el.textContent.replace(sp.textContent,"")),b=pdfT(sp.textContent);doc.setFont("helvetica","bold");doc.setFontSize(13);if(doc.getTextWidth(a+" "+b)<=AV)para(a+" "+b,13,true,"center",INK,2.5);else{para(a,13,true,"center",INK,0);para(b,13,true,"center",INK,2.5)}}else para(el.textContent,13,true,"center",INK,2.5)}
+  else if(tag==="H2"){y+=1;para(el.textContent,13,true,"center",INK,2.5)}
   else if(tag==="H3"){need(26);y+=1;para(el.textContent,11,true,ctr?"center":"left",INK,1.5)}
   else if(tag==="P"&&el.classList.contains("stz")){const pt=[...el.children].map(c=>pdfT(c.textContent));doc.setFont("helvetica","bold");doc.setFontSize(10);doc.setTextColor(...INK);const lh=10*0.3528*1.35,gp=16,ws=pt.map(t=>doc.getTextWidth(t)),tt=ws.reduce((m,n)=>m+n,0)+gp*(pt.length-1);need(lh);y+=lh;let xx=W/2-tt/2;pt.forEach((t,k)=>{doc.text(t,xx,y-lh*0.25);xx+=ws[k]+gp});y+=1}
   else if(tag==="P"){el.classList.contains("mu")?para(el.textContent,8.5,false,"left",[70,70,70],1):para(el.textContent,10,false,ctr?"center":"left",INK,1)}
@@ -1092,7 +1091,7 @@ function pdfFileName(){
  if(t==="sa")return safeName(P+"_"+u.school+"_"+ex(n))+".pdf";
  if(t==="re"){const sc=reScope();return safeName(P+"_Résultats "+(sc?sc.lab+" "+sc.g.name:"CEB")+"_"+ex(n))+".pdf"}
  if(t==="me"){const c=u.crit===""||u.crit===undefined||!S.disc[+u.crit]?"global":S.disc[+u.crit];return safeName(P+"_Ordre de mérite_"+ex(n)+"_"+c)+".pdf"}
- if(t==="cp")return safeName(P+"_Comparatif_EB"+u.a+"_EB"+u.b+"_Niveau "+(E(u.a).niveau==E(u.b).niveau?E(u.a).niveau:E(u.a).niveau+"-"+E(u.b).niveau)+(u.cv==="ec"?(u.scope?"_"+u.scope:"_Écoles"):u.cv==="zep"?(u.zsc&&u.zsc!=="~"?"_ZEP "+u.zsc.toUpperCase():"_Par ZEP"):""))+".pdf";
+ if(t==="cp")return safeName(P+"_Comparatif_EB"+u.a+"_EB"+u.b+"_Niveau "+(E(u.a).niveau==E(u.b).niveau?E(u.a).niveau:E(u.a).niveau+"-"+E(u.b).niveau)+(u.cv==="ec"?(u.scope?"_"+u.scope:"_Écoles"):u.cv==="zep"?(gZ().some(z=>(z.k||"~")===u.cz)?"_ZEP "+gZ().find(z=>(z.k||"~")===u.cz).name:"_Par ZEP"):""))+".pdf";
  return P+".pdf"}
 /* Dossier créé pour les PDF : « FICHIERS PDF_EB N°<n>_<NIVEAU> » (comparatif : « EB N°1-2 », niveaux séparés par « - » s'ils diffèrent) */
 function dossierPdf(){
